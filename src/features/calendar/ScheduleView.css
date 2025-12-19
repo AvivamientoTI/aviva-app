@@ -1,0 +1,53 @@
+/* Estilos personalizados para el calendario */
+
+/* Ocultar celdas vacías (días sin eventos) */
+.rbc-off-range {
+  display: none !important;
+}
+
+/* Resaltar días con eventos */
+.rbc-month-row {
+  min-height: auto;
+}
+
+.rbc-date-cell {
+  padding: 2px 3px;
+}
+
+/* Fondo diferente para días con eventos */
+.rbc-month-row .rbc-date-cell button:has(+ .rbc-event-content) {
+  background-color: #fff3cd;
+  font-weight: bold;
+}
+
+/* Mejorar visibilidad de eventos */
+.rbc-event {
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.rbc-event-label {
+  font-size: 11px;
+}
+
+/* Hacer más compacto y visible */
+.rbc-month-view {
+  border: 1px solid #dee2e6;
+}
+
+.rbc-month-cell {
+  padding: 4px;
+  min-height: 80px;
+}
+
+.rbc-day-bg,
+.rbc-date-cell {
+  border: 1px solid #dee2e6;
+}
+
+/* Estilos para eventos compactos */
+.rbc-event-content {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
