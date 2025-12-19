@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
-import { Box, Group, Title, Button, Text, Center } from '@mantine/core';
+import { Box, Group, Title, Button } from '@mantine/core';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { CalendarCard } from './components/CalendarCard';
 import { ServiceUniformRow } from './components/ServiceUniformRow';
 import { EncargadoSection } from './components/EncargadoSection';
 import { ServersList } from './components/ServersList';
+import { EmptyState } from '../../components/EmptyState';
+import { IconCalendarOff } from '@tabler/icons-react';
 
 dayjs.locale('es');
 
@@ -13,7 +15,7 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
   // Filtrar solo días con asignaciones del mes actual
   const daysWithAssignments = useMemo(() => {
     const startMonth = dayjs(currentDate).startOf('month');
-    
+
     return Object.entries(groupedAssignments)
       .filter(([fecha]) => {
         const d = dayjs(fecha);
@@ -40,20 +42,20 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
           {dayjs(currentDate).format('MMMM [de] YYYY')}
         </Title>
         <Group>
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             onClick={() => onDateChange(dayjs(currentDate).subtract(1, 'month').toDate())}
           >
             Anterior
           </Button>
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             onClick={() => onDateChange(new Date())}
           >
             Hoy
           </Button>
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             onClick={() => onDateChange(dayjs(currentDate).add(1, 'month').toDate())}
           >
             Siguiente
@@ -63,17 +65,19 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
 
       {/* Mostrar solo días con roles */}
       {daysWithAssignments.length === 0 ? (
-        <Center p="xl">
-          <Text c="dimmed" size="lg">
-            No hay roles asignados para este mes
-          </Text>
-        </Center>
+        <EmptyState
+          icon={IconCalendarOff}
+          title="No hay roles asignados para este mes"
+          description="Crea un nuevo rol en el Planificador para ver las asignaciones aquí"
+          actionLabel="Ir al Planificador"
+          actionPath="/planning"
+        />
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
-          gap: '16px', 
-          width: '100%' 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: '16px',
+          width: '100%'
         }}>
           {daysWithAssignments.map((cell) => (
             <CalendarCard

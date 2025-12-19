@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Stepper, Button, Group, Title, Modal, Badge, Paper, Text, Select, Stack, Container, Box } from '@mantine/core';
+import { Stepper, Button, Group, Title, Modal, Badge, Paper, Text, Select, Stack, Container, Box, Progress } from '@mantine/core';
 import { getUsersNotAssignedOnDate } from '../../utils/exclusionLogic';
 import { useDisclosure } from '@mantine/hooks';
 import { supabase } from '../../services/supabaseClient';
@@ -11,7 +11,10 @@ import {
   IconInfoCircle,
   IconLock,
   IconHistory,
-  IconCalendarEvent
+  IconCalendarEvent,
+  IconBuilding,
+  IconCalendar,
+  IconChecklist
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -214,7 +217,7 @@ export function PlanningWizard() {
       if (conflictItems.length > 0) {
         notifications.show({
           title: 'Conflictos Detectados',
-          message: 'No se puede aprobar el rol mientras existan servidores asignados a otros departamentos para la misma fecha. Por favor, edita o elimina esas asignaciones.',
+          message: 'No se puede aprobar el rol mientras existan servidores(as) asignados(as) a otros departamentos para la misma fecha. Por favor, edita o elimina esas asignaciones.',
           color: 'red',
           autoClose: 10000
         });
@@ -456,7 +459,7 @@ export function PlanningWizard() {
         if (!generated || generated.length === 0) {
           notifications.show({
             title: 'Sin Asignaciones',
-            message: 'No fue posible generar el rol automáticamente. Verifica que existan servidores disponibles.',
+            message: 'No fue posible generar el rol automáticamente. Verifica que existan servidores(as) disponibles.',
             color: 'orange',
             icon: <IconAlertTriangle size={18} />,
             autoClose: 8000
@@ -612,18 +615,53 @@ export function PlanningWizard() {
   return (
     <Container size="xl" py="xl">
       <Paper shadow="sm" p="xl" radius="md" withBorder>
-        <Group justify="space-between" mb="xl">
+        <Group justify="space-between" mb="md">
           <div>
             <Title order={2}>Planificador de Roles</Title>
-            <Text c="dimmed">Configura, asigna y aprueba el rol mensual.</Text>
+            <Text c="dimmed" size="sm">Configura, asigna y aprueba el rol mensual de tu departamento</Text>
           </div>
-          <Badge size="lg" variant="gradient" gradient={{ from: 'indigo', to: 'cyan' }}>BETA</Badge>
+          <Badge size="lg" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
+            BETA
+          </Badge>
         </Group>
 
-        <Stepper active={active} onStepClick={setActive} breakpoint="sm" mb="xl">
-          <Stepper.Step label="Departamento" description="Selección de equipo" allowStepSelect={active > 0} />
-          <Stepper.Step label="Configuración" description="Fechas y servicios" allowStepSelect={active > 1} />
-          <Stepper.Step label="Revisión" description="Gestión de borrador" allowStepSelect={active > 2} />
+        {/* Progress indicator */}
+        <Progress
+          value={(active / 2) * 100}
+          size="sm"
+          radius="xl"
+          mb="lg"
+          color="blue"
+          striped
+          animated={loading || assigningLoading}
+        />
+
+        <Stepper
+          active={active}
+          onStepClick={setActive}
+          breakpoint="sm"
+          mb="xl"
+          size="md"
+          iconSize={42}
+        >
+          <Stepper.Step
+            icon={<IconBuilding size={20} />}
+            label="Departamento"
+            description="Selección de equipo"
+            allowStepSelect={active > 0}
+          />
+          <Stepper.Step
+            icon={<IconCalendar size={20} />}
+            label="Configuración"
+            description="Fechas y servicios"
+            allowStepSelect={active > 1}
+          />
+          <Stepper.Step
+            icon={<IconChecklist size={20} />}
+            label="Revisión"
+            description="Gestión de borrador"
+            allowStepSelect={active > 2}
+          />
         </Stepper>
 
         <div style={{ minHeight: 400 }}>
@@ -679,7 +717,7 @@ export function PlanningWizard() {
       <Modal
         opened={editModalOpened}
         onClose={() => setEditModalOpened(false)}
-        title="Cambiar Servidor"
+        title="Cambiar Servidor(a)"
         size="md"
       >
         <Stack>
@@ -691,7 +729,7 @@ export function PlanningWizard() {
           </Text>
 
           <Select
-            label="Seleccionar Nuevo Servidor"
+            label="Seleccionar Nuevo(a) Servidor(a)"
             placeholder="Busca un voluntario disponible"
             data={(replacements || []).map(u => ({ value: String(u.id), label: `${u.nombre} ${u.apellido}` }))}
             searchable

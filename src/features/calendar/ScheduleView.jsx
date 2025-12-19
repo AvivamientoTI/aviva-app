@@ -5,7 +5,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './ScheduleView.css';
 import { supabase } from '../../services/supabaseClient';
 import { assignmentsService } from '../../services/assignmentsService';
-import { Button, Group, Select, Loader, Box, Title, Modal, Text, Table, Badge, Tabs, Stack, Paper, Center, Grid, Container } from '@mantine/core';
+import { Button, Group, Select, Box, Title, Modal, Text, Table, Badge, Tabs, Stack, Paper, Center, Grid, Container } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconCalendar, IconList } from '@tabler/icons-react';
@@ -14,6 +14,7 @@ import { useUser } from '../../contexts/UserContext';
 import { CustomCalendar } from './CustomCalendar';
 import { useAssignments } from './hooks/useAssignments';
 import { useExport } from './hooks/useExport';
+import { CalendarSkeleton } from '../../components/SkeletonLoaders';
 
 const localizer = dayjsLocalizer(dayjs);
 
@@ -117,7 +118,7 @@ export function ScheduleView() {
 
     if (error) {
       console.error(error);
-      notifications.show({ title: 'Error', message: 'Error cargando servidores', color: 'red' });
+      notifications.show({ title: 'Error', message: 'Error cargando servidores(as)', color: 'red' });
     } else {
       const normalize = (str) => str?.toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
@@ -290,7 +291,7 @@ export function ScheduleView() {
 
     if (isUserAlreadyAssigned) {
       const selectedUser = users.find(u => String(u.id) === selectedUserIdStr);
-      const userName = selectedUser ? `${selectedUser.nombre} ${selectedUser.apellido}` : 'Este servidor';
+      const userName = selectedUser ? `${selectedUser.nombre} ${selectedUser.apellido}` : 'Esta persona';
       notifications.show({
         title: 'No permitido',
         message: `${userName} ya tiene un rol asignado o una ausencia ese día.`,
@@ -303,7 +304,7 @@ export function ScheduleView() {
     const userObj = users.find(u => String(u.id) === selectedUserId);
     try {
       await assignmentsService.swap(swapTarget.id, Number(selectedUserId));
-      notifications.show({ title: 'Éxito', message: 'Servidor cambiado', color: 'green' });
+      notifications.show({ title: 'Éxito', message: 'Servidor(a) cambiado(a)', color: 'green' });
       refetch();
       setSelectedDayEvents((prev) => prev.map(ev => ev.id === swapTarget.id
         ? {
@@ -318,7 +319,7 @@ export function ScheduleView() {
       closeSwap();
     } catch (error) {
       console.error(error);
-      notifications.show({ title: 'Error', message: 'No se pudo cambiar el servidor', color: 'red' });
+      notifications.show({ title: 'Error', message: 'No se pudo cambiar el/la servidor(a)', color: 'red' });
     }
     setSavingSwap(false);
   };
@@ -388,7 +389,7 @@ export function ScheduleView() {
       </Group>
 
       {loading ? (
-        <Loader />
+        <CalendarSkeleton />
       ) : (
         <Tabs value={viewMode} onChange={setViewMode}>
           <Tabs.List mb="md">
@@ -484,13 +485,13 @@ export function ScheduleView() {
                           <Badge size="lg" color="orange" variant="filled">{dayData.servicio || 'N/A'}</Badge>
                         </Group>
                         <Badge size="lg" variant="light">
-                          {dayData.assignments.length} servidor{dayData.assignments.length !== 1 ? 'es' : ''}
+                          {dayData.assignments.length} servidor{dayData.assignments.length !== 1 ? 'es(as)' : '(a)'}
                         </Badge>
                       </Group>
                       {dayData.encargado && (
                         <Paper p="sm" mb="sm" style={{ backgroundColor: '#fff9db', border: '2px solid #fab005' }}>
                           <Group gap="xs">
-                            <Text size="sm" fw={700} c="yellow.9">Encargado:</Text>
+                            <Text size="sm" fw={700} c="yellow.9">Encargado(a):</Text>
                             <Text size="sm" fw={600} c="yellow.9">{dayData.encargado}</Text>
                           </Group>
                         </Paper>
@@ -498,7 +499,7 @@ export function ScheduleView() {
                       <Table highlightOnHover>
                         <Table.Thead>
                           <Table.Tr>
-                            <Table.Th>Servidor</Table.Th>
+                            <Table.Th>Servidor(a)</Table.Th>
                             <Table.Th>Posición</Table.Th>
                             <Table.Th>Uniforme</Table.Th>
                           </Table.Tr>
@@ -548,7 +549,7 @@ export function ScheduleView() {
       <Modal
         opened={dayEventsOpened}
         onClose={closeDayEvents}
-        title={selectedDate ? `Servidores del ${dayjs(selectedDate).format('dddd, DD [de] MMMM [de] YYYY')}` : 'Servidores del día'}
+        title={selectedDate ? `Servidores(as) del ${dayjs(selectedDate).format('dddd, DD [de] MMMM [de] YYYY')}` : 'Servidores(as) del día'}
         size="lg"
       >
         <Stack gap="sm">
@@ -560,7 +561,7 @@ export function ScheduleView() {
           <Table highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Servidor</Table.Th>
+                <Table.Th>Servidor(a)</Table.Th>
                 <Table.Th>Posición</Table.Th>
                 <Table.Th></Table.Th>
               </Table.Tr>
@@ -613,10 +614,10 @@ export function ScheduleView() {
 
       </Modal>
 
-      <Modal opened={swapOpened} onClose={closeSwap} title="Cambiar servidor" centered>
+      <Modal opened={swapOpened} onClose={closeSwap} title="Cambiar servidor(a)" centered>
         <Stack gap="sm">
           <Text size="sm" c="dimmed">
-            Selecciona un servidor disponible para esta asignación.
+            Selecciona un(a) servidor(a) disponible para esta asignación.
           </Text>
           <Group justify="space-between" gap="xs">
             <Text size="sm" fw={600}>
@@ -627,12 +628,12 @@ export function ScheduleView() {
             </Text>
           </Group>
           <Select
-            placeholder="Elige servidor disponible"
+            placeholder="Elige servidor(a) disponible"
             data={userOptions}
             value={selectedUserId}
             onChange={setSelectedUserId}
             searchable
-            nothingFoundMessage={userOptions.length === 0 ? "No hay servidores disponibles ese día" : undefined}
+            nothingFoundMessage={userOptions.length === 0 ? "No hay servidores(as) disponibles ese día" : undefined}
           />
           <Group justify="flex-end" mt="sm">
             <Button variant="default" onClick={closeSwap}>Cancelar</Button>

@@ -122,7 +122,7 @@ export function UsersList() {
   }, [users, filterDept, search]);
 
   const stats = [
-    { label: 'Total Servidores', value: users.length, icon: IconUsers, color: 'blue' },
+    { label: 'Total Servidores(as)', value: users.length, icon: IconUsers, color: 'blue' },
     { label: 'Hombres', value: users.filter(u => u.genero === 'M').length, icon: IconUser, color: 'cyan' },
     { label: 'Mujeres', value: users.filter(u => u.genero === 'F').length, icon: IconUser, color: 'pink' },
   ];
@@ -131,7 +131,7 @@ export function UsersList() {
     <div>
       <Group justify="space-between" mb="lg">
         <div>
-          <Title order={2}>Gestión de Servidores</Title>
+          <Title order={2}>Gestión de Servidores(as)</Title>
           <Text c="dimmed" size="sm">Administra el directorio de voluntarios</Text>
         </div>
         <Button
@@ -139,7 +139,7 @@ export function UsersList() {
           onClick={() => { resetForm(); open(); }}
           disabled={!permissions.canManageUsers}
         >
-          Nuevo Servidor
+          Nuevo(a) Servidor(a)
         </Button>
       </Group>
 
@@ -195,7 +195,7 @@ export function UsersList() {
           <Table verticalSpacing="sm" highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Servidor</Table.Th>
+                <Table.Th>Servidor(a)</Table.Th>
                 <Table.Th>Edad</Table.Th>
                 <Table.Th>Contacto</Table.Th>
                 <Table.Th>Membresías</Table.Th>

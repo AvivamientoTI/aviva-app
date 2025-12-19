@@ -9,7 +9,7 @@ import { DepartmentsList } from './features/departments/DepartmentsList';
 import { AttendanceManager } from './features/attendance/AttendanceManager';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { supabase } from './services/supabaseClient';
-import { Loader, Center } from '@mantine/core';
+import { Loader, Center, Stack, Text } from '@mantine/core';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -32,8 +32,13 @@ function App() {
 
   if (loading) {
     return (
-      <Center h="100vh">
-        <Loader size="xl" />
+      <Center h="100vh" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
+        <Stack align="center" gap="md">
+          <Loader size="xl" color="blue" />
+          <Text size="lg" fw={600} c="blue.7">
+            Cargando Ujieres App...
+          </Text>
+        </Stack>
       </Center>
     );
   }
