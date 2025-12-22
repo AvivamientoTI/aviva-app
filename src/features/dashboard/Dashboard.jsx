@@ -78,9 +78,24 @@ export function Dashboard() {
                 }} padding="lg" radius="md">
                     <Stack gap="xs">
                         <Title order={2}>¡Bienvenido de nuevo, {userProfile?.usuario?.nombre || 'Servidor'}!</Title>
-                        <Text size="lg" style={{ fontStyle: 'italic' }}>
-                            "Porque un día en tus atrios es mejor que mil fuera de ellos."
-                        </Text>
+                        <div style={{
+                            background: 'rgba(30, 58, 138, 0.18)', // azul oscuro translúcido
+                            borderLeft: '4px solid #60a5fa', // azul claro
+                            padding: '12px 18px',
+                            borderRadius: '6px',
+                            fontFamily: 'serif',
+                            fontStyle: 'italic',
+                            color: '#e0e7ff', // azul muy claro
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                            marginBottom: '4px'
+                        }}>
+                            <span style={{ fontSize: '1.15rem', display: 'block', marginBottom: '4px' }}>
+                                Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres;
+                            </span>
+                            <span style={{ fontWeight: 600, fontSize: '1rem', color: '#ffd700' }}>
+                                Colosenses 3:23
+                            </span>
+                        </div>
                         <Text c="blue.1">Aquí tienes un resumen de tu actividad y la de tu equipo.</Text>
                     </Stack>
                 </Card>
