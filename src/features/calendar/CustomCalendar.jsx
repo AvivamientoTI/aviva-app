@@ -4,7 +4,6 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { CalendarCard } from './components/CalendarCard';
 import { ServiceUniformRow } from './components/ServiceUniformRow';
-import { EncargadoSection } from './components/EncargadoSection';
 import { ServersList } from './components/ServersList';
 import { EmptyState } from '../../components/EmptyState';
 import { IconCalendarOff } from '@tabler/icons-react';
@@ -21,16 +20,26 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
         const d = dayjs(fecha);
         return d.isSame(startMonth, 'month');
       })
-      .map(([fecha, dayData]) => ({
-        fecha,
-        date: dayjs(fecha),
-        assignments: dayData.assignments,
-        encargado: dayData.encargado,
-        servicio: dayData.servicio,
-        uniforme: dayData.uniforme,
-        isToday: dayjs(fecha).isSame(dayjs(), 'day'),
-        dayOfWeek: dayjs(fecha).format('dddd')
-      }))
+      .map(([fecha, dayData]) => {
+        const assignmentsWithEncargado = [...dayData.assignments];
+        if (dayData.encargado && String(dayData.encargado).trim() !== '') {
+          assignmentsWithEncargado.push({
+            nombre: dayData.encargado,
+            posicion: 'Encargado',
+          });
+        }
+
+        return {
+          fecha,
+          date: dayjs(fecha),
+          assignments: assignmentsWithEncargado,
+          encargado: dayData.encargado,
+          servicio: dayData.servicio,
+          uniforme: dayData.uniforme,
+          isToday: dayjs(fecha).isSame(dayjs(), 'day'),
+          dayOfWeek: dayjs(fecha).format('dddd')
+        };
+      })
       .sort((a, b) => a.date.diff(b.date));
   }, [currentDate, groupedAssignments]);
 
@@ -89,7 +98,6 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
               onClick={() => onDayClick(cell.date.toDate(), cell.assignments)}
             >
               <ServiceUniformRow servicio={cell.servicio} uniforme={cell.uniforme} />
-              <EncargadoSection encargado={cell.encargado} />
               <ServersList assignments={cell.assignments} />
             </CalendarCard>
           ))}

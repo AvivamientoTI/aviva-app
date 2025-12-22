@@ -72,10 +72,18 @@ export function Dashboard() {
     return (
         <Container size="xl" py="md">
             <Stack gap="lg">
-                <div>
-                    <Title order={2}>Bienvenido, {userProfile?.usuario?.nombre || 'Servidor'}</Title>
-                    <Text c="dimmed">Aquí tienes un resumen de tu actividad y la de tu equipo.</Text>
-                </div>
+                <Card style={{
+                    background: 'linear-gradient(135deg, var(--mantine-color-blue-5) 0%, var(--mantine-color-blue-7) 100%)',
+                    color: 'white'
+                }} padding="lg" radius="md">
+                    <Stack gap="xs">
+                        <Title order={2}>¡Bienvenido de nuevo, {userProfile?.usuario?.nombre || 'Servidor'}!</Title>
+                        <Text size="lg" style={{ fontStyle: 'italic' }}>
+                            "Porque un día en tus atrios es mejor que mil fuera de ellos."
+                        </Text>
+                        <Text c="blue.1">Aquí tienes un resumen de tu actividad y la de tu equipo.</Text>
+                    </Stack>
+                </Card>
 
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
                     <StatCard
@@ -106,22 +114,24 @@ export function Dashboard() {
 
                 <Grid>
                     <Grid.Col span={{ base: 12, md: 8 }}>
-                        <Paper withBorder p="md" radius="md">
+                        <Card withBorder p="md" radius="md">
                             <Title order={4} mb="md">Próximos Servicios</Title>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
                                     {upcoming.map((service) => (
-                                        <Card key={service.id} withBorder padding="sm" radius="md">
+                                        <Card key={service.id} withBorder padding="sm" radius="md" style={{
+                                            background: 'linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-blue-1) 100%)'
+                                        }}>
                                             <Group justify="space-between">
                                                 <Stack gap={0}>
-                                                    <Text fw={600}>{service.configuracion_dia.tipo_servicio}</Text>
-                                                    <Text size="sm" c="dimmed">
+                                                    <Text fw={600} c="blue.9">{service.configuracion_dia.tipo_servicio}</Text>
+                                                    <Text size="sm" c="blue.8">
                                                         {dayjs(service.configuracion_dia.fecha).format('dddd, D [de] MMMM')}
                                                     </Text>
                                                 </Stack>
                                                 <Group>
-                                                    <Badge variant="light">{service.posicion?.nombre}</Badge>
-                                                    <Badge color="gray" variant="dot">{service.configuracion_dia.color_uniforme}</Badge>
+                                                    <Badge color="blue" variant="light">{service.posicion?.nombre}</Badge>
+                                                    <Badge color="gray" variant="filled">{service.configuracion_dia.color_uniforme}</Badge>
                                                 </Group>
                                             </Group>
                                         </Card>
@@ -130,28 +140,24 @@ export function Dashboard() {
                             ) : (
                                 <Text ta="center" py="xl" c="dimmed">No tienes asignaciones programadas próximamente.</Text>
                             )}
-                        </Paper>
+                        </Card>
                     </Grid.Col>
 
                     <Grid.Col span={{ base: 12, md: 4 }}>
-                        <Paper withBorder p="md" radius="md">
+                        <Card withBorder p="md" radius="md">
                             <Title order={4} mb="md">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
-                                    <RingProgress
-                                        size={220}
-                                        thickness={20}
-                                        roundCaps
-                                        label={
-                                            <Center>
-                                                <Text fw={700} size="xl">{attendanceRate}%</Text>
-                                            </Center>
-                                        }
-                                        sections={[
-                                            { value: (stats.summary.asistio / attendanceTotal) * 100, color: 'teal' },
-                                            { value: (stats.summary.faltoConAviso / attendanceTotal) * 100, color: 'orange' },
-                                            { value: (stats.summary.faltoSinAviso / attendanceTotal) * 100, color: 'red' },
+                                    <DonutChart
+                                        h={220}
+                                        data={[
+                                            { name: 'Asistió', value: stats.summary.asistio, color: 'teal.6' },
+                                            { name: 'Justificado', value: stats.summary.faltoConAviso, color: 'orange.6' },
+                                            { name: 'Faltó', value: stats.summary.faltoSinAviso, color: 'red.6' },
                                         ]}
+                                        tooltipDataSource="segment"
+                                        withLabelsLine
+                                        withLabels
                                     />
                                     <Group gap="xs">
                                         <Badge color="teal" variant="dot">Asistió</Badge>
@@ -162,12 +168,12 @@ export function Dashboard() {
                             ) : (
                                 <Text ta="center" py="xl" c="dimmed">No hay datos de asistencia todavía.</Text>
                             )}
-                        </Paper>
+                        </Card>
                     </Grid.Col>
 
                     {stats && Object.keys(stats.byMonth).length > 0 && (
                         <Grid.Col span={12}>
-                            <Paper withBorder p="md" radius="md">
+                            <Card withBorder p="md" radius="md">
                                 <Title order={4} mb="md">Tendencia de Asistencia (Últimos Meses)</Title>
                                 <BarChart
                                     h={400}
@@ -181,7 +187,7 @@ export function Dashboard() {
                                     gridAxis="xy"
                                     withLegend
                                 />
-                            </Paper>
+                            </Card>
                         </Grid.Col>
                     )}
                 </Grid>
@@ -192,12 +198,15 @@ export function Dashboard() {
 
 function StatCard({ title, value, icon, color }) {
     return (
-        <Paper withBorder p="md" radius="md">
+        <Card withBorder p="md" radius="md" style={{
+            background: `linear-gradient(135deg, var(--mantine-color-${color}-6) 0%, var(--mantine-color-${color}-8) 100%)`,
+            color: 'white'
+        }}>
             <Group justify="space-between">
-                <Text size="xs" c="dimmed" fw={700} tt="uppercase">
+                <Text size="xs" fw={700} tt="uppercase">
                     {title}
                 </Text>
-                <ThemeIcon color={color} variant="light" size="lg" radius="md">
+                <ThemeIcon color="white" variant="transparent" size="lg" radius="md">
                     {icon}
                 </ThemeIcon>
             </Group>
@@ -206,6 +215,6 @@ function StatCard({ title, value, icon, color }) {
                     {value}
                 </Text>
             </Group>
-        </Paper>
+        </Card>
     );
 }

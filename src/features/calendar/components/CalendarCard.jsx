@@ -2,65 +2,71 @@ import React from 'react';
 import { Paper, Box, Group, Text, Badge } from '@mantine/core';
 
 export function CalendarCard({ date, dayOfWeek, assignmentsCount, isToday, onClick, children }) {
-  const baseShadow = isToday ? '0 2px 8px rgba(59, 130, 246, 0.15)' : '0 1px 3px rgba(0,0,0,0.08)';
-  const hoverShadow = isToday ? '0 8px 24px rgba(59, 130, 246, 0.25)' : '0 4px 16px rgba(0,0,0,0.12)';
+  const baseShadow = isToday ? '0 4px 12px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)';
+  const hoverShadow = isToday ? '0 10px 28px rgba(59, 130, 246, 0.3)' : '0 4px 16px rgba(0,0,0,0.12)';
 
   return (
     <Paper
       p={0}
       withBorder
       style={{
-        borderRadius: '10px',
-        border: '2px solid',
-        borderColor: isToday ? '#3b82f6' : '#e5e7eb',
+        borderRadius: '12px',
+        border: '3px solid',
+        borderColor: isToday ? '#2563eb' : '#e5e7eb',
         background: isToday
-          ? 'linear-gradient(135deg, #f0f7ff 0%, #e0eeff 100%)'
+          ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'all 0.25s ease-in-out',
         display: 'flex',
         flexDirection: 'column',
         boxShadow: baseShadow,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        position: 'relative'
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
         e.currentTarget.style.boxShadow = hoverShadow;
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.borderColor = '#3b82f6';
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.borderColor = isToday ? '#1d4ed8' : '#3b82f6';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.boxShadow = baseShadow;
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.borderColor = isToday ? '#3b82f6' : '#e5e7eb';
+        e.currentTarget.style.borderColor = isToday ? '#2563eb' : '#e5e7eb';
       }}
     >
+      {isToday && (
+        <Badge
+          color="blue"
+          variant="filled"
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            zIndex: 1,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          }}
+        >
+          Hoy
+        </Badge>
+      )}
       <Box
         p="sm"
         style={{
-          borderBottom: '2px solid #e5e7eb',
+          borderBottom: `2px solid ${isToday ? '#bfdbfe' : '#e5e7eb'}`,
           background: isToday
             ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
             : 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)'
         }}
       >
         <Group justify="space-between" align="center">
-          <Text fw={700} size="xl" c={isToday ? 'blue.7' : 'gray.9'} tt="uppercase">
-            {dayOfWeek} {date.date()}
+          <Text fw={700} size="md" c={isToday ? 'blue.8' : 'gray.9'} tt="capitalize">
+            {dayOfWeek}
           </Text>
-          <Badge
-            size="md"
-            color="teal"
-            variant="filled"
-            style={{
-              fontSize: '13px',
-              padding: '6px 12px',
-              background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-              fontWeight: 700
-            }}
-          >
-            {assignmentsCount}
-          </Badge>
+          <Text fw={900} size="2.8rem" c={isToday ? 'blue.8' : 'gray.9'} lh={1}>
+            {date.date()}
+          </Text>
         </Group>
       </Box>
 

@@ -5,12 +5,6 @@ export const assignmentsService = {
    * Obtiene asignaciones por departamento con todos los datos relacionados
    */
   async fetchByDepartment(deptId) {
-    console.log('🔎 assignmentsService.fetchByDepartment - deptId:', deptId, 'tipo:', typeof deptId);
-
-    // Primero verificar si hay asignaciones en general
-    const { data: allData } = await supabase.from('asignaciones').select('id').limit(5);
-    console.log('🔍 Total asignaciones en BD:', allData?.length || 0);
-
     const { data, error } = await supabase
       .from('asignaciones')
       .select(`
@@ -29,11 +23,6 @@ export const assignmentsService = {
         )
       `)
       .eq('configuracion_dia.roles_cabecera.departamento_id', Number(deptId));
-
-    console.log('📊 Query result - data:', data?.length || 0, 'error:', error);
-    if (data && data.length > 0) {
-      console.log('📋 Primera asignación:', data[0]);
-    }
 
     if (error) throw error;
     return data;

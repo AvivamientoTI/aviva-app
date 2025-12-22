@@ -14,6 +14,7 @@ import { useUser } from '../../contexts/UserContext';
 import { CustomCalendar } from './CustomCalendar';
 import { useAssignments } from './hooks/useAssignments';
 import { useExport } from './hooks/useExport';
+import { useAvailableUsersForSwap } from './hooks/useAvailableUsersForSwap';
 import { CalendarSkeleton } from '../../components/SkeletonLoaders';
 
 const localizer = dayjsLocalizer(dayjs);
@@ -41,10 +42,21 @@ function CompactEvent({ event }) {
     : undefined;
   const posicion = event?.resource?.posicion?.nombre;
   const title = nombre && posicion ? `${nombre} — ${posicion}` : (event.title || 'Evento');
+  const uniformColor = event?.resource?.configuracion_dia?.color_uniforme || 'gray';
+
   return (
-    <div style={{ fontSize: 11, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {title}
-    </div>
+    <Group gap="xs" align="center" wrap="nowrap">
+      <Badge color={uniformColor} size="sm" circle />
+      <div style={{
+        fontSize: 11,
+        lineHeight: 1.2,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }}>
+        {title}
+      </div>
+    </Group>
   );
 }
 
@@ -71,73 +83,89 @@ export function ScheduleView() {
   const detailRef = useRef(null);
   const monthExportRef = useRef(null);
 
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('departamentos').select('*');
+      if (error) {
+        console.error('Error cargando departamentos:', error);
+        notifications.show({ title: 'Error', message: 'Error cargando departamentos', color: 'red' });
+        return;
+      }
+      if (data) {
+        const managedDeptIds = permissions.getManagedDepartmentIds();
+        const departmentsToShow = managedDeptIds.length > 0
+          ? data.filter(d => managedDeptIds.includes(d.id))
+          : data;
+
+        setDepartments(departmentsToShow.map(d => ({ value: String(d.id), label: d.nombre })));
+        if (departmentsToShow.length > 0) {
+          setSelectedDept(String(departmentsToShow[0].id));
+        }
+      }
+    } catch (err) {
+      console.error('Excepción al cargar departamentos:', err);
+      notifications.show({ title: 'Error inesperado', message: 'Ocurrió un error al cargar los departamentos', color: 'red' });
+    }
+  }, [permissions]);
+
+  const fetchUsers = useCallback(async (deptId) => {
+    try {
+      const { data: deptMemberships, error } = await supabase
+        .from('membresias')
+        .select(`
+          rol_jerarquico,
+          usuario:usuarios(id, nombre, apellido, genero)
+        `)
+        .eq('departamento_id', Number(deptId));
+
+      if (error) {
+        console.error('Error cargando miembros del departamento:', error);
+        notifications.show({ title: 'Error', message: 'Error cargando servidores(as)', color: 'red' });
+        setUsers([]);
+        return;
+      }
+
+      if (deptMemberships) {
+        const normalize = (str) => str?.toLowerCase()
+          .normalize("NFD").replace(/\u0300-\u036f/g, "") || '';
+
+        const usersWithRolesMap = {};
+        deptMemberships.forEach(m => {
+          if (!m.usuario) return;
+          const uid = m.usuario.id;
+          if (!usersWithRolesMap[uid]) {
+            usersWithRolesMap[uid] = {
+              ...m.usuario,
+              roles: []
+            };
+          }
+          usersWithRolesMap[uid].roles.push(normalize(m.rol_jerarquico));
+        });
+        setUsers(Object.values(usersWithRolesMap));
+      }
+    } catch (err) {
+      console.error('Excepción al cargar usuarios:', err);
+      notifications.show({ title: 'Error inesperado', message: 'Ocurrió un error al cargar los usuarios', color: 'red' });
+      setUsers([]);
+    }
+  }, []);
+
   // Usar hooks personalizados
   const { groupedAssignments, calendarEvents: events, loading, refetch } = useAssignments(selectedDept);
   const { exportToPng } = useExport();
+  const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, loadingAssignedUsers);
 
   useEffect(() => {
-    // Esperar a que UserContext cargue antes de cargar departamentos
     if (!userLoading) {
       fetchDepartments();
     }
-  }, [userLoading]);
+  }, [userLoading, fetchDepartments]);
 
   useEffect(() => {
     if (selectedDept) {
       fetchUsers(selectedDept);
     }
-  }, [selectedDept, refetch]);
-
-  const fetchDepartments = async () => {
-    const { data } = await supabase.from('departamentos').select('*');
-    if (data) {
-      // Obtener departamentos gestionados por el usuario
-      const managedDeptIds = permissions.getManagedDepartmentIds();
-
-      const manageable = data.filter(d => managedDeptIds.includes(d.id));
-
-      // Si el usuario tiene departamentos específicos, mostrar solo esos
-      // Si no (ej: admin), mostrar todos
-      const departmentsToShow = manageable.length > 0 ? manageable : data;
-
-      setDepartments(departmentsToShow.map(d => ({ value: String(d.id), label: d.nombre })));
-      if (departmentsToShow.length > 0) {
-        setSelectedDept(String(departmentsToShow[0].id));
-      }
-    }
-  };
-
-  const fetchUsers = async (deptId) => {
-    const { data: deptMemberships, error } = await supabase
-      .from('membresias')
-      .select(`
-        rol_jerarquico,
-        usuario:usuarios(id, nombre, apellido, genero)
-      `)
-      .eq('departamento_id', Number(deptId));
-
-    if (error) {
-      console.error(error);
-      notifications.show({ title: 'Error', message: 'Error cargando servidores(as)', color: 'red' });
-    } else {
-      const normalize = (str) => str?.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
-
-      const usersWithRolesMap = {};
-      deptMemberships.forEach(m => {
-        if (!m.usuario) return;
-        const uid = m.usuario.id;
-        if (!usersWithRolesMap[uid]) {
-          usersWithRolesMap[uid] = {
-            ...m.usuario,
-            roles: []
-          };
-        }
-        usersWithRolesMap[uid].roles.push(normalize(m.rol_jerarquico));
-      });
-      setUsers(Object.values(usersWithRolesMap));
-    }
-  };
+  }, [selectedDept, fetchUsers]);
 
   const handleExport = useCallback(() => {
     const fileName = viewMode === 'calendar' ? 'calendario-ujieres.png' : 'detalle-asignaciones.png';
@@ -177,62 +205,6 @@ export function ScheduleView() {
     setSelectedDate(date);
     openDayEvents();
   };
-
-  const userOptions = useMemo(() => {
-    // Si no hay un swap target, mostrar todos los usuarios del departamento
-    if (!swapTarget) {
-      return users.map(u => ({ value: String(u.id), label: `${u.nombre} ${u.apellido}` }));
-    }
-
-    // Si aún está cargando, retornar lista vacía temporalmente
-    if (loadingAssignedUsers) {
-      return [];
-    }
-
-    // Build set of IDs already assigned that day
-    const assignedUserIdsOnDay = new Set(allAssignedUsersOnDay.map(id => String(id)));
-
-    // Exclude current user from that set to allow them in the list
-    const currentUserId = String(swapTarget.usuario_id);
-    if (currentUserId) {
-      assignedUserIdsOnDay.delete(currentUserId);
-    }
-
-    const normalize = (str) => str?.toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
-
-    // Detection of Encargado position
-    const posNameNorm = normalize(swapTarget?.resource?.posicion?.nombre || swapTarget?.posicion);
-    const isEncargadoPos = posNameNorm.includes('encargad');
-
-    // Filter users who are NOT assigned on that day and match role requirements
-    const filteredUsers = users.filter(u => {
-      const isExcluded = assignedUserIdsOnDay.has(String(u.id));
-      if (isExcluded) return false;
-
-      // 1. Gender check: allow same gender, or 'A' (Ambos) or if no requirement
-      const requiredGender = swapTarget?.resource?.posicion?.genero_requerido || swapTarget?.posicion?.genero_requerido;
-      const genderMatch = !requiredGender ||
-        requiredGender === 'A' ||
-        u.genero === requiredGender;
-
-      if (!genderMatch) return false;
-
-      // 2. Encargado logic: check roles
-      if (isEncargadoPos) {
-        return u.roles.some(r =>
-          r.includes('lider') ||
-          r.includes('encargad') ||
-          r.includes('sublider')
-        );
-      }
-      return true;
-    });
-
-    console.log(`✅ Usuarios disponibles: ${filteredUsers.length}/${users.length} (EncargadoPos: ${isEncargadoPos})`);
-
-    return filteredUsers.map(u => ({ value: String(u.id), label: `${u.nombre} ${u.apellido}` }));
-  }, [users, swapTarget, allAssignedUsersOnDay, selectedDate, loadingAssignedUsers]);
 
   const handleOpenSwap = async (event) => {
     setSwapTarget(event);

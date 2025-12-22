@@ -8,10 +8,31 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return 'El email es requerido';
+    if (!emailRegex.test(email)) return 'Formato de email inválido';
+    return '';
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setEmailError('');
+    setPasswordError('');
+
+    const emailValidation = validateEmail(email);
+    const passwordValidation = password.length >= 6 ? '' : 'La contraseña debe tener al menos 6 caracteres';
+
+    if (emailValidation || passwordValidation) {
+      setEmailError(emailValidation);
+      setPasswordError(passwordValidation);
+      return;
+    }
+
     setLoading(true);
     
     const { error } = await supabase.auth.signInWithPassword({
@@ -21,7 +42,7 @@ export function Login() {
 
     if (error) {
       notifications.show({
-        title: 'Error',
+        title: 'Error de inicio de sesión',
         message: error.message,
         color: 'red',
       });
@@ -46,7 +67,11 @@ export function Login() {
               placeholder="tu@email.com" 
               required 
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError('');
+              }}
+              error={emailError}
             />
             <PasswordInput 
               label="Contraseña" 
@@ -54,7 +79,11 @@ export function Login() {
               required 
               mt="md" 
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPasswordError('');
+              }}
+              error={passwordError}
             />
             <Button fullWidth mt="xl" type="submit" loading={loading}>
               Iniciar Sesión
