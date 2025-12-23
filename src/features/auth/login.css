@@ -1,0 +1,48 @@
+/* Estilos simples y elegantes para el login */
+.login-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-paper {
+  border-radius: 16px;
+  box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.10);
+  background: #fff;
+  padding: 2.5rem 2rem;
+  transition: box-shadow 0.2s;
+}
+
+.login-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  color: #2563eb;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  color: #64748b;
+  margin-bottom: 1.5rem;
+}
+
+.login-btn {
+  background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.login-btn:hover {
+  background: linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 100%);
+}
+
+.login-error {
+  color: #ef4444;
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}

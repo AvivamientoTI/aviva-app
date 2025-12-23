@@ -9,20 +9,31 @@ export function DashboardLayout() {
   const [opened, { toggle }] = useDisclosure();
   const navigate = useNavigate();
   const location = useLocation();
-  const { userProfile, managedDepartments, loading } = useUser();
+  const { userProfile, managedDepartments, userMemberships, loading } = useUser();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
   };
 
+  // Determinar roles del usuario
+  const roles = userMemberships?.map(m => m.rol_jerarquico?.toLowerCase()) || [];
+  const isLider = roles.includes('líder') || roles.includes('lider');
+  const isSublider = roles.includes('sublíder') || roles.includes('sublider');
+  const isEncargado = roles.includes('encargado') || roles.includes('encargada');
+  const isServidor = roles.includes('servidor') || roles.includes('servidora');
+
+  // Opciones visibles según rol
   const links = [
     { label: 'Dashboard', path: '/' },
     { label: 'Calendario', path: '/calendar' },
-    { label: 'Planificación', path: '/planning' },
-    { label: 'Asistencia', path: '/attendance' },
-    { label: 'Servidores', path: '/users' },
-    { label: 'Departamentos', path: '/departments' },
+    ...(isLider || isSublider ? [
+      { label: 'Planificación', path: '/planning' },
+      { label: 'Departamentos', path: '/departments' },
+    ] : []),
+    ...(isEncargado ? [
+      { label: 'Asistencia', path: '/attendance' },
+    ] : []),
   ];
 
   const userName = userProfile?.usuario

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { TextInput, PasswordInput, Button, Paper, Title, Container, Text, Center } from '@mantine/core';
+import { TextInput, PasswordInput, Button, Paper, Title, Container, Text } from '@mantine/core';
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
+import './login.css';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -53,44 +54,51 @@ export function Login() {
   };
 
   return (
-    <Center h="100vh" bg="gray.1" w="100%">
-      <Container size={420} my={40}>
-        <Title ta="center">Bienvenido a Ujieres AYP</Title>
-        <Text c="dimmed" size="sm" ta="center" mt={5}>
-          Inicia sesión para continuar
-        </Text>
-
-        <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+    <div className="login-bg">
+      <Container size={420}>
+        <Paper withBorder shadow="md" className="login-paper">
+          <Title order={2} ta="center" className="login-title">Aviva App</Title>
+          <Text size="sm" ta="center" className="login-subtitle" mb={20}>
+            Inicia sesión para continuar
+          </Text>
           <form onSubmit={handleLogin}>
-            <TextInput 
-              label="Email" 
-              placeholder="tu@email.com" 
-              required 
+            <TextInput
+              label="Email"
+              placeholder="tu@email.com"
+              required
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
                 setEmailError('');
               }}
-              error={emailError}
+              error={emailError && <span className="login-error">{emailError}</span>}
+              autoComplete="username"
+              size="md"
+              radius="md"
+              mb={8}
             />
-            <PasswordInput 
-              label="Contraseña" 
-              placeholder="Tu contraseña" 
-              required 
-              mt="md" 
+            <PasswordInput
+              label="Contraseña"
+              placeholder="Tu contraseña"
+              required
+              mt="md"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
                 setPasswordError('');
               }}
-              error={passwordError}
+              error={passwordError && <span className="login-error">{passwordError}</span>}
+              autoComplete="current-password"
+              size="md"
+              radius="md"
+              mb={8}
             />
-            <Button fullWidth mt="xl" type="submit" loading={loading}>
+            <Button fullWidth mt="xl" type="submit" loading={loading} className="login-btn" size="md" radius="md">
               Iniciar Sesión
             </Button>
           </form>
         </Paper>
       </Container>
-    </Center>
+    </div>
   );
 }

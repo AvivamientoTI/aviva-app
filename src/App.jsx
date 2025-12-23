@@ -3,17 +3,15 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './features/auth/Login';
 import { ScheduleView } from './features/calendar/ScheduleView';
-import { PlanningWizard } from './features/planning/PlanningWizard';
-import { UsersList } from './features/users/UsersList';
-import { DepartmentsList } from './features/departments/DepartmentsList';
-import { AttendanceManager } from './features/attendance/AttendanceManager';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { supabase } from './services/supabaseClient';
 import { Loader, Center, Stack, Text } from '@mantine/core';
+import { useUser, UserProvider } from './contexts/UserContext';
 
-function App() {
+function AppContent() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { userMemberships, loading: userLoading } = useUser();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -30,7 +28,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <Center h="100vh" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
         <Stack align="center" gap="md">
@@ -43,19 +41,27 @@ function App() {
     );
   }
 
+  // Verificar membresía en 'Servidores'
+  const isServidoresMember = userMemberships?.some(m => m.departamento?.nombre === 'Servidores');
+
   return (
     <Routes>
       <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
-
       <Route path="/" element={session ? <DashboardLayout /> : <Navigate to="/login" />}>
-        <Route index element={<Dashboard />} />
-        <Route path="calendar" element={<ScheduleView />} />
-        <Route path="planning" element={<PlanningWizard />} />
-        <Route path="users" element={<UsersList />} />
-        <Route path="departments" element={<DepartmentsList />} />
-        <Route path="attendance" element={<AttendanceManager />} />
+        <Route index element={isServidoresMember ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="calendar" element={isServidoresMember ? <ScheduleView /> : <Navigate to="/login" />} />
+        {/* Redirigir cualquier otra ruta a dashboard si es miembro, o al login si no */}
+        <Route path="*" element={isServidoresMember ? <Navigate to="/" /> : <Navigate to="/login" />} />
       </Route>
     </Routes>
+  );
+}
+
+function App() {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
   );
 }
 
