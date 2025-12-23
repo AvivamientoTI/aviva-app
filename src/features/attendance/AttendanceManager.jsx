@@ -1,3 +1,43 @@
+    // Guardar asistencia
+    async function handleSave() {
+        if (!selectedService || members.length === 0) {
+            notifications.show({
+                title: 'Error',
+                message: 'No hay datos suficientes para guardar la asistencia.',
+                color: 'red',
+                icon: <IconAlertCircle size={18} />
+            });
+            return;
+        }
+        setSaving(true);
+        try {
+            // Construir registros a guardar
+            const records = members.map(member => ({
+                usuario_id: member.id,
+                config_dia_id: selectedService,
+                estado: attendance[member.id]?.estado || '',
+                justificacion: attendance[member.id]?.justificacion || ''
+            }));
+            const { error } = await attendanceService.saveAttendance(records);
+            if (error) throw error;
+            notifications.show({
+                title: '¡Éxito!',
+                message: 'Asistencia guardada correctamente.',
+                color: 'green',
+                icon: <IconCheck size={18} />
+            });
+        } catch (error) {
+            console.error(error);
+            notifications.show({
+                title: 'Error al guardar',
+                message: error.message || 'No se pudo guardar la asistencia.',
+                color: 'red',
+                icon: <IconAlertCircle size={18} />
+            });
+        } finally {
+            setSaving(false);
+        }
+    }
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Container,
@@ -18,11 +58,12 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCheck, IconDeviceFloppy, IconHistory } from '@tabler/icons-react';
 import { useUser } from '../../contexts/UserContext';
+
 import { attendanceService } from '../../services/attendanceService';
 import dayjs from 'dayjs';
 
 export function AttendanceManager() {
-    const { attendanceManagedDepartments, userProfile } = useUser();
+    const { attendanceManagedDepartments, userMemberships } = useUser();
     const [selectedDept, setSelectedDept] = useState(null);
     const [selectedService, setSelectedService] = useState(null);
     const [serviceDays, setServiceDays] = useState([]);
@@ -31,21 +72,36 @@ export function AttendanceManager() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // Initialize selected department
+
+    // Declarar servidoresDept y servidoresMembership antes de los hooks
+    const servidoresDept = attendanceManagedDepartments?.find(d => d.nombre?.toLowerCase() === 'servidores');
+    const servidoresMembership = userMemberships?.find(m => {
+        const nombreDept = m.departamento?.nombre?.toLowerCase() || '';
+        const rol = m.rol_jerarquico?.toLowerCase() || '';
+        return nombreDept === 'servidores' && (
+            rol === 'líder' || rol === 'lider' || rol === 'sublíder' || rol === 'sublider' || rol === 'encargado' || rol === 'encargada'
+        );
+    });
+
+    // Todos los hooks deben ir antes de cualquier return condicional
     useEffect(() => {
-        if (attendanceManagedDepartments.length > 0 && !selectedDept) {
+        if (!selectedDept && attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
             setSelectedDept(String(attendanceManagedDepartments[0].id));
         }
-    }, [attendanceManagedDepartments]);
+    }, [attendanceManagedDepartments, selectedDept]);
 
-    // Fetch service days when department changes
+    useEffect(() => {
+        if (servidoresDept && selectedDept !== String(servidoresDept.id)) {
+            setSelectedDept(String(servidoresDept.id));
+        }
+    }, [servidoresDept, selectedDept]);
+
     useEffect(() => {
         if (selectedDept) {
             fetchData();
         }
     }, [selectedDept]);
 
-    // Fetch attendance when service day changes
     useEffect(() => {
         if (selectedService) {
             fetchAttendanceData();
@@ -54,7 +110,37 @@ export function AttendanceManager() {
         }
     }, [selectedService]);
 
-    const fetchData = async () => {
+    // Solo después de los hooks, los returns condicionales
+    if (!attendanceManagedDepartments) {
+        return (
+            <Container size="md" py="xl">
+                <Loader size="lg" />
+                <Text>Inicializando...</Text>
+            </Container>
+        );
+    }
+
+    if (loading) {
+        return (
+            <Container size="md" py="xl">
+                <Loader size="lg" />
+                <Text>Cargando datos de usuario...</Text>
+            </Container>
+        );
+    }
+
+    // Filtrar departamentos: solo mostrar 'Servidores' si el usuario tiene el rol adecuado
+
+    // Si no tiene acceso, ocultar la vista
+    if (!servidoresDept || !servidoresMembership) {
+        return null;
+    }
+
+    // Solo permitir seleccionar el departamento 'Servidores'
+    const deptOptions = [ { value: String(servidoresDept.id), label: servidoresDept.nombre } ];
+
+    // Definir fetchData y fetchAttendanceData
+    async function fetchData() {
         setLoading(true);
         try {
             const [days, deptMembers] = await Promise.all([
@@ -63,7 +149,6 @@ export function AttendanceManager() {
             ]);
             setServiceDays(days);
             setMembers(deptMembers);
-
             if (days.length > 0) {
                 setSelectedService(days[0].id);
             } else {
@@ -80,9 +165,9 @@ export function AttendanceManager() {
         } finally {
             setLoading(false);
         }
-    };
+    }
 
-    const fetchAttendanceData = async () => {
+    async function fetchAttendanceData() {
         try {
             const data = await attendanceService.fetchAttendance(selectedService);
             const attendanceMap = {};
@@ -96,56 +181,15 @@ export function AttendanceManager() {
         } catch (error) {
             console.error(error);
         }
-    };
+    }
 
-    const handleAttendanceChange = (userId, field, value) => {
-        setAttendance(prev => ({
-            ...prev,
-            [userId]: {
-                ...(prev[userId] || { estado: 'Asistió', justificacion: '' }),
-                [field]: value
-            }
-        }));
-    };
-
-    const handleSave = async () => {
-        if (!selectedService) return;
-        setSaving(true);
-        try {
-            const records = Object.entries(attendance).map(([userId, data]) => ({
-                configuracion_dia_id: selectedService,
-                usuario_id: userId,
-                estado: data.estado,
-                justificacion: data.justificacion,
-                registrado_por: userProfile?.usuario_id
-            }));
-
-            await attendanceService.saveAttendance(records);
-            notifications.show({ title: 'Éxito', message: 'Asistencia guardada correctamente', color: 'green', icon: <IconCheck size={16} /> });
-        } catch (error) {
-            console.error(error);
-            notifications.show({ title: 'Error', message: 'No se pudo guardar la asistencia', color: 'red' });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const deptOptions = attendanceManagedDepartments.map(d => ({ value: String(d.id), label: d.nombre }));
     const serviceOptions = serviceDays.map(d => ({
         value: String(d.id),
         label: `${dayjs(d.fecha).format('DD/MM')} - ${d.tipo_servicio}`
     }));
 
-    if (attendanceManagedDepartments.length === 0) {
-        return (
-            <Container size="md" py="xl">
-                <Alert icon={<IconAlertCircle size={16} />} title="Acceso Denegado" color="red">
-                    No tienes permisos para gestionar la asistencia de ningún departamento.
-                </Alert>
-            </Container>
-        );
-    }
 
+    // ...existing code...
     return (
         <Container size="xl" py="xl">
             <Paper shadow="sm" p="xl" radius="md" withBorder>
