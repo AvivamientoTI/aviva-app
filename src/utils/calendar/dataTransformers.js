@@ -126,8 +126,14 @@ export const groupAssignmentsByDate = (assignments) => {
       usuario_id: item.usuario_id,
       nombre: nombreCompleto,
       posicion: item.posicion?.nombre || 'Sin posición',
+      posicionObj: item.posicion, // Para swap: contiene genero_requerido
       uniforme: item.configuracion_dia?.color_uniforme || 'N/A',
-      servicio: item.configuracion_dia?.tipo_servicio || 'N/A'
+      servicio: item.configuracion_dia?.tipo_servicio || 'N/A',
+      usuario: {
+        nombre: item.usuario?.nombre,
+        apellido: item.usuario?.apellido,
+        genero: item.usuario?.genero
+      }
     });
 
     return acc;

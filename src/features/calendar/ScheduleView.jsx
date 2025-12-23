@@ -207,7 +207,17 @@ export function ScheduleView() {
   };
 
   const handleOpenSwap = async (event) => {
-    setSwapTarget(event);
+    // Asegurarse de que swapTarget tenga la propiedad posicionObj correctamente poblada
+    let posicionObj = event.posicionObj;
+    // Si no existe, intentar reconstruirla desde event.posicion o event.resource?.posicion
+    if (!posicionObj) {
+      if (event.posicion) {
+        posicionObj = event.posicion;
+      } else if (event.resource && event.resource.posicion) {
+        posicionObj = event.resource.posicion;
+      }
+    }
+    setSwapTarget({ ...event, posicionObj });
     setSelectedUserId(null);
     setLoadingAssignedUsers(true);
 

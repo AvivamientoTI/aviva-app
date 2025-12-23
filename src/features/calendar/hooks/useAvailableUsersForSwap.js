@@ -19,11 +19,24 @@ export const useAvailableUsersForSwap = (users, swapTarget, allAssignedUsersOnDa
     const isEncargadoPos = posNameNorm.includes('encargad');
 
     const filteredUsers = users.filter(u => {
+            // DEBUG: Log de género requerido y género del usuario
+            if (process.env.NODE_ENV !== 'production') {
+              const requiredGender = swapTarget?.posicionObj?.genero_requerido;
+              const userGender = u.genero || u.usuario?.genero;
+              console.log(
+                `DEBUG swap: requiredGender=${requiredGender} | userGender=${userGender} | userId=${u.id} | nombre=${u.nombre || (u.usuario && u.usuario.nombre)}`,
+                u
+              );
+            }
       const isExcluded = assignedUserIdsOnDay.has(String(u.id));
       if (isExcluded) return false;
 
-      const requiredGender = swapTarget?.resource?.posicion?.genero_requerido || swapTarget?.posicion?.genero_requerido;
-      const genderMatch = !requiredGender || requiredGender === 'A' || u.genero === requiredGender;
+
+
+      // Validación estricta: solo swapTarget.posicionObj y user.genero
+      const requiredGender = swapTarget?.posicionObj?.genero_requerido || 'A';
+      const userGender = u.genero || u.usuario?.genero;
+      const genderMatch = !requiredGender || requiredGender === 'A' || userGender === requiredGender;
 
       if (!genderMatch) return false;
 

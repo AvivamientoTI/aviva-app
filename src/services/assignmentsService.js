@@ -11,7 +11,7 @@ export const assignmentsService = {
         id,
         usuario_id,
         usuario:usuarios (nombre, apellido),
-        posicion:posiciones_departamento (nombre),
+        posicion:posiciones_departamento (nombre, genero_requerido),
         configuracion_dia!inner (
           fecha,
           tipo_servicio,
