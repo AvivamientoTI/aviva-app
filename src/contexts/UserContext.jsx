@@ -42,6 +42,7 @@ export function UserProvider({ children }) {
         setUserMemberships([]);
         setManagedDepartments([]);
         setAttendanceManagedDepartments([]);
+        setLoading(false);
       }
     });
 

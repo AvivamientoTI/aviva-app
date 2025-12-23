@@ -13,25 +13,34 @@ export function DashboardLayout() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/login');
+    // Forzar recarga para limpiar el contexto y mostrar login
+    window.location.replace('/login');
   };
 
   // Determinar roles del usuario
   const roles = userMemberships?.map(m => m.rol_jerarquico?.toLowerCase()) || [];
-  const isLider = roles.includes('líder') || roles.includes('lider');
-  const isSublider = roles.includes('sublíder') || roles.includes('sublider');
-  const isEncargado = roles.includes('encargado') || roles.includes('encargada');
-  const isServidor = roles.includes('servidor') || roles.includes('servidora');
+  const isLider = userMemberships?.some(m => {
+    const r = m.rol_jerarquico?.toLowerCase();
+    return (r === 'líder' || r === 'lider') && m.departamento?.nombre === 'Servidores';
+  });
+  const isSublider = userMemberships?.some(m => {
+    const r = m.rol_jerarquico?.toLowerCase();
+    return (r === 'sublíder' || r === 'sublider') && m.departamento?.nombre === 'Servidores';
+  });
+  const isEncargado = userMemberships?.some(m => {
+    const r = m.rol_jerarquico?.toLowerCase();
+    return (r === 'encargado' || r === 'encargada') && m.departamento?.nombre === 'Servidores';
+  });
 
   // Opciones visibles según rol
   const links = [
     { label: 'Dashboard', path: '/' },
     { label: 'Calendario', path: '/calendar' },
-    ...(isLider || isSublider ? [
+    ...(roles.includes('líder') || roles.includes('sublíder') || roles.includes('lider') || roles.includes('sublider') ? [
       { label: 'Planificación', path: '/planning' },
       { label: 'Departamentos', path: '/departments' },
     ] : []),
-    ...(isEncargado ? [
+    ...((isLider || isSublider || isEncargado) ? [
       { label: 'Asistencia', path: '/attendance' },
     ] : []),
   ];

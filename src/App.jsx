@@ -1,31 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './features/auth/Login';
 import { ScheduleView } from './features/calendar/ScheduleView';
 import { Dashboard } from './features/dashboard/Dashboard';
+import { DepartmentsList } from './features/departments/DepartmentsList';
+import { PlanningWizard } from './features/planning/PlanningWizard';
 import { supabase } from './services/supabaseClient';
 import { Loader, Center, Stack, Text } from '@mantine/core';
 import { useUser, UserProvider } from './contexts/UserContext';
+import { RestrictedAccess } from './components/RestrictedAccess';
 
 function AppContent() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const { userMemberships, loading: userLoading } = useUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        navigate('/login', { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   if (loading || userLoading) {
@@ -43,15 +51,22 @@ function AppContent() {
 
   // Verificar membresía en 'Servidores'
   const isServidoresMember = userMemberships?.some(m => m.departamento?.nombre === 'Servidores');
+  // Verificar si es líder o sublíder de cualquier departamento
+  const isLiderOrSublider = userMemberships?.some(m => {
+    const r = m.rol_jerarquico?.toLowerCase();
+    return r === 'líder' || r === 'lider' || r === 'sublíder' || r === 'sublider';
+  });
 
   return (
     <Routes>
-      <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/" element={session ? <DashboardLayout /> : <Navigate to="/login" />}>
-        <Route index element={isServidoresMember ? <Dashboard /> : <Navigate to="/login" />} />
-        <Route path="calendar" element={isServidoresMember ? <ScheduleView /> : <Navigate to="/login" />} />
-        {/* Redirigir cualquier otra ruta a dashboard si es miembro, o al login si no */}
-        <Route path="*" element={isServidoresMember ? <Navigate to="/" /> : <Navigate to="/login" />} />
+        <Route index element={isServidoresMember ? <Dashboard /> : <RestrictedAccess />} />
+        <Route path="calendar" element={isServidoresMember ? <ScheduleView /> : <RestrictedAccess />} />
+        <Route path="departments" element={isLiderOrSublider ? <DepartmentsList /> : <RestrictedAccess />} />
+        <Route path="planning" element={isLiderOrSublider ? <PlanningWizard /> : <RestrictedAccess />} />
+        {/* Mostrar acceso restringido en cualquier otra ruta */}
+        <Route path="*" element={isServidoresMember ? <Navigate to="/" /> : <RestrictedAccess />} />
       </Route>
     </Routes>
   );

@@ -57,6 +57,7 @@ export function Login() {
     <div className="login-bg">
       <Container size={420}>
         <Paper withBorder shadow="md" className="login-paper">
+          <img src="/vite.svg" alt="Logo" style={{ display: 'block', margin: '0 auto 1rem auto', width: 64, height: 64 }} />
           <Title order={2} ta="center" className="login-title">Aviva App</Title>
           <Text size="sm" ta="center" className="login-subtitle" mb={20}>
             Inicia sesión para continuar
