@@ -1,3 +1,7 @@
+  // Mostrar el JWT actual para depuración
+  supabase.auth.getSession().then(({ data }) => {
+    console.log('[ScheduleView] JWT actual:', data.session?.access_token);
+  });
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Calendar, dayjsLocalizer } from 'react-big-calendar';
 import dayjs from 'dayjs';
@@ -61,10 +65,12 @@ function CompactEvent({ event }) {
 }
 
 export function ScheduleView() {
-  const permissions = usePermissions();
-  const { loading: userLoading } = useUser();
+  const { userMemberships } = useUser();
+  const { exportToPng } = useExport();
+  const [selectedDept, setSelectedDept] = useState("");
   const [departments, setDepartments] = useState([]);
-  const [selectedDept, setSelectedDept] = useState(null);
+  const { groupedAssignments, loading, refetch } = useAssignments(selectedDept);
+  const permissions = usePermissions();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [dayEventsOpened, { open: openDayEvents, close: closeDayEvents }] = useDisclosure(false);
@@ -83,228 +89,94 @@ export function ScheduleView() {
   const detailRef = useRef(null);
   const monthExportRef = useRef(null);
 
-  const fetchDepartments = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.from('departamentos').select('*');
-      if (error) {
-        console.error('Error cargando departamentos:', error);
-        notifications.show({ title: 'Error', message: 'Error cargando departamentos', color: 'red' });
-        return;
-      }
-      if (data) {
-        const managedDeptIds = permissions.getManagedDepartmentIds();
-        const departmentsToShow = managedDeptIds.length > 0
-          ? data.filter(d => managedDeptIds.includes(d.id))
-          : data;
-
-        setDepartments(departmentsToShow.map(d => ({ value: String(d.id), label: d.nombre })));
-        if (departmentsToShow.length > 0) {
-          setSelectedDept(String(departmentsToShow[0].id));
-        }
-      }
-    } catch (err) {
-      console.error('Excepción al cargar departamentos:', err);
-      notifications.show({ title: 'Error inesperado', message: 'Ocurrió un error al cargar los departamentos', color: 'red' });
+  // DEBUG: Mostrar membresías y asignaciones agrupadas en consola después de inicializar todos los hooks
+    console.log('userMemberships:', userMemberships);
+    console.log('groupedAssignments:', groupedAssignments);
+    // Log extra: usuario autenticado
+    const { user } = useUser(); // Assuming useUser provides the user object
+    if (user) {
+      console.log('[ScheduleView] Usuario autenticado:', user.id, user.email, user);
+    } else {
+      console.warn('[ScheduleView] No hay usuario autenticado');
     }
-  }, [permissions]);
-
-  const fetchUsers = useCallback(async (deptId) => {
-    try {
-      const { data: deptMemberships, error } = await supabase
-        .from('membresias')
-        .select(`
-          rol_jerarquico,
-          usuario:usuarios(id, nombre, apellido, genero)
-        `)
-        .eq('departamento_id', Number(deptId));
-
-      if (error) {
-        console.error('Error cargando miembros del departamento:', error);
-        notifications.show({ title: 'Error', message: 'Error cargando servidores(as)', color: 'red' });
-        setUsers([]);
-        return;
-      }
-
-      if (deptMemberships) {
-        const normalize = (str) => str?.toLowerCase()
-          .normalize("NFD").replace(/\u0300-\u036f/g, "") || '';
-
-        const usersWithRolesMap = {};
-        deptMemberships.forEach(m => {
-          if (!m.usuario) return;
-          const uid = m.usuario.id;
-          if (!usersWithRolesMap[uid]) {
-            usersWithRolesMap[uid] = {
-              ...m.usuario,
-              roles: []
-            };
-          }
-          usersWithRolesMap[uid].roles.push(normalize(m.rol_jerarquico));
-        });
-        setUsers(Object.values(usersWithRolesMap));
-      }
-    } catch (err) {
-      console.error('Excepción al cargar usuarios:', err);
-      notifications.show({ title: 'Error inesperado', message: 'Ocurrió un error al cargar los usuarios', color: 'red' });
-      setUsers([]);
-    }
-  }, []);
-
-  // Usar hooks personalizados
-  const { groupedAssignments, calendarEvents: events, loading, refetch } = useAssignments(selectedDept);
-  const { exportToPng } = useExport();
-  const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, loadingAssignedUsers);
-
+  // Cargar departamentos al montar
   useEffect(() => {
-    if (!userLoading) {
-      fetchDepartments();
-    }
-  }, [userLoading, fetchDepartments]);
-
+    // Filtrar departamentos solo asociados al usuario
+    const options = (userMemberships || [])
+      .map(m => m.departamento)
+      .filter((d, i, arr) => d && arr.findIndex(dd => dd.id === d.id) === i)
+      .map(dep => ({ value: String(dep.id), label: dep.nombre }));
+    setDepartments(options);
+  }, [userMemberships]);
+  // Efecto para inicializar selectedDept cuando se cargan los departamentos
   useEffect(() => {
-    if (selectedDept) {
-      fetchUsers(selectedDept);
+    if (departments.length > 0 && !selectedDept) {
+      setSelectedDept(departments[0].value);
     }
-  }, [selectedDept, fetchUsers]);
+  }, [departments, selectedDept]);
 
+
+  // Exportar calendario o detalle como PNG
   const handleExport = useCallback(() => {
     const fileName = viewMode === 'calendar' ? 'calendario-ujieres.png' : 'detalle-asignaciones.png';
     const exportRef = viewMode === 'calendar' ? calendarRef : detailRef;
     exportToPng(exportRef, fileName);
   }, [viewMode, exportToPng]);
 
-  const handleSelectEvent = (event) => {
-    setSelectedEvent(event);
-    open();
-  };
 
-  const handleSelectSlot = (slotInfo) => {
-    // Cuando se hace clic en una fecha del calendario, mostrar todos los servidores de ese día
-    const selectedDateStr = dayjs(slotInfo.start).format('YYYY-MM-DD');
-    const dayData = groupedAssignments[selectedDateStr];
+  // Opciones de usuarios disponibles para swap
+  const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, loadingAssignedUsers);
 
-    if (dayData && dayData.assignments.length > 0) {
-      setSelectedDayEvents(dayData.assignments.map((asig) => ({
-        ...asig,
-        id: asig.id,
-        usuario_id: asig.usuario_id,
-        resource: {
-          usuario: { nombre: asig.nombre, apellido: '' },
-          posicion: { nombre: asig.posicion },
-          configuracion_dia: { color_uniforme: asig.uniforme, tipo_servicio: asig.servicio }
-        }
-      })));
-      setSelectedDate(slotInfo.start);
-      openDayEvents();
-    }
-  };
-
-  const handleShowMore = (events, date) => {
-    // events viene como un array de eventos del día
-    setSelectedDayEvents(events);
-    setSelectedDate(date);
-    openDayEvents();
-  };
-
-  const handleOpenSwap = async (event) => {
-    // Asegurarse de que swapTarget tenga la propiedad posicionObj correctamente poblada
-    let posicionObj = event.posicionObj;
-    // Si no existe, intentar reconstruirla desde event.posicion o event.resource?.posicion
-    if (!posicionObj) {
-      if (event.posicion) {
-        posicionObj = event.posicion;
-      } else if (event.resource && event.resource.posicion) {
-        posicionObj = event.resource.posicion;
-      }
-    }
-    setSwapTarget({ ...event, posicionObj });
-    setSelectedUserId(null);
-    setLoadingAssignedUsers(true);
-
-    const eventDate = selectedDate ? dayjs(selectedDate).format('YYYY-MM-DD') : null;
-    console.log('🔄 Abriendo modal - Cargando bloqueos (asig + ausencias) para:', eventDate);
-
-    if (eventDate) {
+  // Cargar usuarios del departamento seleccionado cuando se abre el modal de swap o cambia el departamento
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!selectedDept || !swapOpened) return;
+      setLoadingAssignedUsers(true);
       try {
-        // Fetch all blocked users (assignments in other depts + absences) using the new RPC
-        const { data: blockedResults, error } = await supabase.rpc('get_blocked_users', {
-          p_date: eventDate
-        });
-
-        if (error) throw error;
-
-        const blockedIds = (blockedResults || []).map(row => String(row.usuario_id));
-        setAllAssignedUsersOnDay(blockedIds);
+        // Usar attendanceService para obtener miembros del departamento
+        const members = await (await import('../../services/attendanceService')).attendanceService.fetchDeptMembers(selectedDept);
+        // Los miembros ya tienen 'roles' y 'genero' correctamente
+        setUsers(members);
       } catch (err) {
-        console.error('❌ Error fetching blocked users via RPC:', err);
-        setAllAssignedUsersOnDay([]);
+        setUsers([]);
       } finally {
         setLoadingAssignedUsers(false);
       }
-    } else {
-      console.warn('⚠️ No hay fecha seleccionada');
-      setAllAssignedUsersOnDay([]);
-      setLoadingAssignedUsers(false);
-    }
+    };
+    fetchUsers();
+  }, [selectedDept, swapOpened]);
 
+  // Función para abrir el modal de swap y establecer el target
+  const handleOpenSwap = (event) => {
+    setSwapTarget(event);
     openSwap();
   };
 
+  // Función para guardar el cambio de servidor(a)
   const handleSwap = async () => {
-    if (!swapTarget || !selectedUserId) return;
-
-    // Defensive cross-department validation: avoid assigning if the user is already in another role that day
-    const selectedUserIdStr = String(selectedUserId);
-    const currentUserIdStr = swapTarget.usuario_id ? String(swapTarget.usuario_id) : null;
-
-    // Create set excluding current user
-    const blockedIdsExcludingCurrent = allAssignedUsersOnDay.filter(id =>
-      currentUserIdStr === null || String(id) !== currentUserIdStr
-    );
-
-    const isUserAlreadyAssigned = blockedIdsExcludingCurrent.includes(selectedUserIdStr);
-
-    console.log('🔒 Validación antes de guardar:', {
-      selectedUserId: selectedUserIdStr,
-      currentUserId: currentUserIdStr,
-      allBlockedIds: allAssignedUsersOnDay,
-      isBlocked: isUserAlreadyAssigned
-    });
-
-    if (isUserAlreadyAssigned) {
-      const selectedUser = users.find(u => String(u.id) === selectedUserIdStr);
-      const userName = selectedUser ? `${selectedUser.nombre} ${selectedUser.apellido}` : 'Esta persona';
-      notifications.show({
-        title: 'No permitido',
-        message: `${userName} ya tiene un rol asignado o una ausencia ese día.`,
-        color: 'orange'
-      });
-      return;
-    }
-
+    if (!selectedUserId || !swapTarget) return;
     setSavingSwap(true);
-    const userObj = users.find(u => String(u.id) === selectedUserId);
     try {
-      await assignmentsService.swap(swapTarget.id, Number(selectedUserId));
-      notifications.show({ title: 'Éxito', message: 'Servidor(a) cambiado(a)', color: 'green' });
-      refetch();
-      setSelectedDayEvents((prev) => prev.map(ev => ev.id === swapTarget.id
-        ? {
-          ...ev,
-          resource: {
-            ...(ev.resource || {}),
-            usuario: { nombre: userObj?.nombre, apellido: userObj?.apellido }
-          },
-          nombre: userObj ? `${userObj.nombre} ${userObj.apellido}` : ev.nombre
-        }
-        : ev));
+      // Realizar el cambio en la base de datos
+      await assignmentsService.swap(swapTarget.id, selectedUserId);
+      notifications.show({ title: 'Éxito', message: 'Cambio realizado correctamente', color: 'green' });
       closeSwap();
+      setSelectedUserId(null);
+      setSwapTarget(null);
+      // Refrescar los datos de asignaciones
+      refetch();
     } catch (error) {
-      console.error(error);
-      notifications.show({ title: 'Error', message: 'No se pudo cambiar el/la servidor(a)', color: 'red' });
+      notifications.show({ title: 'Error', message: error.message, color: 'red' });
+    } finally {
+      setSavingSwap(false);
     }
-    setSavingSwap(false);
   };
+    useEffect(() => {
+      if (departments.length > 0 && !selectedDept) {
+        setSelectedDept(departments[0].value);
+      }
+    }, [departments, selectedDept]);
+// ...existing code...
 
   const departmentName = useMemo(() => {
     const found = departments.find(d => d.value === selectedDept);
@@ -436,23 +308,44 @@ export function ScheduleView() {
                       <Table highlightOnHover striped withColumnBorders withRowBorders style={{ borderRadius: 8, overflow: 'hidden' }}>
                         <Table.Thead style={{ position: 'sticky', top: 0, background: '#f1f3f5', zIndex: 1 }}>
                           <Table.Tr>
-                            <Table.Th style={{ width: '40%' }}>Servidor(a)</Table.Th>
-                            <Table.Th style={{ width: '30%' }}>Posición</Table.Th>
-                            <Table.Th style={{ width: '30%' }}>Uniforme</Table.Th>
+                            <Table.Th style={{ width: '30%' }}>Servidor(a)</Table.Th>
+                            <Table.Th style={{ width: '25%' }}>Posición</Table.Th>
+                            <Table.Th style={{ width: '25%' }}>Uniforme</Table.Th>
                           </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                          {dayData.assignments.map((asig) => (
-                            <Table.Tr key={asig.id}>
-                              <Table.Td fw={600} style={{ fontSize: 15 }}>{asig.nombre}</Table.Td>
-                              <Table.Td>
-                                <Badge variant="filled" color="blue" size="md" radius="sm">{asig.posicion}</Badge>
-                              </Table.Td>
-                              <Table.Td>
-                                <Badge color="grape" size="md" radius="sm">{asig.uniforme}</Badge>
-                              </Table.Td>
-                            </Table.Tr>
-                          ))}
+                          {dayData.assignments.map((asig) => {
+                            // Log para depuración de ids
+                            console.log('asig.usuario_id:', asig.usuario_id, 'asig.departamento_id:', asig.departamento_id);
+                            (userMemberships || []).forEach(m => {
+                              console.log('membership.usuario_id:', m.usuario_id, 'membership.departamento?.id:', m.departamento?.id);
+                            });
+                            // Buscar el rol mensual del usuario en el departamento de la asignación (forzar string)
+                            let rolMensual = '';
+                            const membership = (userMemberships || []).find(m =>
+                              String(m.usuario_id) === String(asig.usuario_id) &&
+                              String(m.departamento?.id) === String(asig.departamento_id)
+                            );
+                            if (membership) {
+                              const rawRol = membership.rol_jerarquico ? membership.rol_jerarquico.trim().toLowerCase() : '';
+                              if (!rawRol || rawRol === 'servidor') {
+                                rolMensual = 'Servidor';
+                              } else {
+                                rolMensual = membership.rol_jerarquico;
+                              }
+                            }
+                            return (
+                              <Table.Tr key={asig.id}>
+                                <Table.Td fw={600} style={{ fontSize: 15 }}>{asig.nombre}</Table.Td>
+                                <Table.Td>
+                                  <Badge variant="filled" color="blue" size="md" radius="sm">{asig.posicion}</Badge>
+                                </Table.Td>
+                                <Table.Td>
+                                  <Badge color="grape" size="md" radius="sm">{asig.uniforme}</Badge>
+                                </Table.Td>
+                              </Table.Tr>
+                            );
+                          })}
                         </Table.Tbody>
                       </Table>
                     </Paper>

@@ -5,6 +5,37 @@ export const assignmentsService = {
    * Obtiene asignaciones por departamento con todos los datos relacionados
    */
   async fetchByDepartment(deptId) {
+    // 1. Obtener todos los ids de cabecera del departamento
+    const { data: cabeceras, error: errorCab } = await supabase
+      .from('roles_cabecera')
+      .select('id')
+      .eq('departamento_id', Number(deptId));
+    if (errorCab) throw errorCab;
+    if (!cabeceras || cabeceras.length === 0) {
+      console.warn('[assignmentsService] No se encontraron cabeceraIds para el departamento', deptId);
+      return [];
+    }
+    const cabeceraIds = cabeceras.map(c => c.id);
+    console.log('[assignmentsService] cabeceraIds para departamento', deptId, ':', cabeceraIds);
+
+    // Consultar configuracion_dia para obtener sus ids
+    const { data: configsDia, error: errorConfigs } = await supabase
+      .from('configuracion_dia')
+      .select('id, fecha, rol_cabecera_id')
+      .in('rol_cabecera_id', cabeceraIds);
+    if (errorConfigs) {
+      console.error('[assignmentsService] Error consultando configuracion_dia:', errorConfigs);
+      return [];
+    }
+    console.log('[assignmentsService] configuracion_dia encontrados:', configsDia);
+    if (!configsDia || configsDia.length === 0) {
+      console.warn('[assignmentsService] No hay configuracion_dia para los cabeceraIds', cabeceraIds);
+      return [];
+    }
+    const configDiaIds = configsDia.map(cd => cd.id);
+    console.log('[assignmentsService] configDiaIds usados para filtrar asignaciones:', configDiaIds);
+
+    // 2. Traer asignaciones filtrando por configuracion_dia_id
     const { data, error } = await supabase
       .from('asignaciones')
       .select(`
@@ -22,9 +53,10 @@ export const assignmentsService = {
           )
         )
       `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', Number(deptId));
+      .in('configuracion_dia_id', configDiaIds);
 
     if (error) throw error;
+    console.log('[assignmentsService] Resultado asignaciones:', data);
     return data;
   },
 

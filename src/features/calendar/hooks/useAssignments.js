@@ -27,7 +27,7 @@ export function useAssignments(departmentId) {
       console.log('📡 Fetching data para departamento:', departmentId);
       const data = await assignmentsService.fetchByDepartment(departmentId);
       console.log('✅ Datos recibidos:', data?.length || 0, 'asignaciones');
-      
+      console.log('[useAssignments] Asignaciones crudas:', data);
       // Transformar datos
       const grouped = groupAssignmentsByDate(data);
       const events = transformToCalendarEvents(data);

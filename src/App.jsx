@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './features/auth/Login';
 import { ScheduleView } from './features/calendar/ScheduleView';
+import { AttendanceManager } from './features/attendance/AttendanceManager';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { DepartmentsList } from './features/departments/DepartmentsList';
 import { PlanningWizard } from './features/planning/PlanningWizard';
@@ -49,12 +50,21 @@ function AppContent() {
     );
   }
 
+
   // Verificar membresía en 'Servidores'
   const isServidoresMember = userMemberships?.some(m => m.departamento?.nombre === 'Servidores');
   // Verificar si es líder o sublíder de cualquier departamento
   const isLiderOrSublider = userMemberships?.some(m => {
     const r = m.rol_jerarquico?.toLowerCase();
     return r === 'líder' || r === 'lider' || r === 'sublíder' || r === 'sublider';
+  });
+  // Verificar si es líder, sublíder o encargado del departamento de Servidores
+  const isLiderSubliderEncargadoServidores = userMemberships?.some(m => {
+    const nombreDept = m.departamento?.nombre?.toLowerCase() || '';
+    const rol = m.rol_jerarquico?.toLowerCase() || '';
+    return nombreDept === 'servidores' && (
+      rol === 'líder' || rol === 'lider' || rol === 'sublíder' || rol === 'sublider' || rol === 'encargado' || rol === 'encargada'
+    );
   });
 
   return (
@@ -65,6 +75,7 @@ function AppContent() {
         <Route path="calendar" element={isServidoresMember ? <ScheduleView /> : <RestrictedAccess />} />
         <Route path="departments" element={isLiderOrSublider ? <DepartmentsList /> : <RestrictedAccess />} />
         <Route path="planning" element={isLiderOrSublider ? <PlanningWizard /> : <RestrictedAccess />} />
+        <Route path="attendance" element={isLiderSubliderEncargadoServidores ? <AttendanceManager /> : <RestrictedAccess />} />
         {/* Mostrar acceso restringido en cualquier otra ruta */}
         <Route path="*" element={isServidoresMember ? <Navigate to="/" /> : <RestrictedAccess />} />
       </Route>

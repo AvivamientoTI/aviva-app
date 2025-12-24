@@ -32,29 +32,34 @@ export const attendanceService = {
             .select(`
         usuario_id,
         rol_jerarquico,
-        usuario:usuarios (id, nombre, apellido)
+        usuario:usuarios (id, nombre, apellido, genero)
       `)
             .eq('departamento_id', deptId);
 
         if (error) throw error;
 
-        // De-duplicar por usuario_id por si un usuario tiene múltiples roles en el mismo depto
-        const uniqueMembers = [];
-        const seenIds = new Set();
-
+        // Agrupar todos los roles de cada usuario en el departamento
+        const membersMap = new Map();
         for (const m of data) {
-            if (!seenIds.has(m.usuario_id)) {
-                seenIds.add(m.usuario_id);
-                uniqueMembers.push({
+            if (!membersMap.has(m.usuario_id)) {
+                membersMap.set(m.usuario_id, {
                     id: m.usuario.id,
                     nombre: m.usuario.nombre,
                     apellido: m.usuario.apellido,
-                    rol: m.rol_jerarquico
+                    genero: m.usuario.genero,
+                    roles: [m.rol_jerarquico ? m.rol_jerarquico.toLowerCase() : '']
                 });
+            } else {
+                // Agregar rol si no está repetido
+                const member = membersMap.get(m.usuario_id);
+                const rol = m.rol_jerarquico ? m.rol_jerarquico.toLowerCase() : '';
+                if (rol && !member.roles.includes(rol)) {
+                    member.roles.push(rol);
+                }
             }
         }
 
-        return uniqueMembers;
+        return Array.from(membersMap.values());
     },
 
     /**

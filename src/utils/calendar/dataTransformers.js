@@ -120,7 +120,7 @@ export const groupAssignmentsByDate = (assignments) => {
 
     const nombreCompleto = `${item.usuario.nombre} ${item.usuario.apellido}`;
 
-    // Add ALL assignments to the list (removed incorrect encargado filtering)
+    // Agregar departamento_id a cada asignación (todas pertenecen al dept actual)
     acc[fecha].assignments.push({
       id: item.id,
       usuario_id: item.usuario_id,
@@ -133,7 +133,8 @@ export const groupAssignmentsByDate = (assignments) => {
         nombre: item.usuario?.nombre,
         apellido: item.usuario?.apellido,
         genero: item.usuario?.genero
-      }
+      },
+      departamento_id: item.configuracion_dia?.roles_cabecera?.[0]?.departamento_id // Usar el dept real si viene de la consulta
     });
 
     return acc;
