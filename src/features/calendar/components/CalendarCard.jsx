@@ -5,6 +5,7 @@ export function CalendarCard({ date, dayOfWeek, assignmentsCount, isToday, onCli
   const baseShadow = isToday ? '0 4px 12px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)';
   const hoverShadow = isToday ? '0 10px 28px rgba(59, 130, 246, 0.3)' : '0 4px 16px rgba(0,0,0,0.12)';
 
+  const isDisabled = !onClick;
   return (
     <Paper
       p={0}
@@ -16,7 +17,8 @@ export function CalendarCard({ date, dayOfWeek, assignmentsCount, isToday, onCli
         background: isToday
           ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
-        cursor: 'pointer',
+        cursor: isDisabled ? 'not-allowed' : 'pointer',
+        opacity: isDisabled ? 0.6 : 1,
         transition: 'all 0.25s ease-in-out',
         display: 'flex',
         flexDirection: 'column',
@@ -24,13 +26,13 @@ export function CalendarCard({ date, dayOfWeek, assignmentsCount, isToday, onCli
         overflow: 'hidden',
         position: 'relative'
       }}
-      onClick={onClick}
-      onMouseEnter={(e) => {
+      onClick={isDisabled ? undefined : onClick}
+      onMouseEnter={isDisabled ? undefined : (e) => {
         e.currentTarget.style.boxShadow = hoverShadow;
         e.currentTarget.style.transform = 'translateY(-5px)';
         e.currentTarget.style.borderColor = isToday ? '#1d4ed8' : '#3b82f6';
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={isDisabled ? undefined : (e) => {
         e.currentTarget.style.boxShadow = baseShadow;
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.borderColor = isToday ? '#2563eb' : '#e5e7eb';

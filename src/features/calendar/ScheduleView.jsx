@@ -65,12 +65,14 @@ function CompactEvent({ event }) {
 }
 
 export function ScheduleView() {
-  const { userMemberships } = useUser();
-  const { exportToPng } = useExport();
+  const permissions = usePermissions();
   const [selectedDept, setSelectedDept] = useState("");
   const [departments, setDepartments] = useState([]);
+  const { userMemberships } = useUser();
+  const { exportToPng } = useExport();
   const { groupedAssignments, loading, refetch } = useAssignments(selectedDept);
-  const permissions = usePermissions();
+  // Validar si el usuario puede modificar el calendario (líder o sublíder)
+  const puedeModificar = permissions.canModifyAssignments(selectedDept);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [dayEventsOpened, { open: openDayEvents, close: closeDayEvents }] = useDisclosure(false);
@@ -261,7 +263,7 @@ export function ScheduleView() {
                 currentDate={currentDate}
                 onDateChange={setCurrentDate}
                 groupedAssignments={groupedAssignments}
-                onDayClick={(date, assignments) => {
+                onDayClick={puedeModificar ? (date, assignments) => {
                   setSelectedDayEvents(assignments.map((asig) => ({
                     ...asig,
                     id: asig.id,
@@ -274,7 +276,7 @@ export function ScheduleView() {
                   })));
                   setSelectedDate(date);
                   openDayEvents();
-                }}
+                } : undefined}
               />
             </Box>
           </Tabs.Panel>
