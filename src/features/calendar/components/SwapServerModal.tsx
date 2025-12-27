@@ -1,5 +1,14 @@
-import React from 'react';
 import { Modal, Stack, Text, Group, Button, Select } from '@mantine/core';
+
+interface SwapServerModalProps {
+    opened: boolean;
+    onClose: () => void;
+    userOptions: { value: string; label: string }[];
+    selectedUserId: string | null;
+    onSelectedUserIdChange: (val: string | null) => void;
+    onSwap: () => void;
+    loading: boolean;
+}
 
 export function SwapServerModal({
     opened,
@@ -9,7 +18,7 @@ export function SwapServerModal({
     onSelectedUserIdChange,
     onSwap,
     loading
-}) {
+}: SwapServerModalProps) {
     return (
         <Modal opened={opened} onClose={onClose} title="Cambiar servidor(a)" centered>
             <Stack gap="sm">

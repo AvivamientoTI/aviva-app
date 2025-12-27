@@ -1,53 +1,40 @@
-/* Estilos personalizados para el calendario */
-
-/* Ocultar celdas vacías (días sin eventos) */
-.rbc-off-range {
-  display: none !important;
+/* Estilos para el calendario */
+.rbc-calendar {
+    min-height: 600px;
+    font-family: var(--mantine-font-family);
 }
 
-/* Resaltar días con eventos */
-.rbc-month-row {
-  min-height: auto;
-}
-
-.rbc-date-cell {
-  padding: 2px 3px;
-}
-
-/* Fondo diferente para días con eventos */
-.rbc-month-row .rbc-date-cell button:has(+ .rbc-event-content) {
-  background-color: #fff3cd;
-  font-weight: bold;
-}
-
-/* Mejorar visibilidad de eventos */
 .rbc-event {
-  padding: 2px 4px;
-  font-size: 12px;
+    background-color: var(--mantine-color-blue-6);
+    border-radius: 4px;
 }
 
-.rbc-event-label {
-  font-size: 11px;
+.rbc-today {
+    background-color: var(--mantine-color-blue-0);
 }
 
-/* Hacer más compacto y visible */
-.rbc-month-view {
-  border: 1px solid #dee2e6;
+.rbc-header {
+    padding: 8px;
+    font-weight: 600;
+    color: var(--mantine-color-gray-7);
 }
 
-.rbc-month-cell {
-  padding: 4px;
-  min-height: 80px;
+.rbc-off-range-bg {
+    background-color: var(--mantine-color-gray-0);
 }
 
-.rbc-day-bg,
-.rbc-date-cell {
-  border: 1px solid #dee2e6;
+/* Ajustes responsive para el toolbar del calendario */
+.rbc-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
-/* Estilos para eventos compactos */
-.rbc-event-content {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+@media (max-width: 768px) {
+    .rbc-toolbar-label {
+        width: 100%;
+        text-align: center;
+        order: -1;
+        margin: 10px 0;
+    }
 }

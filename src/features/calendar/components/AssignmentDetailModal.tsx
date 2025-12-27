@@ -1,6 +1,13 @@
-import React from 'react';
 import { Modal, Text, Group, Button } from '@mantine/core';
 import dayjs from 'dayjs';
+
+interface AssignmentDetailModalProps {
+    opened: boolean;
+    onClose: () => void;
+    selectedEvent: any; // TODO: Define Event interface
+    onDelete: () => void;
+    canModify: boolean;
+}
 
 export function AssignmentDetailModal({
     opened,
@@ -8,7 +15,7 @@ export function AssignmentDetailModal({
     selectedEvent,
     onDelete,
     canModify
-}) {
+}: AssignmentDetailModalProps) {
     return (
         <Modal opened={opened} onClose={onClose} title="Detalles de Asignación">
             {selectedEvent && (

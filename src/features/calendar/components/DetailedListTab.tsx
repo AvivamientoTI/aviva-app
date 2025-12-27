@@ -1,8 +1,28 @@
-import React from 'react';
 import { Box, Stack, Text, Paper, Group, Title, Badge, Table } from '@mantine/core';
 import dayjs from 'dayjs';
+import type { Membership } from '../../../types';
 
-export function DetailedListTab({ groupedAssignments, userMemberships }) {
+interface Assignment {
+    id: string | number;
+    usuario_id: string | number;
+    departamento_id: string | number;
+    nombre: string;
+    posicion: string;
+    uniforme: string;
+}
+
+interface DayData {
+    servicio: string;
+    assignments: Assignment[];
+    encargado: string | null;
+}
+
+interface DetailedListTabProps {
+    groupedAssignments: Record<string, DayData>;
+    userMemberships: Membership[];
+}
+
+export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
     return (
         <Box p="md" style={{ background: 'linear-gradient(90deg, #f8fafc 0%, #f1f3f5 100%)', borderRadius: 12 }}>
             <Stack gap="xl">
@@ -38,19 +58,13 @@ export function DetailedListTab({ groupedAssignments, userMemberships }) {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {dayData.assignments.map((asig) => {
-                                        let rolMensual = '';
-                                        const membership = (userMemberships || []).find(m =>
-                                            String(m.usuario_id) === String(asig.usuario_id) &&
-                                            String(m.departamento?.id) === String(asig.departamento_id)
-                                        );
-                                        if (membership) {
-                                            const rawRol = membership.rol_jerarquico ? membership.rol_jerarquico.trim().toLowerCase() : '';
-                                            if (!rawRol || rawRol === 'servidor') {
-                                                rolMensual = 'Servidor';
-                                            } else {
-                                                rolMensual = membership.rol_jerarquico;
-                                            }
-                                        }
+                                        /* 
+                                         // Logic for rolMensual was here but unused in render of previous file?
+                                         // Checking previous file content...
+                                         // Wait, 'rolMensual' was NOT used in the returned JSX of the original file! 
+                                         // Lines 41-53 calculated it, but lines 55+ only show nombre, posicion, uniforme.
+                                         // I will keep the loop clean.
+                                        */
                                         return (
                                             <Table.Tr key={asig.id}>
                                                 <Table.Td fw={600} style={{ fontSize: 15 }}>{asig.nombre}</Table.Td>

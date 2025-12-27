@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
     Container,
     Grid,
-    Paper,
     Title,
     Text,
     Group,
@@ -11,7 +10,6 @@ import {
     ThemeIcon,
     SimpleGrid,
     Card,
-    RingProgress,
     Center,
     Loader,
     Box
@@ -20,7 +18,6 @@ import {
     IconCalendarEvent,
     IconChecklist,
     IconUsers,
-    IconAlertCircle,
     IconTrendingUp
 } from '@tabler/icons-react';
 import { DonutChart, BarChart } from '@mantine/charts';
@@ -28,10 +25,68 @@ import { useUser } from '../../contexts/UserContext';
 import { analyticsService } from '../../services/analyticsService';
 import dayjs from 'dayjs';
 
+interface StatCardProps {
+    title: string;
+    value: string | number;
+    icon: React.ReactNode;
+    color: string;
+}
+
+function StatCard({ title, value, icon, color }: StatCardProps) {
+    return (
+        <Card withBorder p="md" radius="md" style={{
+            background: `linear-gradient(135deg, var(--mantine-color-${color}-6) 0%, var(--mantine-color-${color}-8) 100%)`,
+            color: 'white'
+        }}>
+            <Group justify="space-between">
+                <Text size="xs" fw={700} tt="uppercase">
+                    {title}
+                </Text>
+                <ThemeIcon color="white" variant="transparent" size="lg" radius="md">
+                    {icon}
+                </ThemeIcon>
+            </Group>
+            <Group align="flex-end" gap="xs" mt={25}>
+                <Text fw={700} size="xl">
+                    {value}
+                </Text>
+            </Group>
+        </Card>
+    );
+}
+
+interface UpcomingService {
+    id: string | number;
+    posicion?: {
+        nombre: string;
+    }[];
+    configuracion_dia: {
+        fecha: string;
+        tipo_servicio: string;
+        color_uniforme: string;
+    }[];
+}
+
+interface MonthlyStat {
+    month: string;
+    asistio: number;
+    faltas: number;
+}
+
+interface StatsData {
+    summary: {
+        total: number;
+        asistio: number;
+        faltoConAviso: number;
+        faltoSinAviso: number;
+    };
+    byMonth: Record<string, MonthlyStat> | MonthlyStat[];
+}
+
 export function Dashboard() {
-    const { userProfile, managedDepartments, attendanceManagedDepartments } = useUser();
-    const [upcoming, setUpcoming] = useState([]);
-    const [stats, setStats] = useState(null);
+    const { userProfile, attendanceManagedDepartments } = useUser();
+    const [upcoming, setUpcoming] = useState<UpcomingService[]>([]);
+    const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -43,10 +98,12 @@ export function Dashboard() {
     const loadDashboardData = async () => {
         setLoading(true);
         try {
-            const upcomingData = await analyticsService.fetchUpcomingServices(userProfile.usuario_id);
-            setUpcoming(upcomingData);
+            if (userProfile?.usuario_id) {
+                const upcomingData = await analyticsService.fetchUpcomingServices(userProfile.usuario_id);
+                setUpcoming(upcomingData);
+            }
 
-            if (attendanceManagedDepartments.length > 0) {
+            if (attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
                 const statsData = await analyticsService.fetchAttendanceStats(attendanceManagedDepartments[0].id);
                 setStats(statsData);
             }
@@ -67,7 +124,7 @@ export function Dashboard() {
 
     const attendanceTotal = stats?.summary.total || 0;
     const attendanceRate = attendanceTotal > 0
-        ? Math.round((stats.summary.asistio / attendanceTotal) * 100)
+        ? Math.round((stats!.summary.asistio / attendanceTotal) * 100)
         : 0;
 
     return (
@@ -122,7 +179,7 @@ export function Dashboard() {
                     />
                     <StatCard
                         title="Departamentos"
-                        value={attendanceManagedDepartments.length}
+                        value={attendanceManagedDepartments?.length || 0}
                         icon={<IconUsers size={24} />}
                         color="grape"
                     />
@@ -140,14 +197,14 @@ export function Dashboard() {
                                         }}>
                                             <Group justify="space-between">
                                                 <Stack gap={0}>
-                                                    <Text fw={600} c="blue.9">{service.configuracion_dia.tipo_servicio}</Text>
+                                                    <Text fw={600} c="blue.9">{service.configuracion_dia[0]?.tipo_servicio}</Text>
                                                     <Text size="sm" c="blue.8">
-                                                        {dayjs(service.configuracion_dia.fecha).format('dddd, D [de] MMMM')}
+                                                        {dayjs(service.configuracion_dia[0]?.fecha).format('dddd, D [de] MMMM')}
                                                     </Text>
                                                 </Stack>
                                                 <Group>
-                                                    <Badge color="blue" variant="light">{service.posicion?.nombre}</Badge>
-                                                    <Badge color="gray" variant="filled">{service.configuracion_dia.color_uniforme}</Badge>
+                                                    <Badge color="blue" variant="light">{service.posicion?.[0]?.nombre}</Badge>
+                                                    <Badge color="gray" variant="filled">{service.configuracion_dia[0]?.color_uniforme}</Badge>
                                                 </Group>
                                             </Group>
                                         </Card>
@@ -164,13 +221,13 @@ export function Dashboard() {
                             <Title order={4} mb="md">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
-                                    <Box w="100%">
+                                    <Box w="100%" role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
                                         <DonutChart
                                             h={220}
                                             data={[
-                                                { name: 'Asistió', value: stats.summary.asistio, color: 'teal.6' },
-                                                { name: 'Justificado', value: stats.summary.faltoConAviso, color: 'orange.6' },
-                                                { name: 'Faltó', value: stats.summary.faltoSinAviso, color: 'red.6' },
+                                                { name: 'Asistió', value: stats!.summary.asistio, color: 'teal.6' },
+                                                { name: 'Justificado', value: stats!.summary.faltoConAviso, color: 'orange.6' },
+                                                { name: 'Faltó', value: stats!.summary.faltoSinAviso, color: 'red.6' },
                                             ]}
                                             tooltipDataSource="segment"
                                             withLabelsLine
@@ -189,11 +246,11 @@ export function Dashboard() {
                         </Card>
                     </Grid.Col>
 
-                    {stats && Object.keys(stats.byMonth).length > 0 && (
+                    {stats && stats.byMonth && Object.keys(stats.byMonth).length > 0 && (
                         <Grid.Col span={12}>
                             <Card withBorder p="md" radius="md">
                                 <Title order={4} mb="md">Tendencia de Asistencia (Últimos Meses)</Title>
-                                <Box w="100%">
+                                <Box w="100%" role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
                                     <BarChart
                                         h={400}
                                         data={Object.values(stats.byMonth)}
@@ -213,28 +270,5 @@ export function Dashboard() {
                 </Grid>
             </Stack>
         </Container>
-    );
-}
-
-function StatCard({ title, value, icon, color }) {
-    return (
-        <Card withBorder p="md" radius="md" style={{
-            background: `linear-gradient(135deg, var(--mantine-color-${color}-6) 0%, var(--mantine-color-${color}-8) 100%)`,
-            color: 'white'
-        }}>
-            <Group justify="space-between">
-                <Text size="xs" fw={700} tt="uppercase">
-                    {title}
-                </Text>
-                <ThemeIcon color="white" variant="transparent" size="lg" radius="md">
-                    {icon}
-                </ThemeIcon>
-            </Group>
-            <Group align="flex-end" gap="xs" mt={25}>
-                <Text fw={700} size="xl">
-                    {value}
-                </Text>
-            </Group>
-        </Card>
     );
 }

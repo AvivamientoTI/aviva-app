@@ -1,44 +1,4 @@
-// Guardar asistencia
-async function handleSave() {
-    if (!selectedService || members.length === 0) {
-        notifications.show({
-            title: 'Error',
-            message: 'No hay datos suficientes para guardar la asistencia.',
-            color: 'red',
-            icon: <IconAlertCircle size={18} />
-        });
-        return;
-    }
-    setSaving(true);
-    try {
-        // Construir registros a guardar
-        const records = members.map(member => ({
-            usuario_id: member.id,
-            config_dia_id: selectedService,
-            estado: attendance[member.id]?.estado || '',
-            justificacion: attendance[member.id]?.justificacion || ''
-        }));
-        const { error } = await attendanceService.saveAttendance(records);
-        if (error) throw error;
-        notifications.show({
-            title: '¡Éxito!',
-            message: 'Asistencia guardada correctamente.',
-            color: 'green',
-            icon: <IconCheck size={18} />
-        });
-    } catch (error) {
-        console.error(error);
-        notifications.show({
-            title: 'Error al guardar',
-            message: error.message || 'No se pudo guardar la asistencia.',
-            color: 'red',
-            icon: <IconAlertCircle size={18} />
-        });
-    } finally {
-        setSaving(false);
-    }
-}
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Container,
     Paper,
@@ -51,27 +11,35 @@ import {
     Button,
     SegmentedControl,
     TextInput,
-    Badge,
     Loader,
     Alert
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconAlertCircle, IconCheck, IconDeviceFloppy, IconHistory } from '@tabler/icons-react';
+import { IconAlertCircle, IconCheck, IconDeviceFloppy } from '@tabler/icons-react';
 import { useUser } from '../../contexts/UserContext';
-
-import { attendanceService } from '../../services/attendanceService';
+import { attendanceService, type DepartmentMember } from '../../services/attendanceService';
 import dayjs from 'dayjs';
+
+interface AttendanceRecord {
+    estado: string;
+    justificacion: string;
+}
+
+interface ServiceDay {
+    id: string | number;
+    fecha: string;
+    tipo_servicio: string;
+}
 
 export function AttendanceManager() {
     const { attendanceManagedDepartments, userMemberships } = useUser();
-    const [selectedDept, setSelectedDept] = useState(null);
-    const [selectedService, setSelectedService] = useState(null);
-    const [serviceDays, setServiceDays] = useState([]);
-    const [members, setMembers] = useState([]);
-    const [attendance, setAttendance] = useState({});
+    const [selectedDept, setSelectedDept] = useState<string | null>(null);
+    const [selectedService, setSelectedService] = useState<string | null>(null);
+    const [serviceDays, setServiceDays] = useState<ServiceDay[]>([]);
+    const [members, setMembers] = useState<DepartmentMember[]>([]);
+    const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>({});
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-
 
     // Declarar servidoresDept y servidoresMembership antes de los hooks
     const servidoresDept = attendanceManagedDepartments?.find(d => d.nombre?.toLowerCase() === 'servidores');
@@ -83,7 +51,6 @@ export function AttendanceManager() {
         );
     });
 
-    // Todos los hooks deben ir antes de cualquier return condicional
     useEffect(() => {
         if (!selectedDept && attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
             setSelectedDept(String(attendanceManagedDepartments[0].id));
@@ -110,37 +77,7 @@ export function AttendanceManager() {
         }
     }, [selectedService]);
 
-    // Solo después de los hooks, los returns condicionales
-    if (!attendanceManagedDepartments) {
-        return (
-            <Container size="md" py="xl">
-                <Loader size="lg" />
-                <Text>Inicializando...</Text>
-            </Container>
-        );
-    }
-
-    if (loading) {
-        return (
-            <Container size="md" py="xl">
-                <Loader size="lg" />
-                <Text>Cargando datos de usuario...</Text>
-            </Container>
-        );
-    }
-
-    // Filtrar departamentos: solo mostrar 'Servidores' si el usuario tiene el rol adecuado
-
-    // Si no tiene acceso, ocultar la vista
-    if (!servidoresDept || !servidoresMembership) {
-        return null;
-    }
-
-    // Solo permitir seleccionar el departamento 'Servidores'
-    const deptOptions = [{ value: String(servidoresDept.id), label: servidoresDept.nombre }];
-
-    // Definir fetchData y fetchAttendanceData
-    function handleAttendanceChange(userId, field, value) {
+    function handleAttendanceChange(userId: string | number, field: keyof AttendanceRecord, value: string) {
         setAttendance(prev => ({
             ...prev,
             [userId]: {
@@ -151,9 +88,9 @@ export function AttendanceManager() {
     }
 
     async function fetchData() {
-
         setLoading(true);
         try {
+            if (!selectedDept) return;
             const [days, deptMembers] = await Promise.all([
                 attendanceService.fetchServiceDays(selectedDept),
                 attendanceService.fetchDeptMembers(selectedDept)
@@ -161,7 +98,7 @@ export function AttendanceManager() {
             setServiceDays(days);
             setMembers(deptMembers);
             if (days.length > 0) {
-                setSelectedService(days[0].id);
+                setSelectedService(String(days[0].id));
             } else {
                 setSelectedService(null);
             }
@@ -180,9 +117,10 @@ export function AttendanceManager() {
 
     async function fetchAttendanceData() {
         try {
+            if (!selectedService) return;
             const data = await attendanceService.fetchAttendance(selectedService);
-            const attendanceMap = {};
-            data.forEach(rec => {
+            const attendanceMap: Record<string, AttendanceRecord> = {};
+            data.forEach((rec: any) => {
                 attendanceMap[rec.usuario_id] = {
                     estado: rec.estado,
                     justificacion: rec.justificacion || ''
@@ -194,13 +132,74 @@ export function AttendanceManager() {
         }
     }
 
+    async function handleSave() {
+        if (!selectedService || members.length === 0) {
+            notifications.show({
+                title: 'Error',
+                message: 'No hay datos suficientes para guardar la asistencia.',
+                color: 'red',
+                icon: <IconAlertCircle size={18} />
+            });
+            return;
+        }
+        setSaving(true);
+        try {
+            // Construir registros a guardar
+            const records = members.map(member => ({
+                usuario_id: member.id,
+                config_dia_id: selectedService,
+                estado: attendance[member.id]?.estado || '',
+                justificacion: attendance[member.id]?.justificacion || ''
+            }));
+            await attendanceService.saveAttendance(records);
+            notifications.show({
+                title: '¡Éxito!',
+                message: 'Asistencia guardada correctamente.',
+                color: 'green',
+                icon: <IconCheck size={18} />
+            });
+        } catch (error: any) {
+            console.error(error);
+            notifications.show({
+                title: 'Error al guardar',
+                message: error.message || 'No se pudo guardar la asistencia.',
+                color: 'red',
+                icon: <IconAlertCircle size={18} />
+            });
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    if (!attendanceManagedDepartments) {
+        return (
+            <Container size="md" py="xl">
+                <Loader size="lg" />
+                <Text>Inicializando...</Text>
+            </Container>
+        );
+    }
+
+    if (loading) {
+        return (
+            <Container size="md" py="xl">
+                <Loader size="lg" />
+                <Text>Cargando datos de usuario...</Text>
+            </Container>
+        );
+    }
+
+    if (!servidoresDept || !servidoresMembership) {
+        return null;
+    }
+
+    const deptOptions = [{ value: String(servidoresDept.id), label: servidoresDept.nombre }];
+
     const serviceOptions = serviceDays.map(d => ({
         value: String(d.id),
         label: `${dayjs(d.fecha).format('DD/MM')} - ${d.tipo_servicio}`
     }));
 
-
-    // ...existing code...
     return (
         <Container size="xl" py="xl">
             <Paper shadow="sm" p="xl" radius="md" withBorder>
