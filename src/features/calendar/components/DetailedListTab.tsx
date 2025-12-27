@@ -9,6 +9,7 @@ interface Assignment {
     nombre: string;
     posicion: string;
     uniforme: string;
+    orden?: number;
 }
 
 interface DayData {

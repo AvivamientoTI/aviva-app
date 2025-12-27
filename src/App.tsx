@@ -7,7 +7,7 @@ import { Login } from './features/auth/Login';
 import { ScheduleView } from './features/calendar/ScheduleView';
 import { AttendanceManager } from './features/attendance/AttendanceManager';
 import { Dashboard } from './features/dashboard/Dashboard';
-import { DepartmentsList } from './features/departments/DepartmentsList';
+import { DepartmentsList } from './features/departments/DepartmentsList.tsx';
 import { PlanningWizard } from './features/planning/PlanningWizard';
 import { supabase } from './services/supabaseClient';
 import { Loader, Center, Stack, Text } from '@mantine/core';

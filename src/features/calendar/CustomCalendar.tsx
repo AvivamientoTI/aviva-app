@@ -35,6 +35,7 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
                         usuario_id: dayData.encargado_id || 'encargado',
                         nombre: dayData.encargado,
                         posicion: 'Encargado',
+                        orden: 0, // El más bajo posible para que aparezca primero
                     });
                 }
 

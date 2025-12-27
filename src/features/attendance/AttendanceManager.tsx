@@ -1,3 +1,4 @@
+// Ensuring TS attendance service is used
 import { useState, useEffect } from 'react';
 import {
     Container,

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { PublicUser } from '../types';
+import type { PublicUser } from '../types';
 
 export interface DepartmentMember extends PublicUser {
     roles: string[];
