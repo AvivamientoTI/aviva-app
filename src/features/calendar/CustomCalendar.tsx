@@ -32,7 +32,7 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
                 if (dayData.encargado && String(dayData.encargado).trim() !== '') {
                     assignmentsWithEncargado.push({
                         id: `encargado-${fecha}`,
-                        usuario_id: 'encargado',
+                        usuario_id: dayData.encargado_id || 'encargado',
                         nombre: dayData.encargado,
                         posicion: 'Encargado',
                     });
@@ -89,6 +89,7 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
                     description="Crea un nuevo rol en el Planificador para ver las asignaciones aquí"
                     actionLabel="Ir al Planificador"
                     actionPath="/planning"
+                    onAction={() => { }}
                 />
             ) : (
                 <div style={{

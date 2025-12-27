@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './ScheduleView.css';
 import { attendanceService } from '../../services/attendanceService';
+import { assignmentsService } from '../../services/assignmentsService';
 import { Button, Group, Select, Box, Title, Modal, Text, Table, Badge, Tabs, Stack, Container } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -44,7 +45,7 @@ export function ScheduleView() {
     const [swapOpened, { open: openSwap, close: closeSwap }] = useDisclosure(false);
     const [swapTarget, setSwapTarget] = useState<any>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-    const [allAssignedUsersOnDay] = useState<any[]>([]);
+    const [allAssignedUsersOnDay, setAllAssignedUsersOnDay] = useState<any[]>([]);
     const [loadingAssignedUsers, setLoadingAssignedUsers] = useState(false);
     const calendarRef = useRef<HTMLDivElement>(null);
     const detailRef = useRef<HTMLDivElement>(null);
@@ -176,17 +177,27 @@ export function ScheduleView() {
                                 currentDate={currentDate}
                                 onDateChange={setCurrentDate}
                                 groupedAssignments={groupedAssignments}
-                                onDayClick={puedeModificar ? (date, assignments) => {
+                                onDayClick={puedeModificar ? async (date, assignments) => {
                                     setSelectedDayEvents(assignments.map((asig) => ({
                                         ...asig,
                                         id: asig.id,
                                         usuario_id: asig.usuario_id,
+                                        posicionObj: asig.posicionObj,
                                         resource: {
                                             usuario: { nombre: asig.nombre, apellido: '' },
                                             posicion: { nombre: asig.posicion },
                                             configuracion_dia: { color_uniforme: asig.uniforme, tipo_servicio: asig.servicio }
                                         }
                                     })));
+
+                                    // Fetch ALL assigned users for this day across all departments
+                                    try {
+                                        const globalAssignments = await assignmentsService.fetchUsersByDate(dayjs(date).format('YYYY-MM-DD'));
+                                        setAllAssignedUsersOnDay(globalAssignments.map(a => a.usuario_id));
+                                    } catch (err) {
+                                        setAllAssignedUsersOnDay(assignments.map(a => a.usuario_id));
+                                    }
+
                                     setSelectedDate(date);
                                     openDayEvents();
                                 } : (() => { })}

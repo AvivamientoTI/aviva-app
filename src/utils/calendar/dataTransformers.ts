@@ -95,6 +95,7 @@ const removeDuplicateUsersByDay = (assignments: any[]): any[] => {
 interface GroupedAssignment {
     assignments: any[];
     encargado: string | null;
+    encargado_id: string | number | null;
     servicio: string;
     uniforme: string;
 }
@@ -115,6 +116,7 @@ export const groupAssignmentsByDate = (assignments: any[]): Record<string, Group
                 assignments: [],
                 encargado: item.configuracion_dia?.encargado ?
                     `${item.configuracion_dia.encargado.nombre} ${item.configuracion_dia.encargado.apellido}` : null,
+                encargado_id: item.configuracion_dia?.encargado?.id || null,
                 servicio: item.configuracion_dia?.tipo_servicio || 'N/A',
                 uniforme: item.configuracion_dia?.color_uniforme || 'N/A'
             };

@@ -63,7 +63,10 @@ export const useAvailableUsersForSwap = (
             if (!genderMatch) return false;
 
             if (isEncargadoPos) {
-                return u.roles?.some((r: string) => r.includes('lider') || r.includes('encargad') || r.includes('sublider'));
+                return u.roles?.some((r: string) => {
+                    const rNorm = normalize(r);
+                    return rNorm.includes('lider') || rNorm.includes('encargad') || rNorm.includes('sublider');
+                });
             }
             return true;
         });

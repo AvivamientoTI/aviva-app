@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Assignment } from '../types';
+import type { Assignment } from '../types';
 
 export const assignmentsService = {
     /**
@@ -49,7 +49,7 @@ export const assignmentsService = {
           fecha,
           tipo_servicio,
           color_uniforme,
-          encargado:usuarios!configuracion_dia_encargado_id_fkey (nombre, apellido),
+          encargado:usuarios!configuracion_dia_encargado_id_fkey (id, nombre, apellido),
           roles_cabecera!inner (
             departamento_id
           )
@@ -94,6 +94,7 @@ export const assignmentsService = {
         const { data: configs, error } = await supabase
             .from('configuracion_dia')
             .select(`
+        encargado_id,
         asignaciones (
           usuario_id,
           usuario:usuarios (id, nombre, apellido)
@@ -107,6 +108,9 @@ export const assignmentsService = {
         const allAssignments: any[] = [];
         if (configs) {
             configs.forEach((c: any) => {
+                if (c.encargado_id) {
+                    allAssignments.push({ usuario_id: c.encargado_id });
+                }
                 if (c.asignaciones) {
                     allAssignments.push(...c.asignaciones);
                 }
