@@ -11,7 +11,7 @@ import { supabase } from './services/supabaseClient';
 import { Loader, Center, Stack, Text } from '@mantine/core';
 import { useUser, UserProvider } from './contexts/UserContext';
 import { UsersList } from './features/users/UsersList';
-import { RestrictedAccess } from './components/RestrictedAccess';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function AppContent() {
   const [session, setSession] = useState(null);
@@ -96,9 +96,11 @@ function AppContent() {
 
 function App() {
   return (
-    <UserProvider>
-      <AppContent />
-    </UserProvider>
+    <ErrorBoundary>
+      <UserProvider>
+        <AppContent />
+      </UserProvider>
+    </ErrorBoundary>
   );
 }
 
