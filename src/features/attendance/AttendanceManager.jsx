@@ -1,43 +1,43 @@
-    // Guardar asistencia
-    async function handleSave() {
-        if (!selectedService || members.length === 0) {
-            notifications.show({
-                title: 'Error',
-                message: 'No hay datos suficientes para guardar la asistencia.',
-                color: 'red',
-                icon: <IconAlertCircle size={18} />
-            });
-            return;
-        }
-        setSaving(true);
-        try {
-            // Construir registros a guardar
-            const records = members.map(member => ({
-                usuario_id: member.id,
-                config_dia_id: selectedService,
-                estado: attendance[member.id]?.estado || '',
-                justificacion: attendance[member.id]?.justificacion || ''
-            }));
-            const { error } = await attendanceService.saveAttendance(records);
-            if (error) throw error;
-            notifications.show({
-                title: '¡Éxito!',
-                message: 'Asistencia guardada correctamente.',
-                color: 'green',
-                icon: <IconCheck size={18} />
-            });
-        } catch (error) {
-            console.error(error);
-            notifications.show({
-                title: 'Error al guardar',
-                message: error.message || 'No se pudo guardar la asistencia.',
-                color: 'red',
-                icon: <IconAlertCircle size={18} />
-            });
-        } finally {
-            setSaving(false);
-        }
+// Guardar asistencia
+async function handleSave() {
+    if (!selectedService || members.length === 0) {
+        notifications.show({
+            title: 'Error',
+            message: 'No hay datos suficientes para guardar la asistencia.',
+            color: 'red',
+            icon: <IconAlertCircle size={18} />
+        });
+        return;
     }
+    setSaving(true);
+    try {
+        // Construir registros a guardar
+        const records = members.map(member => ({
+            usuario_id: member.id,
+            config_dia_id: selectedService,
+            estado: attendance[member.id]?.estado || '',
+            justificacion: attendance[member.id]?.justificacion || ''
+        }));
+        const { error } = await attendanceService.saveAttendance(records);
+        if (error) throw error;
+        notifications.show({
+            title: '¡Éxito!',
+            message: 'Asistencia guardada correctamente.',
+            color: 'green',
+            icon: <IconCheck size={18} />
+        });
+    } catch (error) {
+        console.error(error);
+        notifications.show({
+            title: 'Error al guardar',
+            message: error.message || 'No se pudo guardar la asistencia.',
+            color: 'red',
+            icon: <IconAlertCircle size={18} />
+        });
+    } finally {
+        setSaving(false);
+    }
+}
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Container,
@@ -137,10 +137,21 @@ export function AttendanceManager() {
     }
 
     // Solo permitir seleccionar el departamento 'Servidores'
-    const deptOptions = [ { value: String(servidoresDept.id), label: servidoresDept.nombre } ];
+    const deptOptions = [{ value: String(servidoresDept.id), label: servidoresDept.nombre }];
 
     // Definir fetchData y fetchAttendanceData
+    function handleAttendanceChange(userId, field, value) {
+        setAttendance(prev => ({
+            ...prev,
+            [userId]: {
+                ...prev[userId],
+                [field]: value
+            }
+        }));
+    }
+
     async function fetchData() {
+
         setLoading(true);
         try {
             const [days, deptMembers] = await Promise.all([
@@ -229,7 +240,7 @@ export function AttendanceManager() {
                                     <Table.Thead>
                                         <Table.Tr>
                                             <Table.Th>Servidor</Table.Th>
-                                            <Table.Th>Rol</Table.Th>
+
                                             <Table.Th>Estado de Asistencia</Table.Th>
                                             <Table.Th>Justificación / Notas</Table.Th>
                                         </Table.Tr>
@@ -240,9 +251,7 @@ export function AttendanceManager() {
                                                 <Table.Td>
                                                     <Text fw={500}>{member.nombre} {member.apellido}</Text>
                                                 </Table.Td>
-                                                <Table.Td>
-                                                    <Badge variant="light" size="sm">{member.rol}</Badge>
-                                                </Table.Td>
+
                                                 <Table.Td>
                                                     <SegmentedControl
                                                         size="xs"

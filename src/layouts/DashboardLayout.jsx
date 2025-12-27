@@ -40,6 +40,9 @@ export function DashboardLayout() {
       { label: 'Planificación', path: '/planning' },
       { label: 'Departamentos', path: '/departments' },
     ] : []),
+    ...((isLider || isSublider) ? [
+      { label: 'Servidores', path: '/servers' },
+    ] : []),
     ...((isLider || isSublider || isEncargado) ? [
       { label: 'Asistencia', path: '/attendance' },
     ] : []),

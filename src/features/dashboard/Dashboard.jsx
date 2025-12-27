@@ -13,7 +13,8 @@ import {
     Card,
     RingProgress,
     Center,
-    Loader
+    Loader,
+    Box
 } from '@mantine/core';
 import {
     IconCalendarEvent,
@@ -163,17 +164,19 @@ export function Dashboard() {
                             <Title order={4} mb="md">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
-                                    <DonutChart
-                                        h={220}
-                                        data={[
-                                            { name: 'Asistió', value: stats.summary.asistio, color: 'teal.6' },
-                                            { name: 'Justificado', value: stats.summary.faltoConAviso, color: 'orange.6' },
-                                            { name: 'Faltó', value: stats.summary.faltoSinAviso, color: 'red.6' },
-                                        ]}
-                                        tooltipDataSource="segment"
-                                        withLabelsLine
-                                        withLabels
-                                    />
+                                    <Box w="100%">
+                                        <DonutChart
+                                            h={220}
+                                            data={[
+                                                { name: 'Asistió', value: stats.summary.asistio, color: 'teal.6' },
+                                                { name: 'Justificado', value: stats.summary.faltoConAviso, color: 'orange.6' },
+                                                { name: 'Faltó', value: stats.summary.faltoSinAviso, color: 'red.6' },
+                                            ]}
+                                            tooltipDataSource="segment"
+                                            withLabelsLine
+                                            withLabels
+                                        />
+                                    </Box>
                                     <Group gap="xs">
                                         <Badge color="teal" variant="dot">Asistió</Badge>
                                         <Badge color="orange" variant="dot">Justificado</Badge>
@@ -190,18 +193,20 @@ export function Dashboard() {
                         <Grid.Col span={12}>
                             <Card withBorder p="md" radius="md">
                                 <Title order={4} mb="md">Tendencia de Asistencia (Últimos Meses)</Title>
-                                <BarChart
-                                    h={400}
-                                    data={Object.values(stats.byMonth)}
-                                    dataKey="month"
-                                    series={[
-                                        { name: 'asistio', color: 'teal.6', label: 'Asistencias' },
-                                        { name: 'faltas', color: 'red.6', label: 'Faltas' },
-                                    ]}
-                                    tickLine="y"
-                                    gridAxis="xy"
-                                    withLegend
-                                />
+                                <Box w="100%">
+                                    <BarChart
+                                        h={400}
+                                        data={Object.values(stats.byMonth)}
+                                        dataKey="month"
+                                        series={[
+                                            { name: 'asistio', color: 'teal.6', label: 'Asistencias' },
+                                            { name: 'faltas', color: 'red.6', label: 'Faltas' },
+                                        ]}
+                                        tickLine="y"
+                                        gridAxis="xy"
+                                        withLegend
+                                    />
+                                </Box>
                             </Card>
                         </Grid.Col>
                     )}

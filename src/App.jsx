@@ -10,6 +10,7 @@ import { PlanningWizard } from './features/planning/PlanningWizard';
 import { supabase } from './services/supabaseClient';
 import { Loader, Center, Stack, Text } from '@mantine/core';
 import { useUser, UserProvider } from './contexts/UserContext';
+import { UsersList } from './features/users/UsersList';
 import { RestrictedAccess } from './components/RestrictedAccess';
 
 function AppContent() {
@@ -66,6 +67,14 @@ function AppContent() {
       rol === 'líder' || rol === 'lider' || rol === 'sublíder' || rol === 'sublider' || rol === 'encargado' || rol === 'encargada'
     );
   });
+  // Verificar si es líder o sublíder del departamento de Servidores (específico para gestión de usuarios)
+  const isLiderOrSubliderServidores = userMemberships?.some(m => {
+    const nombreDept = m.departamento?.nombre?.toLowerCase() || '';
+    const rol = m.rol_jerarquico?.toLowerCase() || '';
+    return nombreDept === 'servidores' && (
+      rol === 'líder' || rol === 'lider' || rol === 'sublíder' || rol === 'sublider'
+    );
+  });
 
   return (
     <Routes>
@@ -76,9 +85,11 @@ function AppContent() {
         <Route path="departments" element={isLiderOrSublider ? <DepartmentsList /> : <RestrictedAccess />} />
         <Route path="planning" element={isLiderOrSublider ? <PlanningWizard /> : <RestrictedAccess />} />
         <Route path="attendance" element={isLiderSubliderEncargadoServidores ? <AttendanceManager /> : <RestrictedAccess />} />
+        <Route path="servers" element={isLiderOrSubliderServidores ? <UsersList /> : <RestrictedAccess />} />
         {/* Mostrar acceso restringido en cualquier otra ruta */}
         <Route path="*" element={isServidoresMember ? <Navigate to="/" /> : <RestrictedAccess />} />
       </Route>
+
     </Routes>
   );
 }
