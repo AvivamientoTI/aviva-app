@@ -1,4 +1,5 @@
 import { Box, Stack, Text, Paper, Group, Title, Badge, Table } from '@mantine/core';
+import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 import dayjs from 'dayjs';
 import type { Membership } from '../../../types';
 
@@ -28,56 +29,85 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
         <Box p="md" style={{ background: 'linear-gradient(90deg, #f8fafc 0%, #f1f3f5 100%)', borderRadius: 12 }}>
             <Stack gap="xl">
                 {Object.keys(groupedAssignments).length === 0 ? (
-                    <Text c="dimmed" ta="center">No hay asignaciones para este departamento</Text>
+                    <Text c="dimmed" ta="center" py="xl">No hay asignaciones para este departamento</Text>
                 ) : (
                     Object.entries(groupedAssignments).map(([fecha, dayData]) => (
-                        <Paper key={fecha} p="lg" radius="md" shadow="sm" withBorder style={{ background: '#fff', borderLeft: '6px solid #228be6' }}>
-                            <Group justify="space-between" mb="md">
-                                <Group gap="sm">
-                                    <Title order={4} c="blue.8">{dayjs(fecha).format('dddd, DD [de] MMMM [de] YYYY')}</Title>
-                                    <Badge size="lg" color="orange" variant="filled" radius="sm">{dayData.servicio || 'N/A'}</Badge>
-                                </Group>
-                                <Badge size="lg" color="gray" variant="light" radius="sm">
-                                    {dayData.assignments.length} servidor{dayData.assignments.length !== 1 ? 'es(as)' : '(a)'}
+                        <Paper key={fecha} p="xl" radius="lg" shadow="sm" withBorder style={{ background: '#fff', borderColor: '#e2e8f0' }}>
+                            <Group justify="space-between" mb="lg">
+                                <Stack gap={4}>
+                                    <Text size="xs" fw={700} c="dimmed" tt="uppercase" ls="0.5px">
+                                        {dayjs(fecha).format('MMMM YYYY')}
+                                    </Text>
+                                    <Title order={3} c="blue.9" style={{ letterSpacing: '-0.5px' }}>
+                                        {dayjs(fecha).format('dddd, DD')}
+                                    </Title>
+                                </Stack>
+                                <Badge size="xl" color="indigo" variant="light" radius="md" p="md">
+                                    {dayData.servicio || 'Servicio General'}
                                 </Badge>
                             </Group>
+
                             {dayData.encargado && (
-                                <Paper p="sm" mb="md" style={{ backgroundColor: '#fffbe6', border: '1.5px solid #ffe066' }}>
+                                <Paper p="md" mb="lg" radius="md" style={{
+                                    background: 'linear-gradient(90deg, #fefce8 0%, #fef9c3 100%)',
+                                    border: '1px solid #fde047'
+                                }}>
                                     <Group gap="xs">
-                                        <Text size="sm" fw={700} c="yellow.9">Encargado(a):</Text>
-                                        <Text size="sm" fw={600} c="yellow.9">{dayData.encargado}</Text>
+                                        <Text size="sm" fw={800} c="yellow.9">ENCARGADO(A):</Text>
+                                        <Text size="md" fw={700} c="yellow.9">{dayData.encargado}</Text>
                                     </Group>
                                 </Paper>
                             )}
-                            <Table highlightOnHover striped withColumnBorders withRowBorders style={{ borderRadius: 8, overflow: 'hidden' }}>
-                                <Table.Thead style={{ position: 'sticky', top: 0, background: '#f1f3f5', zIndex: 1 }}>
+
+                            <Table verticalSpacing="sm" horizontalSpacing="md" style={{ border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
+                                <Table.Thead height={44} style={{ background: '#f8fafc' }}>
                                     <Table.Tr>
-                                        <Table.Th style={{ width: '30%' }}>Servidor(a)</Table.Th>
-                                        <Table.Th style={{ width: '25%' }}>Posición</Table.Th>
-                                        <Table.Th style={{ width: '25%' }}>Uniforme</Table.Th>
+                                        <Table.Th style={{ color: '#64748b', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Servidor(a)</Table.Th>
+                                        <Table.Th style={{ color: '#64748b', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Posición</Table.Th>
+                                        <Table.Th style={{ color: '#64748b', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Uniforme</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {dayData.assignments.map((asig) => {
-                                        /* 
-                                         // Logic for rolMensual was here but unused in render of previous file?
-                                         // Checking previous file content...
-                                         // Wait, 'rolMensual' was NOT used in the returned JSX of the original file! 
-                                         // Lines 41-53 calculated it, but lines 55+ only show nombre, posicion, uniforme.
-                                         // I will keep the loop clean.
-                                        */
-                                        return (
-                                            <Table.Tr key={asig.id}>
-                                                <Table.Td fw={600} style={{ fontSize: 15 }}>{asig.nombre}</Table.Td>
-                                                <Table.Td>
-                                                    <Badge variant="filled" color="blue" size="md" radius="sm">{asig.posicion}</Badge>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Badge color="grape" size="md" radius="sm">{asig.uniforme}</Badge>
-                                                </Table.Td>
-                                            </Table.Tr>
-                                        );
-                                    })}
+                                    {dayData.assignments.map((asig) => (
+                                        <Table.Tr key={asig.id}>
+                                            <Table.Td fw={700} style={{ fontSize: '15px', color: '#1e293b' }}>{asig.nombre}</Table.Td>
+                                            <Table.Td>
+                                                <Group justify="center">
+                                                    <Badge
+                                                        variant="filled"
+                                                        bg="#ffedd5"
+                                                        c="#9a3412"
+                                                        size="md"
+                                                        radius="sm"
+                                                        style={{
+                                                            border: '1px solid #fed7aa',
+                                                            fontWeight: 700,
+                                                            width: '140px',
+                                                            textAlign: 'center'
+                                                        }}
+                                                    >
+                                                        {asig.posicion}
+                                                    </Badge>
+                                                </Group>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Group justify="center">
+                                                    <Badge
+                                                        color={getUniformeColor(asig.uniforme)}
+                                                        variant="dot"
+                                                        size="md"
+                                                        fw={700}
+                                                        style={{
+                                                            width: '140px',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                    >
+                                                        {asig.uniforme}
+                                                    </Badge>
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
                                 </Table.Tbody>
                             </Table>
                         </Paper>

@@ -47,7 +47,7 @@ function AppContent() {
                 <Stack align="center" gap="md">
                     <Loader size="xl" color="blue" />
                     <Text size="lg" fw={600} c="blue.7">
-                        Cargando Ujieres App...
+                        Cargando Aviva App...
                     </Text>
                 </Stack>
             </Center>

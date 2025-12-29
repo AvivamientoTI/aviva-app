@@ -48,7 +48,7 @@ export const PlanningStepServiceDates = ({
             <Grid.Col sm={12} md={5} lg={4}>
                 <Stack gap="md" style={{ position: 'sticky', top: 20 }}>
                     <Paper shadow="sm" p="md" radius="md" withBorder>
-                        <Text fw={600} size="lg" mb="sm" ta="center">Selección de Fechas</Text>
+                        <Text fw={700} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif' }}>Selección de Fechas</Text>
                         <Group justify="center">
                             <DatePicker
                                 value={selectedDates.map(dateStr => dayjs(dateStr).hour(12).toDate())}
@@ -95,7 +95,7 @@ export const PlanningStepServiceDates = ({
             <Grid.Col sm={12} md={7} lg={8}>
                 <Paper shadow="sm" p="md" radius="md" withBorder h="100%" style={{ minHeight: 400 }}>
                     <Group justify="space-between" mb="md">
-                        <Text fw={600} size="lg">Configuración de Servicios</Text>
+                        <Text fw={700} size="lg" style={{ fontFamily: 'Outfit, sans-serif' }}>Configuración de Servicios</Text>
                         <Badge size="lg" variant="filled">{selectedDates.length} Días Seleccionados</Badge>
                     </Group>
 
@@ -151,7 +151,7 @@ export const PlanningStepServiceDates = ({
                                                     </Grid.Col>
                                                 </Grid>
 
-                                                <Text size="sm" fw={600} mt="xs" c="dimmed">Cupos Requeridos</Text>
+                                                <Text size="sm" fw={700} mt="xs" c="dimmed" style={{ fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cupos Requeridos</Text>
                                                 <Group gap="sm">
                                                     {positions.map(pos => {
                                                         const quota = config.positionQuotas?.[pos.id] || 0;

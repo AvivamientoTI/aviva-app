@@ -41,8 +41,8 @@ export const PlanningStepReview = ({
                             label={<Center><IconUser size={20} /></Center>}
                         />
                         <div>
-                            <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Voluntarios</Text>
-                            <Text fw={700} size="xl">{uniqueUsers}</Text>
+                            <Text c="dimmed" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Voluntarios</Text>
+                            <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', lineHeight: 1 }}>{uniqueUsers}</Text>
                         </div>
                     </Group>
                 </Paper>
@@ -56,8 +56,8 @@ export const PlanningStepReview = ({
                             label={<Center><IconCheck size={20} /></Center>}
                         />
                         <div>
-                            <Text c="dimmed" size="xs" tt="uppercase" fw={700}>Asignaciones</Text>
-                            <Text fw={700} size="xl">{totalAssignments}</Text>
+                            <Text c="dimmed" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asignaciones</Text>
+                            <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', lineHeight: 1 }}>{totalAssignments}</Text>
                         </div>
                     </Group>
                 </Paper>
@@ -82,7 +82,7 @@ export const PlanningStepReview = ({
                             const conflictDepts = conflicts[assignment.id];
 
                             return (
-                                <Table.Tr key={assignment.id} style={conflictDepts ? { backgroundColor: 'rgba(255, 0, 0, 0.05)' } : {}}>
+                                <Table.Tr key={assignment.id} style={conflictDepts ? { backgroundColor: 'var(--mantine-color-red-light)' } : {}}>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
                                         <Text fw={500} size="sm">{displayDate.format('dddd D')}</Text>
                                         <Text c="dimmed" size="xs">{displayDate.format('MMMM')}</Text>
@@ -95,9 +95,9 @@ export const PlanningStepReview = ({
                                             <div>
                                                 <Text size="sm" fw={500}>{assignment.usuario?.nombre} {assignment.usuario?.apellido}</Text>
                                                 {conflictDepts && (
-                                                    <Text size="xs" c="red" fw={600}>
-                                                        ⚠️ Ya asignado en: {conflictDepts.join(', ')}
-                                                    </Text>
+                                                    <Badge variant="light" color="orange" size="xs" mt={4} leftSection="⚠️">
+                                                        Ocupado en: {conflictDepts.join(', ')}
+                                                    </Badge>
                                                 )}
                                             </div>
                                         </Group>

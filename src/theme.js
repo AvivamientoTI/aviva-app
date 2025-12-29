@@ -1,164 +1,171 @@
 import { createTheme } from '@mantine/core';
 
 export const theme = createTheme({
-    /** Paleta de colores profesional */
+    /** Paleta de colores Premium */
     colors: {
-        // Azul profesional como color primario
+        // Indigo-Slate / Deep Space (Optimized for Dark Mode Contrast)
         blue: [
-            '#f0f9ff',
-            '#e0f2fe',
-            '#bae6fd',
-            '#7dd3fc',
-            '#38bdf8',
-            '#0ea5e9', // Primary 500
-            '#0284c7',
-            '#0369a1',
-            '#075985',
-            '#0c4a6e',
+            '#f0f4ff', // 0: Background tint
+            '#e0e7ff', // 1: Hover tint
+            '#c7d2fe', // 2: Muted borders
+            '#a5b4fc', // 3: Active borders
+            '#818cf8', // 4: Secondary elements
+            '#6366f1', // 5: Primary (Indigo 500)
+            '#4f46e5', // 6: Deep Primary
+            '#4338ca', // 7: Deepest Interactive
+            '#3730a3', // 8: Dark Mode Card Surfaces
+            '#312e81', // 9: Dark Mode Background Base
+        ],
+        // Sunset Orange / Accents
+        orange: [
+            '#fff7ed',
+            '#ffedd5',
+            '#fed7aa',
+            '#fdba74',
+            '#fb923c',
+            '#f97316', // Primary Accent
+            '#ea580c',
+            '#c2410c',
+            '#9a3412',
+            '#7c2d12',
         ],
     },
 
     primaryColor: 'blue',
+    primaryShade: { light: 6, dark: 5 },
+    defaultRadius: 'lg',
 
-    /** Tipografía moderna */
-    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
-    fontFamilyMonospace: 'Monaco, Courier, monospace',
+    /** Tipografía Premium: Outfit para títulos, Plus Jakarta para cuerpo */
+    fontFamily: '"Plus Jakarta Sans", Inter, -apple-system, sans-serif',
     headings: {
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
-        fontWeight: '600',
+        fontFamily: '"Outfit", sans-serif',
+        fontWeight: '700',
         sizes: {
-            h1: { fontSize: '2.125rem', lineHeight: '1.3' },
-            h2: { fontSize: '1.625rem', lineHeight: '1.35' },
-            h3: { fontSize: '1.375rem', lineHeight: '1.4' },
-            h4: { fontSize: '1.125rem', lineHeight: '1.45' },
+            h1: { fontSize: '2.5rem', lineHeight: '1.2', letterSpacing: '-0.02em' },
+            h2: { fontSize: '2rem', lineHeight: '1.3', letterSpacing: '-0.02em' },
+            h3: { fontSize: '1.5rem', lineHeight: '1.4', letterSpacing: '-0.01em' },
+            h4: { fontSize: '1.25rem', lineHeight: '1.45' },
         },
     },
 
-    /** Espaciado generoso */
-    spacing: {
-        xs: '0.625rem',
-        sm: '0.75rem',
-        md: '1rem',
-        lg: '1.25rem',
-        xl: '1.5rem',
-    },
-
-    /** Bordes redondeados */
-    radius: {
-        xs: '0.25rem',
-        sm: '0.375rem',
-        md: '0.5rem',
-        lg: '0.75rem',
-        xl: '1rem',
-    },
-
-    /** Sombras sutiles */
-    shadows: {
-        xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        sm: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-        xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-    },
-
-    /** Componentes personalizados */
+    /** Componentes personalizados con Estética refined */
     components: {
         Button: {
             defaultProps: {
-                radius: 'md',
+                radius: 'xl',
+                loaderProps: { type: 'dots' },
             },
-            styles: {
+            styles: (theme) => ({
                 root: {
-                    fontWeight: 500,
-                    transition: 'all 0.2s ease',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    '&:active': { transform: 'scale(0.96)' },
+                    '&:hover': {
+                        boxShadow: '0 6px 16px rgba(0, 0, 0, 0.12)',
+                        transform: 'translateY(-1px)',
+                    },
                 },
-            },
+            }),
         },
 
         Card: {
             defaultProps: {
-                shadow: 'sm',
-                radius: 'md',
+                shadow: 'md',
+                radius: 'xl',
                 withBorder: true,
             },
-            styles: {
+            styles: (theme) => ({
                 root: {
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.25)',
+                    backgroundColor: theme.colorScheme === 'dark'
+                        ? 'rgba(30, 41, 59, 0.45)'
+                        : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid',
+                    borderColor: theme.colorScheme === 'dark'
+                        ? 'rgba(255, 255, 255, 0.08)'
+                        : 'rgba(0, 0, 0, 0.05)',
                     '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                        transform: 'translateY(-6px) scale(1.005)',
+                        boxShadow: theme.colorScheme === 'dark'
+                            ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                            : '0 20px 40px rgba(0,0,0,0.08)',
+                        borderColor: theme.colors.blue[4],
                     },
                 },
-            },
+            }),
         },
 
         Paper: {
             defaultProps: {
+                radius: 'xl',
+            },
+            styles: (theme) => ({
+                root: {
+                    backgroundColor: theme.colorScheme === 'dark'
+                        ? 'rgba(15, 23, 42, 0.6)'
+                        : 'rgba(255, 255, 255, 0.9)',
+                }
+            })
+        },
+
+        Badge: {
+            defaultProps: {
                 radius: 'md',
+                variant: 'light',
+            },
+            styles: {
+                root: {
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    fontSize: '0.6rem',
+                },
             },
         },
 
         Modal: {
             defaultProps: {
-                radius: 'md',
+                radius: '24px',
                 overlayProps: {
                     backgroundOpacity: 0.55,
-                    blur: 3,
+                    blur: 8,
                 },
             },
-        },
-
-        Badge: {
-            defaultProps: {
-                radius: 'sm',
-            },
-            styles: {
-                root: {
-                    fontWeight: 500,
-                    textTransform: 'none',
+            styles: (theme) => ({
+                content: {
+                    backdropFilter: 'blur(24px)',
+                    backgroundColor: theme.colorScheme === 'dark'
+                        ? 'rgba(15, 23, 42, 0.9)'
+                        : 'rgba(255, 255, 255, 0.95)',
+                    border: `1px solid ${theme.colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,
                 },
-            },
-        },
-
-        Alert: {
-            defaultProps: {
-                radius: 'md',
-            },
-        },
-
-        Notification: {
-            defaultProps: {
-                radius: 'md',
-            },
-        },
-
-        Stepper: {
-            styles: {
-                stepIcon: {
-                    borderWidth: 2,
+                header: {
+                    backgroundColor: 'transparent',
                 },
-                separator: {
-                    height: 2,
+                title: {
+                    fontFamily: 'Outfit, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '1.5rem',
+                }
+            })
+        },
+
+        AppShell: {
+            styles: (theme) => ({
+                header: {
+                    backgroundColor: theme.colorScheme === 'dark' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(16px)',
+                    borderBottom: `1px solid ${theme.colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
                 },
-            },
-        },
-
-        TextInput: {
-            defaultProps: {
-                radius: 'md',
-            },
-        },
-
-        Select: {
-            defaultProps: {
-                radius: 'md',
-            },
-        },
-
-        DatePickerInput: {
-            defaultProps: {
-                radius: 'md',
-            },
-        },
+                navbar: {
+                    backgroundColor: theme.colorScheme === 'dark' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(16px)',
+                    borderRight: `1px solid ${theme.colorScheme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`,
+                }
+            })
+        }
     },
 });

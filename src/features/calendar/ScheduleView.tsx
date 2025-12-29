@@ -70,7 +70,7 @@ export function ScheduleView() {
 
     // Exportar calendario o detalle como PNG
     const handleExport = useCallback(() => {
-        const fileName = viewMode === 'calendar' ? 'calendario-ujieres.png' : 'detalle-asignaciones.png';
+        const fileName = viewMode === 'calendar' ? 'calendario-servidores.png' : 'detalle-asignaciones.png';
         const exportRef = viewMode === 'calendar' ? calendarRef : detailRef;
         // We cast the ref because exportToPng expects a MutableRefObject
         exportToPng(exportRef as any, fileName);

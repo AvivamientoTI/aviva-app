@@ -157,7 +157,7 @@ export function DepartmentsList() {
                 <form onSubmit={handleSubmit}>
                     <TextInput
                         label="Nombre"
-                        placeholder="Ej. Ujieres AM"
+                        placeholder="Ej. Servidores AM"
                         required
                         value={formData.nombre}
                         onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}

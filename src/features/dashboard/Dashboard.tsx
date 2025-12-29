@@ -12,14 +12,18 @@ import {
     Card,
     Center,
     Loader,
-    Box
+    Box,
+    Button
 } from '@mantine/core';
 import {
     IconCalendarEvent,
     IconChecklist,
     IconUsers,
-    IconTrendingUp
+    IconTrendingUp,
+    IconRocket,
+    IconArrowRight
 } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
 import { DonutChart, BarChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
 import { analyticsService } from '../../services/analyticsService';
@@ -34,23 +38,36 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, color }: StatCardProps) {
     return (
-        <Card withBorder p="md" radius="md" style={{
+        <Card p="lg" radius="xl" style={{
             background: `linear-gradient(135deg, var(--mantine-color-${color}-6) 0%, var(--mantine-color-${color}-8) 100%)`,
-            color: 'white'
+            color: 'white',
+            border: 'none',
+            overflow: 'hidden',
+            position: 'relative'
         }}>
-            <Group justify="space-between">
-                <Text size="xs" fw={700} tt="uppercase">
-                    {title}
-                </Text>
-                <ThemeIcon color="white" variant="transparent" size="lg" radius="md">
-                    {icon}
-                </ThemeIcon>
-            </Group>
-            <Group align="flex-end" gap="xs" mt={25}>
-                <Text fw={700} size="xl">
+            <Box style={{
+                position: 'absolute',
+                top: -10,
+                right: -10,
+                opacity: 0.15,
+                transform: 'rotate(15deg)'
+            }}>
+                {React.cloneElement(icon as React.ReactElement, { size: 80 })}
+            </Box>
+
+            <Stack gap="xs" style={{ position: 'relative', zIndex: 1 }}>
+                <Group justify="space-between" align="center">
+                    <Text size="xs" fw={800} tt="uppercase" opacity={0.8} style={{ letterSpacing: '0.05em' }}>
+                        {title}
+                    </Text>
+                    <ThemeIcon color="white" variant="transparent" size="md">
+                        {icon}
+                    </ThemeIcon>
+                </Group>
+                <Text fw={800} size="xl" style={{ fontSize: '1.8rem', letterSpacing: '-0.02em' }}>
                     {value}
                 </Text>
-            </Group>
+            </Stack>
         </Card>
     );
 }
@@ -84,6 +101,7 @@ interface StatsData {
 }
 
 export function Dashboard() {
+    const navigate = useNavigate();
     const { userProfile, attendanceManagedDepartments } = useUser();
     const [upcoming, setUpcoming] = useState<UpcomingService[]>([]);
     const [stats, setStats] = useState<StatsData | null>(null);
@@ -127,36 +145,145 @@ export function Dashboard() {
         ? Math.round((stats!.summary.asistio / attendanceTotal) * 100)
         : 0;
 
+    const nextService = upcoming.length > 0 ? upcoming[0] : null;
+
     return (
         <Container size="xl" py="md">
             <Stack gap="lg">
-                <Card style={{
-                    background: 'linear-gradient(135deg, var(--mantine-color-blue-5) 0%, var(--mantine-color-blue-7) 100%)',
-                    color: 'white'
-                }} padding="lg" radius="md">
-                    <Stack gap="xs">
-                        <Title order={2}>¡Bienvenido de nuevo, {userProfile?.usuario?.nombre || 'Servidor'}!</Title>
-                        <div style={{
-                            background: 'rgba(30, 58, 138, 0.18)', // azul oscuro translúcido
-                            borderLeft: '4px solid #60a5fa', // azul claro
-                            padding: '12px 18px',
-                            borderRadius: '6px',
-                            fontFamily: 'serif',
-                            fontStyle: 'italic',
-                            color: '#e0e7ff', // azul muy claro
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                            marginBottom: '4px'
-                        }}>
-                            <span style={{ fontSize: '1.15rem', display: 'block', marginBottom: '4px' }}>
-                                Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres;
-                            </span>
-                            <span style={{ fontWeight: 600, fontSize: '1rem', color: '#ffd700' }}>
-                                Colosenses 3:23
-                            </span>
-                        </div>
-                        <Text c="blue.1">Aquí tienes un resumen de tu actividad y la de tu equipo.</Text>
-                    </Stack>
-                </Card>
+                <Grid gutter="lg">
+                    <Grid.Col span={{ base: 12, md: 7 }}>
+                        <Card style={{
+                            background: 'linear-gradient(135deg, var(--mantine-color-blue-8) 0%, var(--mantine-color-blue-9) 100%)',
+                            color: 'white',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            position: 'relative'
+                        }} padding="xl" radius="xl" withBorder={false}>
+                            <Box style={{
+                                position: 'absolute',
+                                bottom: -30,
+                                left: -30,
+                                opacity: 0.1,
+                                transform: 'rotate(-15deg)'
+                            }}>
+                                <IconRocket size={200} />
+                            </Box>
+
+                            <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
+                                <Title order={2} style={{
+                                    fontFamily: 'Outfit, sans-serif',
+                                    fontSize: '2.4rem',
+                                    lineHeight: 1.1,
+                                    letterSpacing: '-0.03em'
+                                }}>
+                                    ¡Bienvenido de nuevo,<br />
+                                    <Text span variant="gradient" gradient={{ from: 'yellow.4', to: 'orange.4' }} inherit>
+                                        {userProfile?.usuario?.nombre || 'Servidor'}
+                                    </Text>!
+                                </Title>
+
+                                <Box style={{
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    backdropFilter: 'blur(12px)',
+                                    borderLeft: '4px solid var(--mantine-color-orange-4)',
+                                    padding: '20px',
+                                    borderRadius: '12px',
+                                    marginTop: '8px'
+                                }}>
+                                    <Text size="lg" fs="italic" fw={500} c="blue.0" style={{ lineHeight: 1.5, opacity: 0.9 }}>
+                                        "Y todo lo que hagáis, hacedlo de corazón, como para el Señor..."
+                                    </Text>
+                                    <Text fw={800} size="sm" c="orange.4" mt={8} style={{ letterSpacing: '0.05em' }}>
+                                        COLOSENSES 3:23
+                                    </Text>
+                                </Box>
+                            </Stack>
+                        </Card>
+                    </Grid.Col>
+
+                    <Grid.Col span={{ base: 12, md: 5 }}>
+                        {nextService ? (
+                            <Card padding="xl" radius="xl" withBorder style={{
+                                background: 'rgba(255, 255, 255, 0.7)',
+                                backdropFilter: 'blur(20px)',
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                height: '100%',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}>
+                                <Box style={{
+                                    position: 'absolute',
+                                    top: -20,
+                                    right: -20,
+                                    opacity: 0.03,
+                                    transform: 'rotate(15deg)'
+                                }}>
+                                    <IconRocket size={160} color="var(--mantine-color-blue-9)" />
+                                </Box>
+
+                                <Stack justify="space-between" h="100%">
+                                    <div>
+                                        <Group justify="space-between" mb="lg">
+                                            <Badge variant="filled" color="orange" size="lg" radius="md">
+                                                PRÓXIMA MISIÓN
+                                            </Badge>
+                                            <ThemeIcon variant="light" color="blue" radius="xl" size="lg">
+                                                <IconRocket size={20} />
+                                            </ThemeIcon>
+                                        </Group>
+
+                                        <Title order={3} style={{
+                                            fontFamily: 'Outfit, sans-serif',
+                                            fontSize: '1.8rem',
+                                            color: 'var(--mantine-color-blue-9)',
+                                            letterSpacing: '-0.02em'
+                                        }}>
+                                            {nextService.posicion?.[0]?.nombre || 'Servidor'}
+                                        </Title>
+
+                                        <Group gap="xs" mt={8}>
+                                            <IconCalendarEvent size={18} color="var(--mantine-color-blue-6)" />
+                                            <Text size="md" fw={700} c="dimmed">
+                                                {dayjs(nextService.configuracion_dia[0]?.fecha).format('dddd, D [de] MMMM')}
+                                            </Text>
+                                        </Group>
+
+                                        <Badge mt="md" size="md" variant="dot" color="indigo" p="md">
+                                            {nextService.configuracion_dia[0]?.tipo_servicio}
+                                        </Badge>
+                                    </div>
+
+                                    <Button
+                                        fullWidth
+                                        variant="filled"
+                                        color="blue"
+                                        mt="xl"
+                                        size="md"
+                                        rightSection={<IconArrowRight size={18} />}
+                                        onClick={() => navigate('/calendar')}
+                                    >
+                                        Ver Detalles
+                                    </Button>
+                                </Stack>
+                            </Card>
+                        ) : (
+                            <Card padding="xl" radius="xl" withBorder h="100%">
+                                <Stack align="center" justify="center" h="100%" gap="md">
+                                    <ThemeIcon size={60} radius="xl" color="gray" variant="light">
+                                        <IconCalendarEvent size={32} />
+                                    </ThemeIcon>
+                                    <Stack gap={4} align="center">
+                                        <Text fw={800} size="lg" c="dimmed">Sin misiones próximas</Text>
+                                        <Text size="sm" ta="center" c="dimmed" opacity={0.7}>Descansa y prepárate para el próximo rol.</Text>
+                                    </Stack>
+                                </Stack>
+                            </Card>
+                        )}
+                    </Grid.Col>
+                </Grid>
 
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
                     <StatCard

@@ -63,7 +63,7 @@ export function DashboardLayout() {
         <Group justify="space-between" h="100%" px="md">
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Title order={3} fw={800} variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>Ujieres AYP</Title>
+            <Title order={3} fw={800} variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>Servidores AYP</Title>
           </Group>
           {!loading && userName && (
             <Title order={6} c="dimmed">

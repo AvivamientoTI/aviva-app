@@ -61,7 +61,7 @@ export function DashboardLayout() {
                 <Group justify="space-between" h="100%" px="md">
                     <Group>
                         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-                        <Text size="xl" fw={800} variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>Ujieres AYP</Text>
+                        <Text size="xl" fw={800} variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>Servidores AYP</Text>
                     </Group>
                     {!loading && userName && (
                         <Title order={6} c="dimmed">
@@ -92,7 +92,7 @@ export function DashboardLayout() {
                 />
             </AppShell.Navbar>
 
-            <AppShell.Main>
+            <AppShell.Main className="animate-fade-in">
                 <Outlet />
             </AppShell.Main>
         </AppShell>

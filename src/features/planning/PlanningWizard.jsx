@@ -539,50 +539,77 @@ export function PlanningWizard() {
         });
 
         const allDeptUsers = Object.values(usersWithRolesMap);
-        const available = await getUsersNotAssignedOnDate(date, allDeptUsers);
-        const candidatesWithRoles = available;
+
+        // 1. Get global conflicts for this date
+        const { data: blockedResults } = await supabase.rpc('get_blocked_users', {
+          p_date: date
+        });
+        const blockedMap = {};
+        blockedResults?.forEach(row => {
+          if (row.usuario_id) blockedMap[String(row.usuario_id)] = row.motivo || 'Ocupado';
+        });
+
+        // 2. Get draft conflicts (already in this month's draft for this date)
+        const draftConflictIds = previewAssignments
+          .filter(a => a.fecha === date && String(a.id) !== String(assignment.id))
+          .map(a => String(a.usuario_id));
 
         const pos = assignment.posicion;
         const posNameNorm = normalize(pos?.nombre);
         const isEncargadoPos = posNameNorm.includes('encargad');
 
-        const usersAlreadyInDraftThisDay = previewAssignments
-          .filter(a => a.fecha === date && String(a.usuario_id) !== String(assignment.usuario_id))
-          .map(a => String(a.usuario_id));
-
-        const finalCandidates = candidatesWithRoles.filter(u => {
+        const finalCandidates = allDeptUsers.map(u => {
           const uid = String(u.id);
+          const globalConflict = blockedMap[uid];
+          const draftConflict = draftConflictIds.includes(uid);
 
-          // 1. Gender check
+          // Gender check
           const genderMatch = !pos?.genero_requerido ||
             pos.genero_requerido === 'A' ||
             u.genero === pos.genero_requerido;
 
-          if (!genderMatch) return false;
-
-          // 2. Draft availability check
-          if (usersAlreadyInDraftThisDay.includes(uid)) {
-            return false;
-          }
-
-          // 3. Role restriction
+          // Role check for Encargado
+          let roleMatch = true;
           if (isEncargadoPos) {
-            const hasLeaderRole = u.roles.some(r =>
+            roleMatch = u.roles.some(r =>
               r.includes('lider') ||
               r.includes('encargad') ||
               r.includes('sublider')
             );
-            return hasLeaderRole;
           }
-          return true;
-        });
 
-        const currentId = String(assignment.usuario_id);
-        const currentIsPresent = finalCandidates.find(u => String(u.id) === currentId);
-        if (!currentIsPresent) {
-          const currentFull = allDeptUsers.find(u => String(u.id) === currentId);
-          if (currentFull) finalCandidates.unshift(currentFull);
-        }
+          let status = 'Disponible';
+          let color = 'green';
+          let disabled = !genderMatch || !roleMatch;
+
+          if (globalConflict) {
+            status = `⚠️ ${globalConflict}`;
+            color = 'orange';
+          } else if (draftConflict) {
+            status = '⚠️ Ya en borrador';
+            color = 'orange';
+          } else if (!genderMatch) {
+            status = '❌ Género no apto';
+            color = 'red';
+          } else if (!roleMatch) {
+            status = '❌ Falta rango';
+            color = 'red';
+          }
+
+          return {
+            ...u,
+            status,
+            statusColor: color,
+            disabled,
+            label: `${u.nombre} ${u.apellido} (${status})`
+          };
+        }).sort((a, b) => {
+          // Sort: Available first, then conflicts, then disabled
+          if (a.disabled !== b.disabled) return a.disabled ? 1 : -1;
+          if (a.status === 'Disponible' && b.status !== 'Disponible') return -1;
+          if (a.status !== 'Disponible' && b.status === 'Disponible') return 1;
+          return a.nombre.localeCompare(b.nombre);
+        });
 
         setReplacements(finalCandidates);
       }
@@ -732,7 +759,11 @@ export function PlanningWizard() {
           <Select
             label="Seleccionar Nuevo(a) Servidor(a)"
             placeholder="Busca un voluntario disponible"
-            data={(replacements || []).map(u => ({ value: String(u.id), label: `${u.nombre} ${u.apellido}` }))}
+            data={(replacements || []).map(u => ({
+              value: String(u.id),
+              label: u.label,
+              disabled: u.disabled
+            }))}
             searchable
             nothingFoundMessage="No hay voluntarios disponibles"
             value={editAssignment.usuario_id ? String(editAssignment.usuario_id) : null}

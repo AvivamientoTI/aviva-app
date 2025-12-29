@@ -14,11 +14,11 @@ export const PlanningStepDeptMonth = ({
             <Grid.Col sm={12} md={6}>
                 <Paper shadow="sm" p="xl" radius="md" withBorder h="100%">
                     <Stack align="center" spacing="md">
-                        <ThemeIcon size={60} radius="xl" variant="light" color="blue">
+                        <ThemeIcon size={64} radius="xl" variant="filled" color="blue">
                             <IconBuildingCommunity size={34} />
                         </ThemeIcon>
                         <div style={{ textAlign: 'center' }}>
-                            <Text size="lg" fw={600}>Departamento</Text>
+                            <Text size="lg" fw={700} style={{ fontFamily: 'Outfit, sans-serif' }}>Departamento</Text>
                             <Text size="sm" c="dimmed">¿Para qué equipo estás planificando?</Text>
                         </div>
                         <Select
@@ -38,11 +38,11 @@ export const PlanningStepDeptMonth = ({
             <Grid.Col sm={12} md={6}>
                 <Paper shadow="sm" p="xl" radius="md" withBorder h="100%">
                     <Stack align="center" spacing="md">
-                        <ThemeIcon size={60} radius="xl" variant="light" color="grape">
+                        <ThemeIcon size={64} radius="xl" variant="filled" color="orange">
                             <IconCalendarEvent size={34} />
                         </ThemeIcon>
                         <div style={{ textAlign: 'center' }}>
-                            <Text size="lg" fw={600}>Mes de Trabajo</Text>
+                            <Text size="lg" fw={700} style={{ fontFamily: 'Outfit, sans-serif' }}>Mes de Trabajo</Text>
                             <Text size="sm" c="dimmed">Selecciona el mes y año a planificar</Text>
                         </div>
                         <Group justify="center">
