@@ -46,17 +46,17 @@ function RoleSection({ rol, servidores }: RoleSectionProps) {
         <Box mb={12}>
             <Group mb={6} justify="center" gap={6} style={{
                 width: '100%',
-                background: isEncargado ? 'linear-gradient(90deg, #fef08a 0%, #fde047 100%)' : '#ffedd5',
-                color: isEncargado ? '#b45309' : '#9a3412',
+                background: isEncargado ? 'linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%)' : '#f8fafc',
+                color: isEncargado ? '#92400e' : '#475569',
                 fontWeight: 800,
-                fontSize: '13px',
-                borderRadius: '6px',
-                padding: '4px 0',
-                letterSpacing: '1px',
+                fontSize: '11px',
+                borderRadius: '8px',
+                padding: '6px 0',
+                letterSpacing: '0.05em',
                 textTransform: 'uppercase',
-                boxShadow: isEncargado ? '0 2px 10px rgba(251, 191, 36, 0.2)' : 'none',
+                boxShadow: isEncargado ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none',
                 textAlign: 'center',
-                border: isEncargado ? '2.5px solid #f59e0b' : '1px solid #fed7aa',
+                border: isEncargado ? '1.5px solid #fcd34d' : '1.5px solid #e2e8f0',
                 position: 'relative',
             }}>
                 {isEncargado && (

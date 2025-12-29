@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, Group, ActionIcon, Text, Badge, Paper, Avatar, RingProgress, Stack, Center } from '@mantine/core';
 import { IconEdit, IconTrash, IconUser, IconCheck } from '@tabler/icons-react';
 import dayjs from 'dayjs';
+import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 
 export const PlanningStepReview = ({
     assignments,
@@ -28,50 +29,50 @@ export const PlanningStepReview = ({
     const totalAssignments = sorted.length;
 
     return (
-        <Stack spacing="xl">
+        <Stack gap="xl">
             {/* Stats Summary */}
             <Group grow>
-                <Paper withBorder p="md" radius="md">
+                <Paper withBorder p="md" radius="lg" style={{ borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }}>
                     <Group>
                         <RingProgress
                             size={60}
                             roundCaps
                             thickness={6}
-                            sections={[{ value: 100, color: 'blue' }]}
-                            label={<Center><IconUser size={20} /></Center>}
+                            sections={[{ value: 100, color: 'blue.6' }]}
+                            label={<Center><IconUser size={20} color="var(--mantine-color-blue-6)" /></Center>}
                         />
                         <div>
-                            <Text c="dimmed" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Voluntarios</Text>
-                            <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', lineHeight: 1 }}>{uniqueUsers}</Text>
+                            <Text c="slate.7" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Voluntarios</Text>
+                            <Text fw={900} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', lineHeight: 1 }}>{uniqueUsers}</Text>
                         </div>
                     </Group>
                 </Paper>
-                <Paper withBorder p="md" radius="md">
+                <Paper withBorder p="md" radius="lg" style={{ borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }}>
                     <Group>
                         <RingProgress
                             size={60}
                             roundCaps
                             thickness={6}
-                            sections={[{ value: 100, color: 'teal' }]}
-                            label={<Center><IconCheck size={20} /></Center>}
+                            sections={[{ value: 100, color: 'blue.4' }]}
+                            label={<Center><IconCheck size={20} color="var(--mantine-color-blue-4)" /></Center>}
                         />
                         <div>
-                            <Text c="dimmed" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asignaciones</Text>
-                            <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', lineHeight: 1 }}>{totalAssignments}</Text>
+                            <Text c="slate.7" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asignaciones</Text>
+                            <Text fw={900} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', lineHeight: 1 }}>{totalAssignments}</Text>
                         </div>
                     </Group>
                 </Paper>
             </Group>
 
-            <Paper shadow="sm" radius="md" withBorder>
-                <Table verticalSpacing="sm" striped highlightOnHover>
-                    <Table.Thead>
+            <Paper shadow="sm" radius="lg" withBorder style={{ borderColor: '#e2e8f0', overflow: 'hidden' }}>
+                <Table verticalSpacing="md" highlightOnHover>
+                    <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
                         <Table.Tr>
-                            <Table.Th>Fecha</Table.Th>
-                            <Table.Th>Voluntario</Table.Th>
-                            <Table.Th>Posición</Table.Th>
-                            <Table.Th>Detalles</Table.Th>
-                            <Table.Th style={{ textAlign: 'right' }}>Acciones</Table.Th>
+                            <Table.Th style={{ color: '#475569', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Fecha</Table.Th>
+                            <Table.Th style={{ color: '#475569', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Voluntario</Table.Th>
+                            <Table.Th style={{ color: '#475569', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Posición</Table.Th>
+                            <Table.Th style={{ color: '#475569', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Detalles</Table.Th>
+                            <Table.Th style={{ color: '#475569', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Acciones</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -82,39 +83,50 @@ export const PlanningStepReview = ({
                             const conflictDepts = conflicts[assignment.id];
 
                             return (
-                                <Table.Tr key={assignment.id} style={conflictDepts ? { backgroundColor: 'var(--mantine-color-red-light)' } : {}}>
+                                <Table.Tr key={assignment.id} style={conflictDepts ? { backgroundColor: '#fff5f5' } : {}}>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
-                                        <Text fw={500} size="sm">{displayDate.format('dddd D')}</Text>
-                                        <Text c="dimmed" size="xs">{displayDate.format('MMMM')}</Text>
+                                        <Text fw={800} size="sm" c="slate.9">{displayDate.format('dddd D')}</Text>
+                                        <Text c="slate.7" size="xs" fw={700} tt="capitalize">{displayDate.format('MMMM')}</Text>
                                     </Table.Td>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
                                         <Group gap="sm">
-                                            <Avatar color="blue" radius="xl">
+                                            <Avatar color="blue" radius="md" size="sm" variant="light">
                                                 {assignment.usuario?.nombre?.[0]}{assignment.usuario?.apellido?.[0]}
                                             </Avatar>
                                             <div>
-                                                <Text size="sm" fw={500}>{assignment.usuario?.nombre} {assignment.usuario?.apellido}</Text>
+                                                <Text size="sm" fw={700} c="slate.9">{assignment.usuario?.nombre} {assignment.usuario?.apellido}</Text>
                                                 {conflictDepts && (
-                                                    <Badge variant="light" color="orange" size="xs" mt={4} leftSection="⚠️">
-                                                        Ocupado en: {conflictDepts.join(', ')}
+                                                    <Badge variant="light" color="red" size="xs" mt={4} radius="sm">
+                                                        ⚠️ Ocupado en: {conflictDepts.join(', ')}
                                                     </Badge>
                                                 )}
                                             </div>
                                         </Group>
                                     </Table.Td>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
-                                        <Badge variant="dot" color="gray" size="lg">{assignment.posicion?.nombre || 'General'}</Badge>
+                                        <Badge variant="light" color="blue" size="md" radius="sm" fw={800}>{assignment.posicion?.nombre || 'General'}</Badge>
                                     </Table.Td>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
-                                        <Group gap="xs">
-                                            <Badge variant="outline" size="sm">{config.type}</Badge>
-                                            <Text size="xs" c="dimmed">Unif: {config.uniform}</Text>
-                                        </Group>
+                                        <Stack gap={4}>
+                                            <Text size="xs" fw={800} c="slate.9" tt="uppercase" style={{ letterSpacing: '0.05em' }}>{config.type}</Text>
+                                            <Badge
+                                                variant="filled"
+                                                color={getUniformeColor(config.uniform)}
+                                                size="xs"
+                                                radius="sm"
+                                                fw={800}
+                                                style={{ textTransform: 'uppercase' }}
+                                            >
+                                                Uniforme: {config.uniform}
+                                            </Badge>
+                                        </Stack>
                                     </Table.Td>
                                     <Table.Td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
                                         <ActionIcon
                                             variant="light"
                                             color="blue"
+                                            radius="md"
+                                            size="lg"
                                             onClick={() => handleEdit(assignment)}
                                             title="Cambiar servidor"
                                         >

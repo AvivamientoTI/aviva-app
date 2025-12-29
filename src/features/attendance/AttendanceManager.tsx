@@ -232,7 +232,7 @@ export function AttendanceManager() {
                         }}>
                             Control de Asistencia
                         </Title>
-                        <Text c="dimmed" size="md" fw={500}>Gestión de participación del equipo en tiempo real.</Text>
+                        <Text c="slate.7" size="md" fw={700}>Gestión de participación del equipo en tiempo real.</Text>
                     </div>
                     <Group align="flex-end" gap="sm">
                         <Select
@@ -325,19 +325,21 @@ export function AttendanceManager() {
                 </div>
 
                 {selectedService && !loading && members.length > 0 && (
-                    <Card p="xl" radius="xl" withBorder={false} style={{
-                        background: 'linear-gradient(135deg, var(--mantine-color-blue-6) 0%, var(--mantine-color-blue-9) 100%)',
-                        color: 'white',
+                    <Card p="xl" radius="lg" withBorder style={{
+                        background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
+                        borderColor: '#e2e8f0',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        borderLeft: '6px solid #2563eb'
                     }}>
                         {/* Decorative background icon */}
                         <Box style={{
                             position: 'absolute',
                             top: -20,
                             right: -20,
-                            opacity: 0.1,
-                            transform: 'rotate(15deg)'
+                            opacity: 0.05,
+                            transform: 'rotate(15deg)',
+                            color: '#2563eb'
                         }}>
                             <IconUsers size={160} />
                         </Box>
@@ -345,10 +347,10 @@ export function AttendanceManager() {
                         <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
                             <Group justify="space-between">
                                 <Stack gap={2}>
-                                    <Text fw={800} size="sm" tt="uppercase" opacity={0.8} style={{ letterSpacing: '0.05em' }}>Salud del Equipo (Hoy)</Text>
-                                    <Title order={3} style={{ fontFamily: 'Outfit, sans-serif' }}>Snapshot de Participación</Title>
+                                    <Text fw={900} size="xs" tt="uppercase" c="blue.8" style={{ letterSpacing: '0.05em' }}>Salud del Equipo (Hoy)</Text>
+                                    <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Snapshot de Participación</Title>
                                 </Stack>
-                                <Badge color="orange" variant="filled" size="xl" radius="md" style={{ height: 40, fontSize: '1rem', fontWeight: 800 }}>
+                                <Badge color="blue" variant="filled" size="xl" radius="md" style={{ height: 40, fontSize: '1rem', fontWeight: 800 }}>
                                     {Math.round((Object.values(attendance).filter(a => a.estado === 'Asistió').length / members.length) * 100)}% PRESENTE
                                 </Badge>
                             </Group>
@@ -358,16 +360,16 @@ export function AttendanceManager() {
                                 size="lg"
                                 radius="xl"
                                 animated
-                                color="orange.4"
-                                style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                                color="blue.5"
+                                style={{ background: '#e2e8f0' }}
                             />
 
                             <Group justify="space-between" mt="md">
                                 <Button
-                                    variant="white"
+                                    variant="light"
                                     size="sm"
                                     color="blue"
-                                    radius="xl"
+                                    radius="md"
                                     leftSection={<IconUsers size={16} />}
                                     onClick={() => {
                                         const newAttendance = { ...attendance };
@@ -384,18 +386,15 @@ export function AttendanceManager() {
                                 <TextInput
                                     placeholder="Buscar por nombre..."
                                     size="sm"
-                                    radius="xl"
-                                    variant="filled"
+                                    radius="md"
                                     w={240}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.currentTarget.value)}
                                     leftSection={<IconSearch size={16} />}
                                     styles={{
                                         input: {
-                                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                            color: 'white',
-                                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                                            '&::placeholder': { color: 'rgba(255, 255, 255, 0.6)' }
+                                            backgroundColor: '#ffffff',
+                                            borderColor: '#e2e8f0',
                                         }
                                     }}
                                 />
@@ -427,8 +426,8 @@ export function AttendanceManager() {
                                             <Table.Tr key={member.id}>
                                                 <Table.Td>
                                                     <Stack gap={0}>
-                                                        <Text fw={700} size="sm">{member.nombre} {member.apellido}</Text>
-                                                        <Text size="xs" c="dimmed">Servidor(a)</Text>
+                                                        <Text fw={800} size="sm" c="slate.9">{member.nombre} {member.apellido}</Text>
+                                                        <Text size="xs" c="slate.7" fw={700}>Servidor(a)</Text>
                                                     </Stack>
                                                 </Table.Td>
 
@@ -482,9 +481,9 @@ export function AttendanceManager() {
                         </Group>
                     </>
                 ) : (
-                    <Alert icon={<IconAlertCircle size={16} />} title="Sin Servicios" color="yellow" radius="lg">
-                        No se encontraron días de servicio configurados para este departamento en el mes actual o pasado.
-                        Por favor, asegúrate de que el rol haya sido planificado.
+                    <Alert icon={<IconAlertCircle size={16} />} title="Sin Servicios" color="orange" radius="lg" variant="light">
+                        <Text fw={700} size="sm">No se encontraron días de servicio configurados para este departamento en el mes actual o pasado.</Text>
+                        <Text size="xs" mt={4} fw={600}>Por favor, asegúrate de que el rol haya sido planificado.</Text>
                     </Alert>
                 )}
             </Stack>

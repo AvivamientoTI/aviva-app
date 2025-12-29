@@ -30,50 +30,50 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                 {/* Header */}
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={0}>
-                        <Title order={1} style={{ fontFamily: 'Outfit, sans-serif', color: '#6366f1', fontSize: '2.5rem' }}>
+                        <Title order={1} style={{ fontFamily: 'Outfit, sans-serif', color: '#2563eb', fontSize: '2.5rem', letterSpacing: '-0.02em' }}>
                             Reporte de Impacto
                         </Title>
-                        <Text size="xl" fw={700} c="dimmed">{deptName}</Text>
-                        <Text size="sm" c="dimmed" mt={4}>{reportDate} • Generado el {dayjs().format('DD/MM/YYYY')}</Text>
+                        <Text size="xl" fw={800} c="slate.9">{deptName}</Text>
+                        <Text size="sm" c="dimmed" mt={4} fw={600}>{reportDate} • Generado el {dayjs().format('DD/MM/YYYY')}</Text>
                     </Stack>
-                    <ThemeIcon size={80} radius="xl" variant="light" color="blue">
+                    <ThemeIcon size={80} radius="xl" variant="light" color="blue.6">
                         <IconActivity size={48} />
                     </ThemeIcon>
                 </Group>
 
-                <Divider size="xs" />
+                <Divider size="xs" color="gray.2" />
 
                 {/* Stats Grid */}
                 <Grid gutter="md">
                     <Grid.Col span={3}>
-                        <Paper withBorder p="md" radius="md">
+                        <Paper withBorder p="md" radius="md" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
                             <Stack gap={2} align="center">
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800}>Asistencia Promedio</Text>
-                                <Text size="xl" fw={800} style={{ fontFamily: 'Outfit, sans-serif' }}>{stats.teamAttendanceAvg}%</Text>
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asistencia Promedio</Text>
+                                <Text size="xl" fw={900} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>{stats.teamAttendanceAvg}%</Text>
                             </Stack>
                         </Paper>
                     </Grid.Col>
                     <Grid.Col span={3}>
-                        <Paper withBorder p="md" radius="md">
+                        <Paper withBorder p="md" radius="md" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
                             <Stack gap={2} align="center">
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800}>Servicios Realizados</Text>
-                                <Text size="xl" fw={800} style={{ fontFamily: 'Outfit, sans-serif' }}>{stats.totalServices}</Text>
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Servicios Realizados</Text>
+                                <Text size="xl" fw={900} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>{stats.totalServices}</Text>
                             </Stack>
                         </Paper>
                     </Grid.Col>
                     <Grid.Col span={3}>
-                        <Paper withBorder p="md" radius="md">
+                        <Paper withBorder p="md" radius="md" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
                             <Stack gap={2} align="center">
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800}>Miembros Activos</Text>
-                                <Text size="xl" fw={800} style={{ fontFamily: 'Outfit, sans-serif' }}>{stats.activeMembers}</Text>
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Miembros Activos</Text>
+                                <Text size="xl" fw={900} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>{stats.activeMembers}</Text>
                             </Stack>
                         </Paper>
                     </Grid.Col>
                     <Grid.Col span={3}>
-                        <Paper withBorder p="md" radius="md">
+                        <Paper withBorder p="md" radius="md" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
                             <Stack gap={2} align="center">
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800}>Salud de Equipo</Text>
-                                <Badge color={stats.teamAttendanceAvg > 80 ? 'green' : 'orange'} variant="filled">
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Salud de Equipo</Text>
+                                <Badge color={stats.teamAttendanceAvg > 80 ? 'blue.6' : 'orange.6'} variant="filled" radius="sm">
                                     {stats.teamAttendanceAvg > 80 ? 'Excelente' : 'Estable'}
                                 </Badge>
                             </Stack>
@@ -83,14 +83,14 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
 
                 {/* Top Performers Section */}
                 {topPerformers.length > 0 && (
-                    <Paper p="md" radius="md" style={{ background: '#f8faff', border: '1px solid #e0e7ff' }}>
-                        <Group gap="sm" mb="sm">
-                            <IconTrophy color="#f59e0b" size={24} />
-                            <Title order={4} style={{ fontFamily: 'Outfit, sans-serif' }}>Compromiso Destacado (100% Asistencia)</Title>
+                    <Paper p="lg" radius="md" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '6px solid #2563eb' }}>
+                        <Group gap="sm" mb="md">
+                            <IconTrophy color="#2563eb" size={24} />
+                            <Title order={4} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Compromiso Destacado (100% Asistencia)</Title>
                         </Group>
                         <Group gap="xs">
                             {topPerformers.map(m => (
-                                <Badge key={m.usuario_id} variant="white" color="blue" size="lg" radius="md" style={{ border: '1px solid #dbeafe' }}>
+                                <Badge key={m.usuario_id} variant="white" color="blue" size="lg" radius="md" style={{ border: '1px solid #e2e8f0', fontWeight: 700 }}>
                                     {m.nombre} {m.apellido}
                                 </Badge>
                             ))}
@@ -99,32 +99,38 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                 )}
 
                 {/* Main Table */}
-                <Stack gap="xs">
+                <Stack gap="md">
                     <Group gap="xs">
-                        <IconCalendarCheck size={20} color="#6366f1" />
-                        <Title order={3} style={{ fontFamily: 'Outfit, sans-serif' }}>Desglose de Mensual de Asistencia</Title>
+                        <IconCalendarCheck size={24} color="#2563eb" />
+                        <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Desglose Mensual de Asistencia</Title>
                     </Group>
-                    <Table verticalSpacing="sm">
+                    <Table verticalSpacing="md" withColumnBorders={false}>
                         <thead>
-                            <tr style={{ background: '#f1f5f9' }}>
-                                <th style={{ padding: '12px' }}>Posicionamiento / Miembro</th>
-                                <th style={{ textAlign: 'center' }}>Asistencias</th>
-                                <th style={{ textAlign: 'center' }}>Consistencia</th>
+                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                <th style={{ padding: '16px', color: '#64748b', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 800 }}>Miembo / Posicionamiento</th>
+                                <th style={{ textAlign: 'center', color: '#64748b', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 800 }}>Asistencias</th>
+                                <th style={{ textAlign: 'center', color: '#64748b', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 800 }}>Consistencia</th>
                             </tr>
                         </thead>
                         <tbody>
                             {members.map(m => (
-                                <tr key={m.usuario_id}>
-                                    <td style={{ padding: '12px' }}>
-                                        <Text fw={600}>{m.nombre} {m.apellido}</Text>
+                                <tr key={m.usuario_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '16px' }}>
+                                        <Text fw={700} color="#1e293b">{m.nombre} {m.apellido}</Text>
                                     </td>
-                                    <td style={{ textAlign: 'center' }}>{m.asistencias} / {stats.totalServices}</td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <Group gap={4} justify="center">
-                                            <Text fw={700} color={m.porcentaje > 79 ? 'green' : m.porcentaje > 49 ? 'orange' : 'red'}>
-                                                {m.porcentaje}%
-                                            </Text>
-                                        </Group>
+                                        <Text fw={600} color="#64748b">{m.asistencias} / {stats.totalServices}</Text>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <Badge
+                                            variant="light"
+                                            color={m.porcentaje > 79 ? 'blue' : m.porcentaje > 49 ? 'orange' : 'red'}
+                                            size="lg"
+                                            radius="sm"
+                                            fw={800}
+                                        >
+                                            {m.porcentaje}%
+                                        </Badge>
                                     </td>
                                 </tr>
                             ))}
@@ -133,12 +139,12 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                 </Stack>
 
                 {/* Bottom Quote */}
-                <Stack align="center" mt="auto" gap={4} style={{ opacity: 0.6 }}>
-                    <IconPray size={32} color="#6366f1" />
-                    <Text size="sm" italic ta="center" ml="xl" mr="xl">
+                <Stack align="center" mt="auto" gap={6} style={{ opacity: 0.8 }}>
+                    <IconPray size={32} color="#2563eb" />
+                    <Text size="sm" italic ta="center" ml="xl" mr="xl" fw={500} color="#64748b">
                         "Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres..."
                     </Text>
-                    <Text size="xs" fw={700}>COLO SENSES 3:23</Text>
+                    <Text size="xs" fw={800} c="blue.7" style={{ letterSpacing: '0.05em' }}>COLOSENSES 3:23</Text>
                 </Stack>
             </Stack>
         </div>

@@ -47,8 +47,8 @@ export const PlanningStepServiceDates = ({
             {/* LEFT COLUMN: Calendar & Quick Actions */}
             <Grid.Col sm={12} md={5} lg={4}>
                 <Stack gap="md" style={{ position: 'sticky', top: 20 }}>
-                    <Paper shadow="sm" p="md" radius="md" withBorder>
-                        <Text fw={700} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif' }}>Selección de Fechas</Text>
+                    <Paper shadow="sm" p="md" radius="lg" withBorder style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+                        <Text fw={800} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Selección de Fechas</Text>
                         <Group justify="center">
                             <DatePicker
                                 value={selectedDates.map(dateStr => dayjs(dateStr).hour(12).toDate())}
@@ -85,7 +85,7 @@ export const PlanningStepServiceDates = ({
                         </Menu>
                     </Paper>
 
-                    <Alert icon={<IconInfoCircle size={16} />} title="Ayuda" color="blue" variant="light">
+                    <Alert icon={<IconInfoCircle size={16} />} title="Ayuda" color="blue" variant="light" radius="md">
                         Toca las fechas en el calendario para agregarlas o quitarlas.
                     </Alert>
                 </Stack>
@@ -93,10 +93,10 @@ export const PlanningStepServiceDates = ({
 
             {/* RIGHT COLUMN: Configuration List */}
             <Grid.Col sm={12} md={7} lg={8}>
-                <Paper shadow="sm" p="md" radius="md" withBorder h="100%" style={{ minHeight: 400 }}>
-                    <Group justify="space-between" mb="md">
-                        <Text fw={700} size="lg" style={{ fontFamily: 'Outfit, sans-serif' }}>Configuración de Servicios</Text>
-                        <Badge size="lg" variant="filled">{selectedDates.length} Días Seleccionados</Badge>
+                <Paper shadow="sm" p="lg" radius="lg" withBorder h="100%" style={{ minHeight: 400, backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+                    <Group justify="space-between" mb="lg">
+                        <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.01em' }}>Configuración de Servicios</Text>
+                        <Badge size="lg" variant="light" color="blue" radius="md" fw={700}>{selectedDates.length} Días Seleccionados</Badge>
                     </Group>
 
                     {selectedDates.length === 0 && (
@@ -106,8 +106,8 @@ export const PlanningStepServiceDates = ({
                         </Stack>
                     )}
 
-                    <ScrollArea h={selectedDates.length > 5 ? 600 : 'auto'} offsetScrollbars>
-                        <Accordion variant="separated" radius="md" defaultValue={selectedDates.length > 0 ? selectedDates.sort()[0] : null}>
+                    <ScrollArea h={selectedDates.length > 5 ? 600 : 'auto'} offsetScrollbars scrollbarSize={6}>
+                        <Accordion variant="separated" radius="lg" defaultValue={selectedDates.length > 0 ? selectedDates.sort()[0] : null} styles={{ item: { border: '1px solid #e2e8f0' } }}>
                             {selectedDates && Array.isArray(selectedDates) && selectedDates.sort().map(dateStr => {
                                 const config = serviceConfigs[dateStr] || {};
                                 const displayDate = dayjs(dateStr).hour(12);
@@ -115,15 +115,15 @@ export const PlanningStepServiceDates = ({
 
                                 return (
                                     <Accordion.Item key={dateStr} value={dateStr} mb="xs">
-                                        <Accordion.Control>
+                                        <Accordion.Control style={{ backgroundColor: '#f8fafc' }}>
                                             <Group justify="space-between">
                                                 <Group>
-                                                    <ThemeIcon color={hasError ? 'orange' : 'teal'} variant="light" radius="xl">
+                                                    <ThemeIcon color={hasError ? 'amber.6' : 'blue.6'} variant="light" radius="md">
                                                         {hasError ? <IconInfoCircle size={16} /> : <IconCheck size={16} />}
                                                     </ThemeIcon>
-                                                    <Text fw={500}>{displayDate.format('dddd D [/] MMMM')}</Text>
+                                                    <Text fw={700} c="slate.9">{displayDate.format('dddd D [/] MMMM')}</Text>
                                                 </Group>
-                                                {hasError ? <Badge color="orange" size="sm">Falta Info</Badge> : <Badge color="teal" size="sm">Listo</Badge>}
+                                                {hasError ? <Badge color="amber" variant="light" size="sm" radius="sm">Falta Info</Badge> : <Badge color="blue" variant="light" size="sm" radius="sm">Listo</Badge>}
                                             </Group>
                                         </Accordion.Control>
                                         <Accordion.Panel>
@@ -151,21 +151,21 @@ export const PlanningStepServiceDates = ({
                                                     </Grid.Col>
                                                 </Grid>
 
-                                                <Text size="sm" fw={700} mt="xs" c="dimmed" style={{ fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cupos Requeridos</Text>
+                                                <Text size="xs" fw={800} mt="xs" c="slate.5" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cupos Requeridos</Text>
                                                 <Group gap="sm">
                                                     {positions.map(pos => {
                                                         const quota = config.positionQuotas?.[pos.id] || 0;
                                                         return (
-                                                            <Paper key={pos.id} withBorder p={5} radius="md" style={{ minWidth: 80 }}>
-                                                                <Stack align="center" gap={0}>
-                                                                    <Text size="xs" c="dimmed" style={{ lineHeight: 1 }}>{pos.nombre}</Text>
+                                                            <Paper key={pos.id} withBorder p={8} radius="md" style={{ minWidth: 90, backgroundColor: '#fcfcfd' }}>
+                                                                <Stack align="center" gap={4}>
+                                                                    <Text size="xs" fw={700} c="slate.6" style={{ lineHeight: 1, textAlign: 'center' }}>{pos.nombre}</Text>
                                                                     <NumberInput
                                                                         variant="unstyled"
                                                                         value={quota}
                                                                         onChange={(value) => updatePositionQuota(dateStr, pos.id, value)}
                                                                         min={0}
                                                                         allowNegative={false}
-                                                                        styles={{ input: { textAlign: 'center', height: 24, fontSize: 16, fontWeight: 700 } }}
+                                                                        styles={{ input: { textAlign: 'center', height: 24, fontSize: 18, fontWeight: 900, color: '#2563eb' } }}
                                                                     />
                                                                 </Stack>
                                                             </Paper>

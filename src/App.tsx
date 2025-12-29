@@ -43,11 +43,14 @@ function AppContent() {
 
     if (loading || userLoading) {
         return (
-            <Center h="100vh" style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
-                <Stack align="center" gap="md">
-                    <Loader size="xl" color="blue" />
-                    <Text size="lg" fw={600} c="blue.7">
-                        Cargando Aviva App...
+            <Center h="100vh" style={{ backgroundColor: '#fcfcfd' }}>
+                <Stack align="center" gap="xl">
+                    <Loader size="xl" color="blue.6" type="dots" />
+                    <Text size="2.4rem" fw={900} variant="gradient" gradient={{ from: 'blue.7', to: 'blue.5' }} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em' }}>
+                        Servidores AYP
+                    </Text>
+                    <Text size="xs" fw={800} c="gray.5" tt="uppercase" style={{ letterSpacing: '0.15em' }}>
+                        Iniciando Experiencia Clásica
                     </Text>
                 </Stack>
             </Center>

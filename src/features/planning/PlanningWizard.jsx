@@ -642,14 +642,14 @@ export function PlanningWizard() {
 
   return (
     <Container size="xl" py="xl">
-      <Paper shadow="sm" p="xl" radius="md" withBorder>
+      <Paper shadow="sm" p="xl" radius="lg" withBorder style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
         <Group justify="space-between" mb="md">
-          <div>
-            <Title order={2}>Planificador de Roles</Title>
-            <Text c="dimmed" size="sm">Configura, asigna y aprueba el rol mensual de tu departamento</Text>
-          </div>
-          <Badge size="lg" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
-            BETA
+          <Stack gap={0}>
+            <Title order={2} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.02em' }}>Planificador de Roles</Title>
+            <Text c="slate.6" size="sm" fw={500}>Configura, asigna y aprueba el rol mensual de tu departamento</Text>
+          </Stack>
+          <Badge size="lg" variant="light" color="blue" radius="md">
+            VERSIÓN 2.0
           </Badge>
         </Group>
 
@@ -724,7 +724,7 @@ export function PlanningWizard() {
           )}
         </div>
 
-        <Group justify="flex-end" mt="xl" style={{ borderTop: '1px solid #eee', paddingTop: 20 }}>
+        <Group justify="flex-end" mt="xl" style={{ borderTop: '1px solid #e2e8f0', paddingTop: 20 }}>
           {active > 0 && (
             <Button variant="default" onClick={prevStep} size="md">
               Volver

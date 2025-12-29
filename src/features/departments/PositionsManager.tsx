@@ -154,14 +154,14 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
                 </Group>
             </form>
 
-            <Table striped highlightOnHover withTableBorder>
-                <Table.Thead>
+            <Table highlightOnHover style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
                     <Table.Tr>
-                        <Table.Th>Nombre</Table.Th>
-                        <Table.Th>Cantidad Default</Table.Th>
-                        <Table.Th>Género</Table.Th>
-                        <Table.Th>Orden</Table.Th>
-                        <Table.Th>Acciones</Table.Th>
+                        <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Nombre</Table.Th>
+                        <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Asignación Base</Table.Th>
+                        <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Género</Table.Th>
+                        <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Orden</Table.Th>
+                        <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Acciones</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>

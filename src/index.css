@@ -5,8 +5,8 @@ html {
 }
 
 ::selection {
-  background-color: rgba(99, 102, 241, 0.3);
-  color: #6366f1;
+  background-color: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
 }
 
 :root {
@@ -14,7 +14,7 @@ html {
   line-height: 1.6;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: light;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,7 +24,7 @@ html {
 
 a {
   font-weight: 600;
-  color: #6366f1;
+  color: #2563eb;
   text-decoration: inherit;
   transition: opacity 0.2s ease;
 }
@@ -38,17 +38,23 @@ body {
   min-width: 320px;
   min-height: 100vh;
   transition: background-color 0.4s ease;
+  background-color: #fcfcfd;
+  color: #0f172a;
 }
 
-/* Deep Space Background Refinement */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #0f172a;
-    background-image:
-      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(249, 115, 22, 0.03) 0px, transparent 50%);
-    color: #f8fafc;
-  }
+/* Classic Light Decorative Background (Subtle) */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background-image:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.02) 0%, transparent 40%),
+    linear-gradient(225deg, rgba(37, 99, 235, 0.01) 0%, transparent 40%);
+  pointer-events: none;
 }
 
 /* Premium Animations */
@@ -180,17 +186,8 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-
-  a:hover {
-    color: #747bff;
-  }
-
-  button {
-    background-color: #f9f9f9;
+@media (max-width: 768px) {
+  .export-month {
+    width: 100%;
   }
 }

@@ -1,6 +1,5 @@
 import { Box, Group, Badge, Text } from '@mantine/core';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
-import { getServiceColor } from '../../../utils/calendar/labelColorMapper';
 
 interface ServiceUniformRowProps {
     servicio: string;
@@ -17,17 +16,26 @@ export function ServiceUniformRow({ servicio, uniforme }: ServiceUniformRowProps
                 padding: '10px 16px',
             }}
         >
-            <Group gap={10} wrap="nowrap" align="center">
-                <Text fw={800} size="md" c="blue.9" style={{ minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.2px' }}>
-                    {servicio || 'Sin servicio'}
-                </Text>
+            <Group gap={8} wrap="nowrap" align="center">
+                <Box style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={900} size="lg" c="slate.9" style={{ overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
+                        {servicio || 'Sin servicio'}
+                    </Text>
+                </Box>
                 <Badge
-                    size="md"
+                    size="lg"
                     color={getUniformeColor(uniforme)}
                     variant="filled"
-                    style={{ fontWeight: 700, fontSize: '13px', letterSpacing: 0.5 }}
+                    radius="md"
+                    style={{
+                        fontWeight: 900,
+                        fontSize: '13px',
+                        letterSpacing: '0.02em',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        textTransform: 'uppercase'
+                    }}
                 >
-                    {uniforme ? `Uniforme: ${uniforme}` : 'Sin uniforme'}
+                    Uniforme: {uniforme ? uniforme : 'Sin uniforme'}
                 </Badge>
             </Group>
         </Box>

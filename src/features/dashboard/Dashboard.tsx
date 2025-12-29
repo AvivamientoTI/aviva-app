@@ -38,33 +38,35 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, color }: StatCardProps) {
     return (
-        <Card p="lg" radius="xl" style={{
-            background: `linear-gradient(135deg, var(--mantine-color-${color}-6) 0%, var(--mantine-color-${color}-8) 100%)`,
-            color: 'white',
-            border: 'none',
+        <Card p="xl" radius="lg" withBorder style={{
+            backgroundColor: '#ffffff',
+            borderBottom: `4px solid var(--mantine-color-${color}-6)`,
+            color: '#0f172a',
             overflow: 'hidden',
-            position: 'relative'
+            position: 'relative',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
         }}>
             <Box style={{
                 position: 'absolute',
-                top: -10,
-                right: -10,
-                opacity: 0.15,
-                transform: 'rotate(15deg)'
+                top: -15,
+                right: -15,
+                opacity: 0.03,
+                transform: 'rotate(15deg)',
+                color: `var(--mantine-color-${color}-9)`
             }}>
-                {React.cloneElement(icon as React.ReactElement, { size: 80 })}
+                {React.cloneElement(icon as React.ReactElement, { size: 110 })}
             </Box>
 
-            <Stack gap="xs" style={{ position: 'relative', zIndex: 1 }}>
+            <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
                 <Group justify="space-between" align="center">
-                    <Text size="xs" fw={800} tt="uppercase" opacity={0.8} style={{ letterSpacing: '0.05em' }}>
+                    <Text size="xs" fw={800} tt="uppercase" c="slate.7" style={{ letterSpacing: '0.1em' }}>
                         {title}
                     </Text>
-                    <ThemeIcon color="white" variant="transparent" size="md">
+                    <ThemeIcon color={color} variant="light" size="lg" radius="md">
                         {icon}
                     </ThemeIcon>
                 </Group>
-                <Text fw={800} size="xl" style={{ fontSize: '1.8rem', letterSpacing: '-0.02em' }}>
+                <Text fw={900} size="xl" style={{ fontSize: '2.2rem', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif', color: '#1e293b' }}>
                     {value}
                 </Text>
             </Stack>
@@ -153,52 +155,58 @@ export function Dashboard() {
                 <Grid gutter="lg">
                     <Grid.Col span={{ base: 12, md: 7 }}>
                         <Card style={{
-                            background: 'linear-gradient(135deg, var(--mantine-color-blue-8) 0%, var(--mantine-color-blue-9) 100%)',
+                            background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)',
                             color: 'white',
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'center',
                             overflow: 'hidden',
-                            position: 'relative'
-                        }} padding="xl" radius="xl" withBorder={false}>
+                            position: 'relative',
+                            boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)'
+                        }} padding="xl" radius="lg" withBorder={false}>
                             <Box style={{
                                 position: 'absolute',
-                                bottom: -30,
-                                left: -30,
+                                top: -40,
+                                right: -40,
                                 opacity: 0.1,
-                                transform: 'rotate(-15deg)'
+                                transform: 'rotate(15deg)'
                             }}>
-                                <IconRocket size={200} />
+                                <IconRocket size={240} />
                             </Box>
 
                             <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
-                                <Title order={2} style={{
+                                <Badge variant="filled" color="blue.4" radius="sm" size="lg" style={{ width: 'fit-content', color: '#1e3a8a' }}>
+                                    PLATAFORMA LIDERAZGO
+                                </Badge>
+                                <Title order={1} style={{
                                     fontFamily: 'Outfit, sans-serif',
-                                    fontSize: '2.4rem',
-                                    lineHeight: 1.1,
-                                    letterSpacing: '-0.03em'
+                                    fontSize: '3rem',
+                                    lineHeight: 1,
+                                    letterSpacing: '-0.04em'
                                 }}>
-                                    ¡Bienvenido de nuevo,<br />
-                                    <Text span variant="gradient" gradient={{ from: 'yellow.4', to: 'orange.4' }} inherit>
+                                    Hola,<br />
+                                    <Text span c="white" inherit style={{ textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
                                         {userProfile?.usuario?.nombre || 'Servidor'}
-                                    </Text>!
+                                    </Text>
                                 </Title>
 
                                 <Box style={{
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    backdropFilter: 'blur(12px)',
-                                    borderLeft: '4px solid var(--mantine-color-orange-4)',
-                                    padding: '20px',
-                                    borderRadius: '12px',
-                                    marginTop: '8px'
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    borderLeft: '4px solid #ffffff',
+                                    padding: '24px',
+                                    borderRadius: '8px',
+                                    marginTop: '8px',
+                                    maxWidth: '90%'
                                 }}>
-                                    <Text size="lg" fs="italic" fw={500} c="blue.0" style={{ lineHeight: 1.5, opacity: 0.9 }}>
-                                        "Y todo lo que hagáis, hacedlo de corazón, como para el Señor..."
+                                    <Text size="lg" fs="italic" fw={700} c="blue.0" style={{ lineHeight: 1.6 }}>
+                                        "Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres..."
                                     </Text>
-                                    <Text fw={800} size="sm" c="orange.4" mt={8} style={{ letterSpacing: '0.05em' }}>
-                                        COLOSENSES 3:23
-                                    </Text>
+                                    <Group gap="xs" mt={12}>
+                                        <Text fw={900} size="xs" c="cyan.1" style={{ letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                                            COLOSENSES 3:23
+                                        </Text>
+                                    </Group>
                                 </Box>
                             </Stack>
                         </Card>
@@ -246,7 +254,7 @@ export function Dashboard() {
 
                                         <Group gap="xs" mt={8}>
                                             <IconCalendarEvent size={18} color="var(--mantine-color-blue-6)" />
-                                            <Text size="md" fw={700} c="dimmed">
+                                            <Text size="md" fw={700} c="slate.8">
                                                 {dayjs(nextService.configuracion_dia[0]?.fecha).format('dddd, D [de] MMMM')}
                                             </Text>
                                         </Group>

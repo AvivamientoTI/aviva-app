@@ -40,7 +40,7 @@ export function CalendarCard({ date, dayOfWeek, uniforme, assignmentsCount, isTo
             onKeyDown={handleKeyDown}
             style={{
                 borderRadius: '16px',
-                border: `1.5px solid ${isToday ? '#3b82f6' : '#e2e8f0'}`,
+                border: `1.5px solid ${isToday ? '#2563eb' : '#e2e8f0'}`,
                 background: '#fff',
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
                 opacity: isDisabled ? 0.6 : 1,
@@ -55,12 +55,12 @@ export function CalendarCard({ date, dayOfWeek, uniforme, assignmentsCount, isTo
             onMouseEnter={isDisabled ? undefined : (e) => {
                 e.currentTarget.style.boxShadow = hoverShadow;
                 e.currentTarget.style.transform = 'translateY(-6px)';
-                e.currentTarget.style.borderColor = isToday ? '#2563eb' : '#cbd5e1';
+                e.currentTarget.style.borderColor = isToday ? '#1d4ed8' : '#cbd5e1';
             }}
             onMouseLeave={isDisabled ? undefined : (e) => {
                 e.currentTarget.style.boxShadow = baseShadow;
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = isToday ? '#3b82f6' : '#e2e8f0';
+                e.currentTarget.style.borderColor = isToday ? '#2563eb' : '#e2e8f0';
             }}
         >
             {uniforme && (() => {

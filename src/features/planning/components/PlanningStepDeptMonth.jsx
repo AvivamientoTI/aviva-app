@@ -12,14 +12,14 @@ export const PlanningStepDeptMonth = ({
     return (
         <Grid gutter="xl">
             <Grid.Col sm={12} md={6}>
-                <Paper shadow="sm" p="xl" radius="md" withBorder h="100%">
-                    <Stack align="center" spacing="md">
-                        <ThemeIcon size={64} radius="xl" variant="filled" color="blue">
+                <Paper shadow="sm" p="xl" radius="lg" withBorder h="100%" style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+                    <Stack align="center" gap="md">
+                        <ThemeIcon size={64} radius="xl" variant="light" color="blue.6">
                             <IconBuildingCommunity size={34} />
                         </ThemeIcon>
                         <div style={{ textAlign: 'center' }}>
-                            <Text size="lg" fw={700} style={{ fontFamily: 'Outfit, sans-serif' }}>Departamento</Text>
-                            <Text size="sm" c="dimmed">¿Para qué equipo estás planificando?</Text>
+                            <Text size="lg" fw={800} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Departamento</Text>
+                            <Text size="sm" c="slate.5" fw={500}>¿Para qué equipo estás planificando?</Text>
                         </div>
                         <Select
                             placeholder="Selecciona un departamento"
@@ -29,6 +29,7 @@ export const PlanningStepDeptMonth = ({
                             searchable
                             size="md"
                             w="100%"
+                            radius="md"
                             maxDropdownHeight={200}
                         />
                     </Stack>
@@ -36,14 +37,14 @@ export const PlanningStepDeptMonth = ({
             </Grid.Col>
 
             <Grid.Col sm={12} md={6}>
-                <Paper shadow="sm" p="xl" radius="md" withBorder h="100%">
-                    <Stack align="center" spacing="md">
-                        <ThemeIcon size={64} radius="xl" variant="filled" color="orange">
+                <Paper shadow="sm" p="xl" radius="lg" withBorder h="100%" style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+                    <Stack align="center" gap="md">
+                        <ThemeIcon size={64} radius="xl" variant="light" color="amber.6">
                             <IconCalendarEvent size={34} />
                         </ThemeIcon>
                         <div style={{ textAlign: 'center' }}>
-                            <Text size="lg" fw={700} style={{ fontFamily: 'Outfit, sans-serif' }}>Mes de Trabajo</Text>
-                            <Text size="sm" c="dimmed">Selecciona el mes y año a planificar</Text>
+                            <Text size="lg" fw={800} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Mes de Trabajo</Text>
+                            <Text size="sm" c="slate.5" fw={500}>Selecciona el mes y año a planificar</Text>
                         </div>
                         <Group justify="center">
                             <MonthPicker

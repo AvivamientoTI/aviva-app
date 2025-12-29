@@ -82,26 +82,28 @@ export function MembershipsManager({ userId }) {
   };
 
   return (
-    <div style={{ marginTop: 20, borderTop: '1px solid #eee', paddingTop: 20 }}>
-      <Text size="sm" fw={500} mb="xs">Membresías y Roles</Text>
+    <div style={{ marginTop: 24, borderTop: '1px solid #e2e8f0', paddingTop: 24 }}>
+      <Text size="sm" fw={800} c="slate.9" mb="md" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Membresías y Roles</Text>
 
       {memberships.length > 0 ? (
         <Table.ScrollContainer minWidth={400}>
-          <Table withTableBorder mb="md">
-            <Table.Thead>
+          <Table highlightOnHover style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }} mb="md">
+            <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
               <Table.Tr>
-                <Table.Th>Departamento</Table.Th>
-                <Table.Th>Rol</Table.Th>
-                <Table.Th></Table.Th>
+                <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Departamento</Table.Th>
+                <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Rol</Table.Th>
+                <Table.Th style={{ textAlign: 'right' }}></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {memberships.map(m => (
                 <Table.Tr key={m.id}>
-                  <Table.Td>{m.departamento?.nombre}</Table.Td>
-                  <Table.Td>{m.rol_jerarquico}</Table.Td>
+                  <Table.Td fw={700} c="slate.9">{m.departamento?.nombre}</Table.Td>
                   <Table.Td>
-                    <Button color="red" variant="subtle" size="xs" onClick={() => handleDelete(m.id)}>Eliminar</Button>
+                    <Badge variant="light" color="blue" radius="sm" fw={800}>{m.rol_jerarquico}</Badge>
+                  </Table.Td>
+                  <Table.Td style={{ textAlign: 'right' }}>
+                    <Button color="red" variant="light" size="xs" onClick={() => handleDelete(m.id)}>Eliminar</Button>
                   </Table.Td>
                 </Table.Tr>
               ))}

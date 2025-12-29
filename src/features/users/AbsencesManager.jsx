@@ -28,10 +28,10 @@ export function AbsencesManager({ userId }) {
 
   const handleAdd = async () => {
     if (!dates[0] || !dates[1]) {
-        notifications.show({ title: 'Error', message: 'Selecciona un rango de fechas', color: 'red' });
-        return;
+      notifications.show({ title: 'Error', message: 'Selecciona un rango de fechas', color: 'red' });
+      return;
     }
-    
+
     setLoading(true);
     const { error } = await supabase.from('ausencias').insert({
       usuario_id: userId,
@@ -57,28 +57,28 @@ export function AbsencesManager({ userId }) {
   };
 
   return (
-    <div style={{ marginTop: 20, borderTop: '1px solid #eee', paddingTop: 20 }}>
-      <Text size="sm" fw={500} mb="xs">Ausencias y Vacaciones</Text>
-      
+    <div style={{ marginTop: 24, borderTop: '1px solid #e2e8f0', paddingTop: 24 }}>
+      <Text size="sm" fw={800} c="slate.9" mb="md" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ausencias y Vacaciones</Text>
+
       {absences.length > 0 ? (
         <Table.ScrollContainer minWidth={400}>
-          <Table withTableBorder mb="md">
-            <Table.Thead>
+          <Table highlightOnHover style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }} mb="md">
+            <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
               <Table.Tr>
-                <Table.Th>Desde</Table.Th>
-                <Table.Th>Hasta</Table.Th>
-                <Table.Th>Motivo</Table.Th>
-                <Table.Th></Table.Th>
+                <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Desde</Table.Th>
+                <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Hasta</Table.Th>
+                <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Motivo</Table.Th>
+                <Table.Th style={{ textAlign: 'right' }}></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {absences.map(a => (
                 <Table.Tr key={a.id}>
-                  <Table.Td>{dayjs(a.fecha_inicio).format('DD/MM/YY')}</Table.Td>
-                  <Table.Td>{dayjs(a.fecha_fin).format('DD/MM/YY')}</Table.Td>
-                  <Table.Td>{a.motivo}</Table.Td>
-                  <Table.Td>
-                    <Button color="red" variant="subtle" size="xs" onClick={() => handleDelete(a.id)}>X</Button>
+                  <Table.Td fw={700} c="slate.9">{dayjs(a.fecha_inicio).format('DD/MM/YY')}</Table.Td>
+                  <Table.Td fw={700} c="slate.9">{dayjs(a.fecha_fin).format('DD/MM/YY')}</Table.Td>
+                  <Table.Td c="slate.7">{a.motivo}</Table.Td>
+                  <Table.Td style={{ textAlign: 'right' }}>
+                    <Button color="red" variant="light" size="xs" onClick={() => handleDelete(a.id)}>Eliminar</Button>
                   </Table.Td>
                 </Table.Tr>
               ))}
@@ -99,11 +99,11 @@ export function AbsencesManager({ userId }) {
           style={{ flex: 1 }}
         />
         <TextInput
-            label="Motivo"
-            placeholder="Ej. Vacaciones"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            style={{ flex: 1 }}
+          label="Motivo"
+          placeholder="Ej. Vacaciones"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          style={{ flex: 1 }}
         />
         <Button onClick={handleAdd} loading={loading}>Agregar</Button>
       </Group>

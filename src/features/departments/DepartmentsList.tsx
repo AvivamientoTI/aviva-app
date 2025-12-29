@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Group, Modal, TextInput, NumberInput, Title, Text, Alert } from '@mantine/core';
+import { Table, Button, Group, Modal, TextInput, NumberInput, Title, Text, Alert, Stack, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { supabase } from '../../services/supabaseClient';
@@ -99,9 +99,17 @@ export function DepartmentsList() {
 
     return (
         <div>
-            <Group justify="space-between" mb="md">
-                <Title order={2}>Departamentos</Title>
-                <Button onClick={() => { resetForm(); open(); }} disabled={!permissions.canManageAllDepartments}>
+            <Group justify="space-between" mb="lg">
+                <Stack gap={0}>
+                    <Title order={2} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.02em' }}>Departamentos</Title>
+                    <Text c="slate.5" size="sm" fw={500}>Gestión de equipos y prioridades del sistema</Text>
+                </Stack>
+                <Button
+                    onClick={() => { resetForm(); open(); }}
+                    disabled={!permissions.canManageAllDepartments}
+                    radius="md"
+                    size="md"
+                >
                     Nuevo Departamento
                 </Button>
             </Group>
@@ -113,36 +121,36 @@ export function DepartmentsList() {
             )}
 
             <Table.ScrollContainer minWidth={500}>
-                <Table striped highlightOnHover withTableBorder>
-                    <Table.Thead>
+                <Table highlightOnHover style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                    <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
                         <Table.Tr>
-                            <Table.Th>ID</Table.Th>
-                            <Table.Th>Nombre</Table.Th>
-                            <Table.Th>Prioridad</Table.Th>
-                            <Table.Th>Acciones</Table.Th>
+                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>ID</Table.Th>
+                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Nombre</Table.Th>
+                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Prioridad</Table.Th>
+                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Acciones</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
                         {departments.map((dept) => (
                             <Table.Tr key={dept.id}>
-                                <Table.Td>{dept.id}</Table.Td>
-                                <Table.Td>{dept.nombre}</Table.Td>
+                                <Table.Td fw={700} c="slate.8">#{dept.id}</Table.Td>
+                                <Table.Td fw={700} c="slate.9">{dept.nombre}</Table.Td>
                                 <Table.Td>
                                     {dept.prioridad === 1 ? (
-                                        <Text c="red" fw={700}>Alta (1)</Text>
+                                        <Badge color="red" variant="light" radius="sm" fw={800}>CRÍTICA (1)</Badge>
                                     ) : (
-                                        <Text>Normal (2)</Text>
+                                        <Badge color="blue" variant="light" radius="sm" fw={800}>NORMAL (2)</Badge>
                                     )}
                                 </Table.Td>
                                 <Table.Td>
-                                    <Group gap="xs">
-                                        <Button variant="light" size="xs" onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
+                                    <Group gap="xs" justify="flex-end">
+                                        <Button variant="light" size="xs" radius="sm" onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
                                             Posiciones
                                         </Button>
-                                        <Button variant="subtle" size="xs" onClick={() => handleEdit(dept)} disabled={!permissions.canManageAllDepartments}>
+                                        <Button variant="subtle" color="slate" size="xs" radius="sm" onClick={() => handleEdit(dept)} disabled={!permissions.canManageAllDepartments}>
                                             Editar
                                         </Button>
-                                        <Button variant="subtle" color="red" size="xs" onClick={() => handleDelete(dept.id)} disabled={!permissions.canManageAllDepartments}>
+                                        <Button variant="subtle" color="red" size="xs" radius="sm" onClick={() => handleDelete(dept.id)} disabled={!permissions.canManageAllDepartments}>
                                             Eliminar
                                         </Button>
                                     </Group>
