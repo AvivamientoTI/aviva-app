@@ -3,9 +3,9 @@
  */
 export const getUniformeColor = (uniforme) => {
   if (!uniforme || uniforme === 'N/A') return 'gray';
-  
+
   const uniformeLower = uniforme.toLowerCase();
-  
+
   const colorMap = {
     vino: '#800020',
     wine: '#800020',
@@ -55,13 +55,15 @@ export const getUniformeColor = (uniforme) => {
     cafes: 'brown',
     marrón: 'brown',
     marrones: 'brown',
-    brown: 'brown'
+    brown: 'brown',
+    beige: '#d4a574',
+    camisa: '#d4a574'
   };
-  
+
   for (const [key, value] of Object.entries(colorMap)) {
     if (uniformeLower.includes(key)) return value;
   }
-  
+
   return 'grape';
 };
 

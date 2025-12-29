@@ -29,7 +29,7 @@ export const analyticsService = {
     /**
      * Obtiene estadísticas de asistencia para un departamento en un rango de fechas
      */
-    async fetchAttendanceStats(deptId, months = 3) {
+    async fetchAttendanceStats(deptId, months = 1) {
         const startDate = dayjs().subtract(months, 'month').startOf('month').format('YYYY-MM-DD');
 
         const { data, error } = await supabase

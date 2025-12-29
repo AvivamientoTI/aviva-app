@@ -13,7 +13,8 @@ import {
     Center,
     Loader,
     Box,
-    Button
+    Button,
+    Select
 } from '@mantine/core';
 import {
     IconCalendarEvent,
@@ -108,12 +109,25 @@ export function Dashboard() {
     const [upcoming, setUpcoming] = useState<UpcomingService[]>([]);
     const [stats, setStats] = useState<StatsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
 
     useEffect(() => {
         if (userProfile?.usuario_id) {
             loadDashboardData();
         }
     }, [userProfile]);
+
+    useEffect(() => {
+        if (selectedDeptId && attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
+            loadAttendanceStats();
+        }
+    }, [selectedDeptId]);
+
+    useEffect(() => {
+        if (attendanceManagedDepartments && attendanceManagedDepartments.length > 0 && !selectedDeptId) {
+            setSelectedDeptId(attendanceManagedDepartments[0].id);
+        }
+    }, [attendanceManagedDepartments]);
 
     const loadDashboardData = async () => {
         setLoading(true);
@@ -123,14 +137,23 @@ export function Dashboard() {
                 setUpcoming(upcomingData);
             }
 
-            if (attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
-                const statsData = await analyticsService.fetchAttendanceStats(attendanceManagedDepartments[0].id);
-                setStats(statsData);
+            if (selectedDeptId) {
+                await loadAttendanceStats();
             }
         } catch (error) {
             console.error('Error loading dashboard data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadAttendanceStats = async () => {
+        if (!selectedDeptId) return;
+        try {
+            const statsData = await analyticsService.fetchAttendanceStats(selectedDeptId);
+            setStats(statsData);
+        } catch (error) {
+            console.error('Error loading attendance stats:', error);
         }
     };
 
@@ -307,7 +330,7 @@ export function Dashboard() {
                         color="blue"
                     />
                     <StatCard
-                        title="Servicios del Mes"
+                        title="Mes Pasado"
                         value={attendanceTotal}
                         icon={<IconChecklist size={24} />}
                         color="indigo"
@@ -350,6 +373,32 @@ export function Dashboard() {
                             )}
                         </Card>
                     </Grid.Col>
+
+                    {attendanceManagedDepartments && attendanceManagedDepartments.length > 1 && (
+                        <Grid.Col span={12}>
+                            <Group justify="center" mb="md">
+                                <Select
+                                    label="Departamento para Estadísticas"
+                                    placeholder="Selecciona un departamento"
+                                    data={attendanceManagedDepartments
+                                        .filter((d, index, self) =>
+                                            index === self.findIndex(dept => dept.id === d.id)
+                                        )
+                                        .map(d => ({
+                                            value: String(d.id),
+                                            label: d.nombre
+                                        }))}
+                                    value={selectedDeptId ? String(selectedDeptId) : null}
+                                    onChange={(val: string | null) => setSelectedDeptId(val ? Number(val) : null)}
+                                    w={300}
+                                    size="md"
+                                    styles={{
+                                        label: { fontWeight: 700, color: 'var(--mantine-color-slate-7)' }
+                                    }}
+                                />
+                            </Group>
+                        </Grid.Col>
+                    )}
 
                     <Grid.Col span={{ base: 12, md: 4 }}>
                         <Card withBorder p="md" radius="md">
