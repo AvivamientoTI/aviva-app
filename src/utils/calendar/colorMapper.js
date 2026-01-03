@@ -6,65 +6,32 @@ export const getUniformeColor = (uniforme) => {
 
   const uniformeLower = uniforme.toLowerCase();
 
-  const colorMap = {
-    vino: '#800020',
-    wine: '#800020',
-    burgundy: '#800020',
-    roja: 'red',
-    rojas: 'red',
-    rojo: 'red',
-    rojos: 'red',
-    azul: 'indigo',
-    azules: 'indigo',
-    blue: 'indigo',
-    verdes: 'green',
-    verde: 'green',
-    green: 'green',
-    negro: 'dark',
-    negra: 'dark',
-    negros: 'dark',
-    negras: 'dark',
-    black: 'dark',
-    blanco: 'gray',
-    blanca: 'gray',
-    blancos: 'gray',
-    blancas: 'gray',
-    white: 'gray',
-    amarillo: 'yellow',
-    amarilla: 'yellow',
-    amarillos: 'yellow',
-    amarillas: 'yellow',
-    yellow: 'yellow',
-    naranja: 'orange',
-    naranjas: 'orange',
-    orange: 'orange',
-    morado: 'violet',
-    morada: 'violet',
-    morados: 'violet',
-    moradas: 'violet',
-    purple: 'violet',
-    violeta: 'violet',
-    violetas: 'violet',
-    rosa: 'pink',
-    rosas: 'pink',
-    pink: 'pink',
-    gris: 'gray',
-    grises: 'gray',
-    gray: 'gray',
-    café: 'brown',
-    cafes: 'brown',
-    marrón: 'brown',
-    marrones: 'brown',
-    brown: 'brown',
-    beige: '#d4a574',
-    camisa: '#d4a574'
-  };
+  // Array of rules to ensure priority order
+  // Specific colors should come before generic ones if needed
+  const COLOR_RULES = [
+    { keywords: ['vino', 'wine', 'burgundy'], color: '#800020' },
+    { keywords: ['roja', 'rojo', 'red'], color: 'red' },
+    { keywords: ['azul', 'blue', 'indigo'], color: 'indigo' },
+    { keywords: ['verde', 'green'], color: 'green' }, // Use green or teal
+    { keywords: ['negro', 'negra', 'black'], color: 'dark' },
+    { keywords: ['blanco', 'blanca', 'white'], color: 'gray' },
+    { keywords: ['amarillo', 'amarilla', 'yellow'], color: 'yellow' },
+    { keywords: ['naranja', 'orange'], color: 'orange' },
+    { keywords: ['morado', 'morada', 'violetab', 'violet', 'purple'], color: 'violet' },
+    { keywords: ['rosa', 'pink'], color: 'pink' },
+    { keywords: ['gris', 'gray', 'silver'], color: 'gray' },
+    { keywords: ['café', 'cafe', 'marrón', 'brown'], color: 'brown' },
+    { keywords: ['beige', 'crema'], color: '#d4a574' },
+    // Remove generic 'camisa' matching that might override specific colors
+  ];
 
-  for (const [key, value] of Object.entries(colorMap)) {
-    if (uniformeLower.includes(key)) return value;
+  for (const rule of COLOR_RULES) {
+    if (rule.keywords.some(k => uniformeLower.includes(k))) {
+      return rule.color;
+    }
   }
 
-  return 'grape';
+  return 'grape'; // Default fallback
 };
 
 /**

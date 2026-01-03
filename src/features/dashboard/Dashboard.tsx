@@ -29,6 +29,7 @@ import { DonutChart, BarChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
 import { analyticsService } from '../../services/analyticsService';
 import dayjs from 'dayjs';
+import { getUniformeColor } from '../../utils/calendar/colorMapper';
 
 interface StatCardProps {
     title: string;
@@ -75,12 +76,24 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
     );
 }
 
+// Helper to safely get the first item or the item itself
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getSingle = (val: any) => Array.isArray(val) ? val[0] : val;
+
 interface UpcomingService {
     id: string | number;
     posicion?: {
         nombre: string;
+        departamento?: { nombre: string } | { nombre: string }[];
+    } | {
+        nombre: string;
+        departamento?: { nombre: string } | { nombre: string }[];
     }[];
     configuracion_dia: {
+        fecha: string;
+        tipo_servicio: string;
+        color_uniforme: string;
+    } | {
         fecha: string;
         tipo_servicio: string;
         color_uniforme: string;
@@ -266,24 +279,29 @@ export function Dashboard() {
                                             </ThemeIcon>
                                         </Group>
 
-                                        <Title order={3} style={{
-                                            fontFamily: 'Outfit, sans-serif',
-                                            fontSize: '1.8rem',
-                                            color: 'var(--mantine-color-blue-9)',
-                                            letterSpacing: '-0.02em'
-                                        }}>
-                                            {nextService.posicion?.[0]?.nombre || 'Servidor'}
-                                        </Title>
+                                        <Stack gap={2}>
+                                            <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 1 }}>
+                                                {getSingle(getSingle(nextService.posicion)?.departamento)?.nombre}
+                                            </Text>
+                                            <Title order={3} style={{
+                                                fontFamily: 'Outfit, sans-serif',
+                                                fontSize: '1.8rem',
+                                                color: 'var(--mantine-color-blue-9)',
+                                                letterSpacing: '-0.02em'
+                                            }}>
+                                                {getSingle(nextService.posicion)?.nombre || 'Servidor'}
+                                            </Title>
+                                        </Stack>
 
                                         <Group gap="xs" mt={8}>
                                             <IconCalendarEvent size={18} color="var(--mantine-color-blue-6)" />
                                             <Text size="md" fw={700} c="slate.8">
-                                                {dayjs(nextService.configuracion_dia[0]?.fecha).format('dddd, D [de] MMMM')}
+                                                {dayjs(getSingle(nextService.configuracion_dia)?.fecha).format('dddd, D [de] MMMM')}
                                             </Text>
                                         </Group>
 
                                         <Badge mt="md" size="md" variant="dot" color="indigo" p="md">
-                                            {nextService.configuracion_dia[0]?.tipo_servicio}
+                                            {getSingle(nextService.configuracion_dia)?.tipo_servicio}
                                         </Badge>
                                     </div>
 
@@ -349,24 +367,34 @@ export function Dashboard() {
                             <Title order={4} mb="md">Próximos Servicios</Title>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
-                                    {upcoming.map((service) => (
-                                        <Card key={service.id} withBorder padding="sm" radius="md" style={{
-                                            background: 'linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-blue-1) 100%)'
-                                        }}>
-                                            <Group justify="space-between">
-                                                <Stack gap={0}>
-                                                    <Text fw={600} c="blue.9">{service.configuracion_dia[0]?.tipo_servicio}</Text>
-                                                    <Text size="sm" c="blue.8">
-                                                        {dayjs(service.configuracion_dia[0]?.fecha).format('dddd, D [de] MMMM')}
-                                                    </Text>
-                                                </Stack>
-                                                <Group>
-                                                    <Badge color="blue" variant="light">{service.posicion?.[0]?.nombre}</Badge>
-                                                    <Badge color="gray" variant="filled">{service.configuracion_dia[0]?.color_uniforme}</Badge>
+                                    {upcoming.map((service) => {
+                                        const configDia = getSingle(service.configuracion_dia);
+                                        const pos = getSingle(service.posicion);
+                                        const dept = getSingle(pos?.departamento);
+                                        return (
+                                            <Card key={service.id} withBorder padding="sm" radius="md" style={{
+                                                background: 'linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-blue-1) 100%)'
+                                            }}>
+                                                <Group justify="space-between">
+                                                    <Stack gap={0}>
+                                                        <Group gap={6}>
+                                                            <Text size="xs" fw={700} c="blue.6" tt="uppercase">{dept?.nombre}</Text>
+                                                        </Group>
+                                                        <Text fw={600} c="blue.9">{configDia?.tipo_servicio}</Text>
+                                                        <Text size="sm" c="blue.8">
+                                                            {dayjs(configDia?.fecha).format('dddd, D [de] MMMM')}
+                                                        </Text>
+                                                    </Stack>
+                                                    <Group>
+                                                        <Badge color="blue" variant="light">{pos?.nombre}</Badge>
+                                                        <Badge color={getUniformeColor(configDia?.color_uniforme)} variant="filled">
+                                                            {configDia?.color_uniforme}
+                                                        </Badge>
+                                                    </Group>
                                                 </Group>
-                                            </Group>
-                                        </Card>
-                                    ))}
+                                            </Card>
+                                        )
+                                    })}
                                 </Stack>
                             ) : (
                                 <Text ta="center" py="xl" c="dimmed">No tienes asignaciones programadas próximamente.</Text>

@@ -15,7 +15,10 @@ export const analyticsService = {
           tipo_servicio,
           color_uniforme
         ),
-        posicion:posiciones_departamento (nombre)
+        posicion:posiciones_departamento (
+          nombre,
+          departamento:departamentos ( nombre )
+        )
       `)
             .eq('usuario_id', userId)
             .gte('configuracion_dia.fecha', dayjs().format('YYYY-MM-DD'))
