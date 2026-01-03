@@ -76,8 +76,8 @@ export const PlanningStepServiceDates = ({
                             </Menu.Target>
                             <Menu.Dropdown>
                                 <Menu.Label>Seleccionar todos los...</Menu.Label>
+                                <Menu.Item onClick={() => selectAllDayOfWeek(2)}>Martes</Menu.Item>
                                 <Menu.Item onClick={() => selectAllDayOfWeek(5)}>Viernes</Menu.Item>
-                                <Menu.Item onClick={() => selectAllDayOfWeek(6)}>Sábados</Menu.Item>
                                 <Menu.Item onClick={() => selectAllDayOfWeek(0)}>Domingos</Menu.Item>
                                 <Menu.Divider />
                                 <Menu.Item color="red" leftSection={<IconTrash size={14} />} onClick={clearSelection}>Limpiar Selección</Menu.Item>

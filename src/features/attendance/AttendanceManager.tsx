@@ -232,7 +232,6 @@ export function AttendanceManager() {
                         }}>
                             Control de Asistencia
                         </Title>
-                        <Text c="slate.7" size="md" fw={700}>Gestión de participación del equipo en tiempo real.</Text>
                     </div>
                     <Group align="flex-end" gap="sm">
                         <Select
@@ -347,8 +346,8 @@ export function AttendanceManager() {
                         <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
                             <Group justify="space-between">
                                 <Stack gap={2}>
-                                    <Text fw={900} size="xs" tt="uppercase" c="blue.8" style={{ letterSpacing: '0.05em' }}>Salud del Equipo (Hoy)</Text>
-                                    <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Snapshot de Participación</Title>
+                                    <Text fw={900} size="xs" tt="uppercase" c="blue.8" style={{ letterSpacing: '0.05em' }}>Asistencia del Equipo</Text>
+                                    <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Participación</Title>
                                 </Stack>
                                 <Badge color="blue" variant="filled" size="xl" radius="md" style={{ height: 40, fontSize: '1rem', fontWeight: 800 }}>
                                     {Math.round((Object.values(attendance).filter(a => a.estado === 'Asistió').length / members.length) * 100)}% PRESENTE
