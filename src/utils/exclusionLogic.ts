@@ -5,7 +5,7 @@ import type { PublicUser } from '../types';
  * Fetches users who have NO assignments at all on the given date (strict).
  * Uses a Supabase RPC to bypass RLS for global conflict detection.
  */
-export const getUsersNotAssignedOnDate = async (date: string, allUsers: PublicUser[]): Promise<PublicUser[]> => {
+export const getUsersNotAssignedOnDate = async <T extends { id: number | string }>(date: string, allUsers: T[]): Promise<T[]> => {
   const blockedIds = new Set<string>();
 
   try {

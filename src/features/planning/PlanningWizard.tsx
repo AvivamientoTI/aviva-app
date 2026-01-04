@@ -1,8 +1,7 @@
 // Refreshing and ensuring TS service pickup
-import React, { useState, useEffect, useMemo } from 'react';
-import { Stepper, Button, Group, Title, Modal, Badge, Paper, Text, Select, Stack, Container, Box, Progress } from '@mantine/core';
-import { getUsersNotAssignedOnDate } from '../../utils/exclusionLogic';
-import { useDisclosure } from '@mantine/hooks';
+import { useState, useEffect, useMemo } from 'react';
+import { Stepper, Button, Group, Title, Modal, Badge, Paper, Text, Select, Stack, Container, Progress } from '@mantine/core';
+
 import { supabase } from '../../services/supabaseClient';
 import { notifications } from '@mantine/notifications';
 import {
@@ -23,7 +22,7 @@ import { useAutoAssign } from './hooks/useAutoAssign';
 import { PlanningStepDeptMonth } from './components/PlanningStepDeptMonth';
 import { PlanningStepServiceDates } from './components/PlanningStepServiceDates';
 import { PlanningStepReview } from './components/PlanningStepReview';
-import { Position, Assignment, Department } from '../../types';
+import type { Position, Assignment } from '../../types';
 
 interface ServiceDateConfig {
   type: string;
@@ -60,13 +59,10 @@ export function PlanningWizard() {
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [serviceConfigs, setServiceConfigs] = useState<Record<string, ServiceDateConfig>>({});
-  const [autoAssign, setAutoAssign] = useState(true);
   const [deptMeta, setDeptMeta] = useState<Record<string, { prioridad: number }>>({});
   const [priorityOneIds, setPriorityOneIds] = useState<number[]>([]);
   const [headerState, setHeaderState] = useState<HeaderState | null>(null);
-  const [assignments, setAssignments] = useState<any[]>([]);
   const [previewAssignments, setPreviewAssignments] = useState<DraftAssignment[]>([]);
-  const [viewModalOpened, { open: openViewModal, close: closeViewModal }] = useDisclosure(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editAssignment, setEditAssignment] = useState<Partial<DraftAssignment>>({});
@@ -123,8 +119,8 @@ export function PlanningWizard() {
     if (data) {
       const manageable = data.filter(d => permissions.canManageDepartment(d.id));
       setDepartments(manageable.map(d => ({ value: String(d.id), label: d.nombre })));
-      const meta = {};
-      const p1 = [];
+      const meta: Record<string, { prioridad: number }> = {};
+      const p1: number[] = [];
       data.forEach(d => {
         const priority = Number(d.prioridad);
         meta[String(d.id)] = { prioridad: priority };
@@ -159,10 +155,10 @@ export function PlanningWizard() {
     else setHeaderState(null);
   };
 
-  const handleDateChange = (dates: Date[] | Date | null) => {
+  const handleDateChange = (dates: Date[] | Date | string[] | null) => {
     // String-based Logic (Refactored)
-    const uniqueStrings = new Set();
-    const processDate = (d) => {
+    const uniqueStrings = new Set<string>();
+    const processDate = (d: Date | string) => {
       if (!d) return;
       if (typeof d === 'string') {
         uniqueStrings.add(d);
@@ -186,8 +182,8 @@ export function PlanningWizard() {
     const newConfigs = { ...serviceConfigs };
     sortedDates.forEach(dateStr => {
       if (!newConfigs[dateStr]) {
-        const posQuotas = {};
-        positions.forEach(p => posQuotas[p.id] = p.cantidad_default > 0 ? p.cantidad_default : 1);
+        const posQuotas: Record<string, number> = {};
+        positions.forEach(p => posQuotas[p.id] = (p.cantidad_default ?? 0) > 0 ? p.cantidad_default : 1);
         newConfigs[dateStr] = {
           type: 'Culto General',
           uniform: 'Formal Gris',
@@ -370,9 +366,9 @@ export function PlanningWizard() {
       setActive(0);
       setSelectedDates([]);
       setSelectedDept(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      notifications.show({ title: 'Error', message: error.message, color: 'red' });
+      notifications.show({ title: 'Error', message: error.message || 'Error desconocido', color: 'red' });
     } finally {
       setLoading(false);
     }
@@ -403,7 +399,7 @@ export function PlanningWizard() {
       }
 
       // Priority Validation before generating draft
-      const selectedDeptMeta = deptMeta[selectedDept];
+      const selectedDeptMeta = selectedDept ? deptMeta[selectedDept] : null;
       const currentMonth = dayjs(selectedMonth).month() + 1;
       const currentYear = dayjs(selectedMonth).year();
 
@@ -507,7 +503,7 @@ export function PlanningWizard() {
           color: 'gold',
           icon: <IconHistory size={18} />
         });
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
         notifications.show({ title: 'Error', message: e.message || 'Error generando borrador', color: 'red' });
         return;
@@ -542,18 +538,19 @@ export function PlanningWizard() {
       if (memError) console.error('❌ Error fetching memberships:', memError);
 
       if (deptMemberships) {
-        const normalize = (str) => str?.toLowerCase()
+        const normalize = (str: string | null | undefined) => str?.toLowerCase()
           .normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 
         // Group by user
-        const usersWithRolesMap = {};
+        const usersWithRolesMap: Record<string, any> = {};
         deptMemberships.forEach(m => {
-          if (!m.usuario) return;
-          const uid = String(m.usuario.id);
+          const user = Array.isArray(m.usuario) ? m.usuario[0] : m.usuario;
+          if (!user) return;
+          const uid = String(user.id);
           if (!usersWithRolesMap[uid]) {
             usersWithRolesMap[uid] = {
-              ...m.usuario,
-              roles: []
+              ...user,
+              roles: [] as string[]
             };
           }
           usersWithRolesMap[uid].roles.push(normalize(m.rol_jerarquico));
@@ -565,8 +562,8 @@ export function PlanningWizard() {
         const { data: blockedResults } = await supabase.rpc('get_blocked_users', {
           p_date: date
         });
-        const blockedMap = {};
-        blockedResults?.forEach(row => {
+        const blockedMap: Record<string, string> = {};
+        (blockedResults as any[] | null)?.forEach(row => {
           if (row.usuario_id) blockedMap[String(row.usuario_id)] = row.motivo || 'Ocupado';
         });
 
@@ -579,7 +576,7 @@ export function PlanningWizard() {
         const posNameNorm = normalize(pos?.nombre);
         const isEncargadoPos = posNameNorm.includes('encargad');
 
-        const finalCandidates = allDeptUsers.map(u => {
+        const finalCandidates = allDeptUsers.map((u: any) => {
           const uid = String(u.id);
           const globalConflict = blockedMap[uid];
           const draftConflict = draftConflictIds.includes(uid);
@@ -592,7 +589,7 @@ export function PlanningWizard() {
           // Role check for Encargado
           let roleMatch = true;
           if (isEncargadoPos) {
-            roleMatch = u.roles.some(r =>
+            roleMatch = u.roles.some((r: string) =>
               r.includes('lider') ||
               r.includes('encargad') ||
               r.includes('sublider')
@@ -624,7 +621,7 @@ export function PlanningWizard() {
             disabled,
             label: `${u.nombre} ${u.apellido} (${status})`
           };
-        }).sort((a, b) => {
+        }).sort((a: any, b: any) => {
           // Sort: Available first, then conflicts, then disabled
           if (a.disabled !== b.disabled) return a.disabled ? 1 : -1;
           if (a.status === 'Disponible' && b.status !== 'Disponible') return -1;
@@ -647,7 +644,7 @@ export function PlanningWizard() {
 
   // Detect conflicts in current preview
   const conflicts = useMemo(() => {
-    const conflictMap = {};
+    const conflictMap: Record<string, string[]> = {};
     previewAssignments.forEach(pa => {
       const dateStr = pa.fecha;
       const globalMatches = globalAssignments.filter(ga =>
@@ -655,7 +652,7 @@ export function PlanningWizard() {
         ga.configuracion_dia?.fecha === dateStr
       );
       if (globalMatches.length > 0) {
-        conflictMap[pa.id] = globalMatches.map(m => m.configuracion_dia.roles_cabecera.departamento.nombre);
+        conflictMap[pa.id] = globalMatches.map(m => m.configuracion_dia?.roles_cabecera?.departamento?.nombre || 'Desconocido');
       }
     });
     return conflictMap;
@@ -688,7 +685,6 @@ export function PlanningWizard() {
         <Stepper
           active={active}
           onStepClick={setActive}
-          breakpoint="sm"
           mb="xl"
           size="md"
           iconSize={42}
@@ -792,7 +788,7 @@ export function PlanningWizard() {
               const selectedUser = replacements.find(r => String(r.id) === value);
               if (selectedUser) {
                 const newName = { nombre: selectedUser.nombre, apellido: selectedUser.apellido };
-                setEditAssignment(prev => ({ ...prev, usuario_id: value, usuario: newName }));
+                setEditAssignment(prev => ({ ...prev, usuario_id: value || undefined, usuario: newName }));
               }
             }}
           />
@@ -803,7 +799,7 @@ export function PlanningWizard() {
               setPreviewAssignments(prev => {
                 const next = [...prev];
                 if (editIndex !== null && editIndex >= 0) {
-                  next[editIndex] = editAssignment;
+                  next[editIndex] = editAssignment as DraftAssignment;
                 }
                 return next;
               });

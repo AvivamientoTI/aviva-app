@@ -125,7 +125,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                 if (!serviceConfig) continue;
 
                 // Eligible users logic needs to be typing and ensured
-                const eligibleUsers: UserWithMetadata[] = await getUsersNotAssignedOnDate(config.fecha, deptUsers as any);
+                const eligibleUsers = await getUsersNotAssignedOnDate(config.fecha, deptUsers);
 
                 let prevDateStr: string | null = null;
                 if (i > 0) prevDateStr = configsSorted[i - 1].fecha;

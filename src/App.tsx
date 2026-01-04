@@ -3,12 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 // Force re-resolve
-import { DashboardLayout } from './layouts/DashboardLayout.tsx';
+import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './features/auth/Login';
 import { ScheduleView } from './features/calendar/ScheduleView';
 import { AttendanceManager } from './features/attendance/AttendanceManager';
 import { Dashboard } from './features/dashboard/Dashboard';
-import { DepartmentsList } from './features/departments/DepartmentsList.tsx';
+import { DepartmentsList } from './features/departments/DepartmentsList';
 import { PlanningWizard } from './features/planning/PlanningWizard';
 import { supabase } from './services/supabaseClient';
 import { Loader, Center, Stack, Text } from '@mantine/core';
