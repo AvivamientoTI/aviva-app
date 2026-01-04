@@ -91,7 +91,7 @@ function RoleSection({ rol, servidores }: RoleSectionProps) {
                     mt={6}
                     fullWidth
                     variant="light"
-                    color="blue"
+                    color="gold"
                     size="xs"
                     onClick={toggle}
                     rightSection={opened ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}

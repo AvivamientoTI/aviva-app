@@ -40,10 +40,9 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, color }: StatCardProps) {
     return (
-        <Card p="xl" radius="lg" withBorder style={{
-            backgroundColor: '#ffffff',
+        <Card p="xl" radius="lg" withBorder className="animate-fade-in" style={{
+            backgroundColor: 'var(--mantine-color-body)',
             borderBottom: `4px solid var(--mantine-color-${color}-6)`,
-            color: '#0f172a',
             overflow: 'hidden',
             position: 'relative',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
@@ -61,14 +60,14 @@ function StatCard({ title, value, icon, color }: StatCardProps) {
 
             <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
                 <Group justify="space-between" align="center">
-                    <Text size="xs" fw={800} tt="uppercase" c="slate.7" style={{ letterSpacing: '0.1em' }}>
+                    <Text size="xs" fw={800} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.1em' }}>
                         {title}
                     </Text>
                     <ThemeIcon color={color} variant="light" size="lg" radius="md">
                         {icon}
                     </ThemeIcon>
                 </Group>
-                <Text fw={900} size="xl" style={{ fontSize: '2.2rem', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif', color: '#1e293b' }}>
+                <Text fw={900} size="xl" style={{ fontSize: '2.2rem', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
                     {value}
                 </Text>
             </Stack>
@@ -250,9 +249,9 @@ export function Dashboard() {
 
                     <Grid.Col span={{ base: 12, md: 5 }}>
                         {nextService ? (
-                            <Card padding="xl" radius="xl" withBorder style={{
-                                background: 'rgba(255, 255, 255, 0.9)',
-                                borderColor: '#e7e5e4',
+                            <Card padding="xl" radius="xl" withBorder className="animate-fade-in" style={{
+                                background: 'var(--mantine-color-body)',
+                                borderColor: 'var(--mantine-color-default-border)',
                                 height: '100%',
                                 position: 'relative',
                                 overflow: 'hidden'
@@ -285,7 +284,7 @@ export function Dashboard() {
                                             <Title order={3} style={{
                                                 fontFamily: 'Outfit, sans-serif',
                                                 fontSize: '1.8rem',
-                                                color: '#78350f', // deep amber
+                                                color: 'var(--mantine-color-gold-text)', // Custom variable
                                                 letterSpacing: '-0.02em'
                                             }}>
                                                 {getSingle(nextService.posicion)?.nombre || 'Servidor'}
@@ -362,8 +361,8 @@ export function Dashboard() {
 
                 <Grid>
                     <Grid.Col span={{ base: 12, md: 8 }}>
-                        <Card withBorder p="md" radius="md">
-                            <Title order={4} mb="md" c="stone.8">Próximos Servicios</Title>
+                        <Card withBorder p="md" radius="md" className="animate-fade-in">
+                            <Title order={4} mb="md" c="gold.5">Próximos Servicios</Title>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
                                     {upcoming.map((service) => {
@@ -372,15 +371,15 @@ export function Dashboard() {
                                         const dept = getSingle(pos?.departamento);
                                         return (
                                             <Card key={service.id} withBorder padding="sm" radius="md" style={{
-                                                background: 'linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)',
-                                                borderColor: '#e7e5e4'
+                                                background: 'var(--mantine-bg-tint, rgba(217, 119, 6, 0.05))',
+                                                borderColor: 'var(--mantine-color-default-border)'
                                             }}>
                                                 <Group justify="space-between">
                                                     <Stack gap={0}>
                                                         <Group gap={6}>
                                                             <Text size="xs" fw={700} c="gold.6" tt="uppercase">{dept?.nombre}</Text>
                                                         </Group>
-                                                        <Text fw={600} c="stone.8">{configDia?.tipo_servicio}</Text>
+                                                        <Text fw={600} c="stone.3">{configDia?.tipo_servicio}</Text>
                                                         <Text size="sm" c="stone.5">
                                                             {dayjs(configDia?.fecha).format('dddd, D [de] MMMM')}
                                                         </Text>
@@ -429,8 +428,8 @@ export function Dashboard() {
                     )}
 
                     <Grid.Col span={{ base: 12, md: 4 }}>
-                        <Card withBorder p="md" radius="md">
-                            <Title order={4} mb="md" c="stone.8">Estado de Asistencia</Title>
+                        <Card withBorder p="md" radius="md" className="animate-fade-in">
+                            <Title order={4} mb="md" c="gold.5">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
                                     <Box w="100%" role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
@@ -460,8 +459,8 @@ export function Dashboard() {
 
                     {stats && stats.byMonth && Object.keys(stats.byMonth).length > 0 && (
                         <Grid.Col span={12}>
-                            <Card withBorder p="md" radius="md">
-                                <Title order={4} mb="md" c="stone.8">Tendencia de Asistencia (Últimos Meses)</Title>
+                            <Card withBorder p="md" radius="md" className="animate-fade-in">
+                                <Title order={4} mb="md" c="gold.5">Tendencia de Asistencia (Últimos Meses)</Title>
                                 <Box w="100%" role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
                                     <BarChart
                                         h={400}

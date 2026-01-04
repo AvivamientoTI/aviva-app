@@ -255,7 +255,7 @@ export function ScheduleView() {
                                             {nombreCompleto}
                                         </Table.Td>
                                         <Table.Td>
-                                            <Badge variant="dot" color="blue">
+                                            <Badge variant="dot" color="gold" c="gold.9">
                                                 {posicionNombre}
                                             </Badge>
                                         </Table.Td>

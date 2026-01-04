@@ -90,7 +90,7 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                             <Paper key={date} p="xl" radius="lg" shadow="sm" withBorder style={{ background: '#fff', borderColor: '#e2e8f0' }}>
                                 <Group justify="space-between" mb="lg">
                                     <Stack gap={4}>
-                                        <Text size="xs" fw={800} c="blue.6" tt="uppercase" style={{ letterSpacing: '0.05em' }}>
+                                        <Text size="xs" fw={800} c="gold.6" tt="uppercase" style={{ letterSpacing: '0.05em' }}>
                                             {dayjs(date).locale('es').format('dddd')}
                                         </Text>
                                         <Title order={3} c="slate.9" style={{ letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
@@ -113,7 +113,7 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                                         >
                                             Uniforme: {dayData.assignments[0]?.uniforme || 'N/A'}
                                         </Badge>
-                                        <Badge size="xl" color="blue" variant="light" radius="md" p="md" fw={700}>
+                                        <Badge size="xl" color="gold" variant="light" radius="md" p="md" fw={700} c="gold.9">
                                             {dayData.servicio || 'Servicio General'}
                                         </Badge>
                                     </Group>

@@ -122,8 +122,8 @@ export function UsersList() {
   }, [users, filterDept, search]);
 
   const stats = [
-    { label: 'Total Servidores(as)', value: users.length, icon: IconUsers, color: 'blue' },
-    { label: 'Hombres', value: users.filter(u => u.genero === 'M').length, icon: IconUser, color: 'cyan' },
+    { label: 'Total Servidores(as)', value: users.length, icon: IconUsers, color: 'gold' },
+    { label: 'Hombres', value: users.filter(u => u.genero === 'M').length, icon: IconUser, color: 'teal' },
     { label: 'Mujeres', value: users.filter(u => u.genero === 'F').length, icon: IconUser, color: 'pink' },
   ];
 
@@ -208,7 +208,7 @@ export function UsersList() {
                   <Table.Tr key={user.id}>
                     <Table.Td>
                       <Group gap="sm">
-                        <Avatar color="blue" radius="xl">
+                        <Avatar color="gold" radius="xl">
                           {user.nombre[0]}{user.apellido[0]}
                         </Avatar>
                         <div>
@@ -216,7 +216,7 @@ export function UsersList() {
                           <Badge
                             size="xs"
                             variant="dot"
-                            color={user.genero === 'M' ? 'blue' : 'pink'}
+                            color={user.genero === 'M' ? 'teal' : 'pink'}
                           >
                             {user.genero === 'M' ? 'Masculino' : 'Femenino'}
                           </Badge>

@@ -15,8 +15,8 @@ interface CalendarCardProps {
 
 export function CalendarCard({ date, dayOfWeek, uniforme, assignmentsCount, isToday, onClick, children }: CalendarCardProps) {
     // Bordes siempre negros, sin colores dinámicos
-    const baseShadow = isToday ? '0 4px 12px rgba(59, 130, 246, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)';
-    const hoverShadow = isToday ? '0 10px 28px rgba(59, 130, 246, 0.3)' : '0 4px 16px rgba(0,0,0,0.12)';
+    const baseShadow = isToday ? '0 4px 12px rgba(217, 119, 6, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)';
+    const hoverShadow = isToday ? '0 10px 28px rgba(217, 119, 6, 0.3)' : '0 4px 16px rgba(0,0,0,0.12)';
 
     const isDisabled = !onClick;
 
@@ -40,7 +40,7 @@ export function CalendarCard({ date, dayOfWeek, uniforme, assignmentsCount, isTo
             onKeyDown={handleKeyDown}
             style={{
                 borderRadius: '16px',
-                border: `1.5px solid ${isToday ? '#2563eb' : '#e2e8f0'}`,
+                border: `1.5px solid ${isToday ? '#d97706' : '#e2e8f0'}`,
                 background: '#fff',
                 cursor: isDisabled ? 'not-allowed' : 'pointer',
                 opacity: isDisabled ? 0.6 : 1,
@@ -55,12 +55,12 @@ export function CalendarCard({ date, dayOfWeek, uniforme, assignmentsCount, isTo
             onMouseEnter={isDisabled ? undefined : (e) => {
                 e.currentTarget.style.boxShadow = hoverShadow;
                 e.currentTarget.style.transform = 'translateY(-6px)';
-                e.currentTarget.style.borderColor = isToday ? '#1d4ed8' : '#cbd5e1';
+                e.currentTarget.style.borderColor = isToday ? '#b45309' : '#cbd5e1';
             }}
             onMouseLeave={isDisabled ? undefined : (e) => {
                 e.currentTarget.style.boxShadow = baseShadow;
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = isToday ? '#2563eb' : '#e2e8f0';
+                e.currentTarget.style.borderColor = isToday ? '#d97706' : '#e2e8f0';
             }}
         >
             {uniforme && (() => {
@@ -102,7 +102,7 @@ export function CalendarCard({ date, dayOfWeek, uniforme, assignmentsCount, isTo
             })()}
             {isToday && !uniforme && (
                 <Badge
-                    color="blue"
+                    color="gold"
                     variant="filled"
                     style={{
                         position: 'absolute',

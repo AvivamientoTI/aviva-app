@@ -4,13 +4,33 @@ import { IconEdit, IconTrash, IconUser, IconCheck } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 
+import type { Position } from '../../../types';
+
+interface DraftAssignment {
+    id: string;
+    usuario_id: number | string;
+    posicion_id: number | string;
+    fecha: string;
+    posicion?: Position;
+    usuario?: { nombre: string; apellido: string };
+    configuracion_dia?: { fecha: string };
+}
+
+interface Props {
+    assignments: DraftAssignment[];
+    serviceConfigs: Record<string, { type: string; uniform: string }>;
+    handleEdit: (assignment: DraftAssignment) => void;
+    handleDelete: (id: string) => void;
+    conflicts?: Record<string, string[]>;
+}
+
 export const PlanningStepReview = ({
     assignments,
     serviceConfigs,
     handleEdit,
     handleDelete,
     conflicts = {}
-}) => {
+}: Props) => {
     if (assignments.length === 0) {
         return (
             <Paper p="xl" withBorder style={{ textAlign: 'center', opacity: 0.7 }}>
@@ -38,8 +58,8 @@ export const PlanningStepReview = ({
                             size={60}
                             roundCaps
                             thickness={6}
-                            sections={[{ value: 100, color: 'blue.6' }]}
-                            label={<Center><IconUser size={20} color="var(--mantine-color-blue-6)" /></Center>}
+                            sections={[{ value: 100, color: 'gold.6' }]}
+                            label={<Center><IconUser size={20} color="var(--mantine-color-gold-6)" /></Center>}
                         />
                         <div>
                             <Text c="slate.7" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Voluntarios</Text>
@@ -53,8 +73,8 @@ export const PlanningStepReview = ({
                             size={60}
                             roundCaps
                             thickness={6}
-                            sections={[{ value: 100, color: 'blue.4' }]}
-                            label={<Center><IconCheck size={20} color="var(--mantine-color-blue-4)" /></Center>}
+                            sections={[{ value: 100, color: 'teal.4' }]}
+                            label={<Center><IconCheck size={20} color="var(--mantine-color-teal-4)" /></Center>}
                         />
                         <div>
                             <Text c="slate.7" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asignaciones</Text>
@@ -90,7 +110,7 @@ export const PlanningStepReview = ({
                                     </Table.Td>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
                                         <Group gap="sm">
-                                            <Avatar color="blue" radius="md" size="sm" variant="light">
+                                            <Avatar color="gold" radius="md" size="sm" variant="light">
                                                 {assignment.usuario?.nombre?.[0]}{assignment.usuario?.apellido?.[0]}
                                             </Avatar>
                                             <div>
@@ -104,7 +124,7 @@ export const PlanningStepReview = ({
                                         </Group>
                                     </Table.Td>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
-                                        <Badge variant="light" color="blue" size="md" radius="sm" fw={800}>{assignment.posicion?.nombre || 'General'}</Badge>
+                                        <Badge variant="light" color="gold" size="md" radius="sm" fw={800} c="gold.9">{assignment.posicion?.nombre || 'General'}</Badge>
                                     </Table.Td>
                                     <Table.Td style={{ verticalAlign: 'middle' }}>
                                         <Stack gap={4}>
@@ -124,7 +144,7 @@ export const PlanningStepReview = ({
                                     <Table.Td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
                                         <ActionIcon
                                             variant="light"
-                                            color="blue"
+                                            color="gold"
                                             radius="md"
                                             size="lg"
                                             onClick={() => handleEdit(assignment)}

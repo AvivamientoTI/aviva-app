@@ -23,6 +23,27 @@ import { useAutoAssign } from './hooks/useAutoAssign';
 import { PlanningStepDeptMonth } from './components/PlanningStepDeptMonth';
 import { PlanningStepServiceDates } from './components/PlanningStepServiceDates';
 import { PlanningStepReview } from './components/PlanningStepReview';
+import { Position, Assignment, Department } from '../../types';
+
+interface ServiceDateConfig {
+  type: string;
+  uniform: string;
+  positionQuotas: Record<string, number>;
+}
+
+interface HeaderState {
+  id: number;
+  estado: string;
+}
+
+interface DraftAssignment {
+  id: string;
+  usuario_id: number | string;
+  posicion_id: number | string;
+  fecha: string;
+  posicion?: Position;
+  usuario?: { nombre: string; apellido: string };
+}
 
 export function PlanningWizard() {
   const permissions = usePermissions();
@@ -33,26 +54,26 @@ export function PlanningWizard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [active]);
 
-  const [departments, setDepartments] = useState([]);
-  const [selectedDept, setSelectedDept] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [selectedDates, setSelectedDates] = useState([]);
-  const [positions, setPositions] = useState([]);
-  const [serviceConfigs, setServiceConfigs] = useState({});
+  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const [selectedDept, setSelectedDept] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<Date | null>(new Date());
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [serviceConfigs, setServiceConfigs] = useState<Record<string, ServiceDateConfig>>({});
   const [autoAssign, setAutoAssign] = useState(true);
-  const [deptMeta, setDeptMeta] = useState({});
-  const [priorityOneIds, setPriorityOneIds] = useState([]);
-  const [headerState, setHeaderState] = useState(null);
-  const [assignments, setAssignments] = useState([]);
-  const [previewAssignments, setPreviewAssignments] = useState([]);
+  const [deptMeta, setDeptMeta] = useState<Record<string, { prioridad: number }>>({});
+  const [priorityOneIds, setPriorityOneIds] = useState<number[]>([]);
+  const [headerState, setHeaderState] = useState<HeaderState | null>(null);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [previewAssignments, setPreviewAssignments] = useState<DraftAssignment[]>([]);
   const [viewModalOpened, { open: openViewModal, close: closeViewModal }] = useDisclosure(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
-  const [editIndex, setEditIndex] = useState(null);
-  const [editAssignment, setEditAssignment] = useState({});
-  const [globalAssignments, setGlobalAssignments] = useState([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editAssignment, setEditAssignment] = useState<Partial<DraftAssignment>>({});
+  const [globalAssignments, setGlobalAssignments] = useState<Assignment[]>([]);
 
   // Custom Hooks
-  const { generateAssignments, loading: assigningLoading } = useAutoAssign(selectedDept, deptMeta);
+  const { generateAssignments, loading: assigningLoading } = useAutoAssign(selectedDept);
   const [loading, setLoading] = useState(false); // General loading
 
   useEffect(() => {
@@ -138,7 +159,7 @@ export function PlanningWizard() {
     else setHeaderState(null);
   };
 
-  const handleDateChange = (dates) => {
+  const handleDateChange = (dates: Date[] | Date | null) => {
     // String-based Logic (Refactored)
     const uniqueStrings = new Set();
     const processDate = (d) => {
@@ -177,14 +198,14 @@ export function PlanningWizard() {
     setServiceConfigs(newConfigs);
   };
 
-  const updateServiceConfig = (dateStr, field, value) => {
+  const updateServiceConfig = (dateStr: string, field: keyof ServiceDateConfig, value: string) => {
     setServiceConfigs(prev => ({
       ...prev,
       [dateStr]: { ...prev[dateStr], [field]: value }
     }));
   };
 
-  const updatePositionQuota = (dateStr, posId, value) => {
+  const updatePositionQuota = (dateStr: string, posId: number | string, value: number) => {
     setServiceConfigs(prev => ({
       ...prev,
       [dateStr]: {
@@ -483,7 +504,7 @@ export function PlanningWizard() {
         notifications.show({
           title: 'Rol Proyectado',
           message: 'Se han generado las asignaciones sugeridas. Puedes editarlas en la tabla.',
-          color: 'blue',
+          color: 'gold',
           icon: <IconHistory size={18} />
         });
       } catch (e) {
@@ -498,9 +519,9 @@ export function PlanningWizard() {
     if (active < 2) setActive(active + 1);
   };
 
-  const [replacements, setReplacements] = useState([]);
+  const [replacements, setReplacements] = useState<any[]>([]);
 
-  const handleEdit = async (assignment) => {
+  const handleEdit = async (assignment: DraftAssignment) => {
     setEditAssignment(assignment);
     const idx = previewAssignments.findIndex(a => a.id === assignment.id);
     setEditIndex(idx !== -1 ? idx : null);
@@ -616,7 +637,7 @@ export function PlanningWizard() {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (id: string) => {
     if (window.confirm('¿Eliminar?')) {
       setPreviewAssignments(prev => prev.filter(a => a.id !== id));
     }
@@ -642,13 +663,13 @@ export function PlanningWizard() {
 
   return (
     <Container size="xl" py="xl">
-      <Paper shadow="sm" p="xl" radius="lg" withBorder style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+      <Paper shadow="sm" p="xl" radius="lg" withBorder className="animate-fade-in" style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
         <Group justify="space-between" mb="md">
           <Stack gap={0}>
             <Title order={2} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.02em' }}>Planificador de Roles</Title>
             <Text c="slate.6" size="sm" fw={500}>Configura, asigna y aprueba el rol mensual de tu departamento</Text>
           </Stack>
-          <Badge size="lg" variant="light" color="blue" radius="md">
+          <Badge size="lg" variant="light" color="gold" radius="md" c="gold.9">
             VERSIÓN 2.0
           </Badge>
         </Group>
@@ -659,7 +680,7 @@ export function PlanningWizard() {
           size="sm"
           radius="xl"
           mb="lg"
-          color="blue"
+          color="gold"
           striped
           animated={loading || assigningLoading}
         />

@@ -5,6 +5,24 @@ import { IconCalendar, IconApps, IconCheck, IconTrash, IconInfoCircle } from '@t
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
+import type { Position } from '../../../types';
+
+interface ServiceDateConfig {
+    type: string;
+    uniform: string;
+    positionQuotas: Record<string, number>;
+}
+
+interface Props {
+    selectedDates: string[];
+    handleDateChange: (dates: Date[] | Date | string[] | null) => void;
+    serviceConfigs: Record<string, ServiceDateConfig>;
+    updateServiceConfig: (dateStr: string, field: keyof ServiceDateConfig, value: string) => void;
+    positions: Position[];
+    updatePositionQuota: (dateStr: string, posId: number | string, value: number) => void;
+    selectedMonth: Date | null;
+}
+
 export const PlanningStepServiceDates = ({
     selectedDates,
     handleDateChange,
@@ -13,7 +31,7 @@ export const PlanningStepServiceDates = ({
     positions,
     updatePositionQuota,
     selectedMonth
-}) => {
+}: Props) => {
 
     // Helpers for Batch Selection
     const currentMonth = useMemo(() => {
@@ -47,7 +65,7 @@ export const PlanningStepServiceDates = ({
             {/* LEFT COLUMN: Calendar & Quick Actions */}
             <Grid.Col sm={12} md={5} lg={4}>
                 <Stack gap="md" style={{ position: 'sticky', top: 20 }}>
-                    <Paper shadow="sm" p="md" radius="lg" withBorder style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+                    <Paper shadow="sm" p="md" radius="lg" withBorder style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                         <Text fw={800} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Selección de Fechas</Text>
                         <Group justify="center">
                             <DatePicker
@@ -85,7 +103,7 @@ export const PlanningStepServiceDates = ({
                         </Menu>
                     </Paper>
 
-                    <Alert icon={<IconInfoCircle size={16} />} title="Ayuda" color="blue" variant="light" radius="md">
+                    <Alert icon={<IconInfoCircle size={16} />} title="Ayuda" color="gold" variant="light" radius="md">
                         Toca las fechas en el calendario para agregarlas o quitarlas.
                     </Alert>
                 </Stack>
@@ -93,10 +111,10 @@ export const PlanningStepServiceDates = ({
 
             {/* RIGHT COLUMN: Configuration List */}
             <Grid.Col sm={12} md={7} lg={8}>
-                <Paper shadow="sm" p="lg" radius="lg" withBorder h="100%" style={{ minHeight: 400, backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+                <Paper shadow="sm" p="lg" radius="lg" withBorder h="100%" style={{ minHeight: 400, backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                     <Group justify="space-between" mb="lg">
                         <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.01em' }}>Configuración de Servicios</Text>
-                        <Badge size="lg" variant="light" color="blue" radius="md" fw={700}>{selectedDates.length} Días Seleccionados</Badge>
+                        <Badge size="lg" variant="light" color="gold" radius="md" fw={700} c="gold.9">{selectedDates.length} Días Seleccionados</Badge>
                     </Group>
 
                     {selectedDates.length === 0 && (
@@ -118,12 +136,12 @@ export const PlanningStepServiceDates = ({
                                         <Accordion.Control style={{ backgroundColor: '#f8fafc' }}>
                                             <Group justify="space-between">
                                                 <Group>
-                                                    <ThemeIcon color={hasError ? 'amber.6' : 'blue.6'} variant="light" radius="md">
+                                                    <ThemeIcon color={hasError ? 'amber.6' : 'teal.6'} variant="light" radius="md">
                                                         {hasError ? <IconInfoCircle size={16} /> : <IconCheck size={16} />}
                                                     </ThemeIcon>
                                                     <Text fw={700} c="slate.9">{displayDate.format('dddd D [/] MMMM')}</Text>
                                                 </Group>
-                                                {hasError ? <Badge color="amber" variant="light" size="sm" radius="sm">Falta Info</Badge> : <Badge color="blue" variant="light" size="sm" radius="sm">Listo</Badge>}
+                                                {hasError ? <Badge color="amber" variant="light" size="sm" radius="sm">Falta Info</Badge> : <Badge color="teal" variant="light" size="sm" radius="sm">Listo</Badge>}
                                             </Group>
                                         </Accordion.Control>
                                         <Accordion.Panel>
@@ -165,7 +183,7 @@ export const PlanningStepServiceDates = ({
                                                                         onChange={(value) => updatePositionQuota(dateStr, pos.id, value)}
                                                                         min={0}
                                                                         allowNegative={false}
-                                                                        styles={{ input: { textAlign: 'center', height: 24, fontSize: 18, fontWeight: 900, color: '#2563eb' } }}
+                                                                        styles={{ input: { textAlign: 'center', height: 24, fontSize: 18, fontWeight: 900, color: '#d97706' } }}
                                                                     />
                                                                 </Stack>
                                                             </Paper>

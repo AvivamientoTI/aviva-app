@@ -100,7 +100,7 @@ export function MembershipsManager({ userId }) {
                 <Table.Tr key={m.id}>
                   <Table.Td fw={700} c="slate.9">{m.departamento?.nombre}</Table.Td>
                   <Table.Td>
-                    <Badge variant="light" color="blue" radius="sm" fw={800}>{m.rol_jerarquico}</Badge>
+                    <Badge variant="light" color="gold" radius="sm" fw={800} c="gold.9">{m.rol_jerarquico}</Badge>
                   </Table.Td>
                   <Table.Td style={{ textAlign: 'right' }}>
                     <Button color="red" variant="light" size="xs" onClick={() => handleDelete(m.id)}>Eliminar</Button>

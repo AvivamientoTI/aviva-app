@@ -1,11 +1,41 @@
 import { useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
+import type { Position, PublicUser } from '../../../types';
 
-export const useAutoAssign = (selectedDept, deptMeta) => {
+interface ServiceDateConfig {
+    type: string;
+    uniform: string;
+    positionQuotas: Record<string, number>;
+}
+
+interface SavedConfig {
+    id: string | number;
+    fecha: string;
+}
+
+interface AutoAssignResult {
+    assignments: any[];
+    diagnostics: {
+        deptUsersFound: number;
+        datesProcessed: number;
+        details: any[];
+    };
+}
+
+interface UserWithMetadata extends PublicUser {
+    roles: string[];
+    isExternalLeader: boolean;
+}
+
+export const useAutoAssign = (selectedDept: string | number | null) => {
     const [loading, setLoading] = useState(false);
 
-    const generateAssignments = async (savedConfigs, serviceConfigs, positions) => {
+    const generateAssignments = async (
+        savedConfigs: SavedConfig[],
+        serviceConfigs: Record<string, ServiceDateConfig>,
+        positions: Position[]
+    ): Promise<AutoAssignResult> => {
         setLoading(true);
         try {
             // 1. Fetch department users
@@ -16,7 +46,7 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
 
             if (!deptMemberships || deptMemberships.length === 0) {
                 console.warn("No memberships found for dept:", selectedDept);
-                return [];
+                return { assignments: [], diagnostics: { deptUsersFound: 0, datesProcessed: 0, details: [] } };
             }
 
             const userIds = deptMemberships.map(m => m.usuario_id);
@@ -27,13 +57,14 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
                 .select('usuario_id, departamento_id, rol_jerarquico')
                 .in('usuario_id', userIds);
 
-            const normalize = (str) => str?.toLowerCase()
+            const normalize = (str: string | null | undefined) => str?.toLowerCase()
                 .normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 
             // 3. Process users and identify external leaders
-            const usersMap = {};
-            deptMemberships.forEach(m => {
-                const uid = m.usuario.id;
+            const usersMap: Record<string, UserWithMetadata> = {};
+            deptMemberships.forEach((m: any) => {
+                if (!m.usuario) return;
+                const uid = String(m.usuario.id);
                 if (!usersMap[uid]) {
                     usersMap[uid] = {
                         ...m.usuario,
@@ -45,8 +76,8 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
             });
 
             // Flag users who are leaders/subleaders in other departments
-            allMemberships.forEach(m => {
-                const uid = m.usuario_id;
+            (allMemberships || []).forEach((m: any) => {
+                const uid = String(m.usuario_id);
                 if (usersMap[uid] && Number(m.departamento_id) !== Number(selectedDept)) {
                     const role = normalize(m.rol_jerarquico);
                     if (['lider', 'sublider'].includes(role)) {
@@ -57,7 +88,6 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
 
             const deptUsers = Object.values(usersMap);
 
-            // ... (rest of the fetching logic remains same)
             const now = new Date();
             const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
             const { data: recentAssignments } = await supabase
@@ -65,25 +95,26 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
                 .select('usuario_id, configuracion_dia(fecha)')
                 .gte('configuracion_dia.fecha', lastMonth.toISOString().slice(0, 10));
 
-            const recentCount = {};
-            const userDates = {};
+            const recentCount: Record<string, number> = {};
+            const userDates: Record<string, string[]> = {};
             if (recentAssignments) {
-                recentAssignments.forEach(a => {
-                    recentCount[a.usuario_id] = (recentCount[a.usuario_id] || 0) + 1;
-                    if (!userDates[a.usuario_id]) userDates[a.usuario_id] = [];
+                (recentAssignments as any[]).forEach(a => {
+                    const uid = String(a.usuario_id);
+                    recentCount[uid] = (recentCount[uid] || 0) + 1;
+                    if (!userDates[uid]) userDates[uid] = [];
                     if (a.configuracion_dia && a.configuracion_dia.fecha) {
-                        userDates[a.usuario_id].push(a.configuracion_dia.fecha);
+                        userDates[uid].push(a.configuracion_dia.fecha);
                     }
                 });
             }
 
-            const assignments = [];
-            const configsSorted = [...savedConfigs].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+            const assignments: any[] = [];
+            const configsSorted = [...savedConfigs].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
             const diagnostics = {
                 deptUsersFound: deptUsers.length,
                 datesProcessed: 0,
-                details: []
+                details: [] as any[]
             };
 
             for (let i = 0; i < configsSorted.length; i++) {
@@ -93,15 +124,16 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
                 const serviceConfig = serviceConfigs[dateStr];
                 if (!serviceConfig) continue;
 
-                const eligibleUsers = await getUsersNotAssignedOnDate(config.fecha, deptUsers);
+                // Eligible users logic needs to be typing and ensured
+                const eligibleUsers: UserWithMetadata[] = await getUsersNotAssignedOnDate(config.fecha, deptUsers as any);
 
-                let prevDate = null;
-                if (i > 0) prevDate = configsSorted[i - 1].fecha;
+                let prevDateStr: string | null = null;
+                if (i > 0) prevDateStr = configsSorted[i - 1].fecha;
 
                 for (const pos of positions) {
                     const quota = serviceConfig.positionQuotas[pos.id] || 0;
                     const isEncargadoPos = pos.nombre.toLowerCase().includes('encargado');
-                    const logEntry = { date: dateStr, position: pos.nombre, quota, eligible: eligibleUsers.length, assigned: 0 };
+                    const logEntry: any = { date: dateStr, position: pos.nombre, quota, eligible: eligibleUsers.length, assigned: 0 };
 
                     if (quota <= 0) {
                         logEntry.status = 'Skipped: Quota 0';
@@ -111,13 +143,13 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
 
                     let candidates = eligibleUsers.filter(u => {
                         // Already assigned today
-                        if (assignments.some(a => a.configuracion_dia_id === config.id && a.usuario_id === u.id)) return false;
+                        if (assignments.some(a => a.configuracion_dia_id === config.id && String(a.usuario_id) === String(u.id))) return false;
 
                         // Gender check
                         if (pos.genero_requerido === 'M' && u.genero !== 'M') return false;
                         if (pos.genero_requerido === 'F' && u.genero !== 'F') return false;
 
-                        // ENCARGADO LOGIC: Only users with one of these roles in their 'roles' array
+                        // ENCARGADO LOGIC
                         if (isEncargadoPos) {
                             return u.roles.some(r => ['lider', 'sublider', 'encargado'].includes(r));
                         }
@@ -127,36 +159,27 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
 
                     logEntry.candidatesAfterGenderAndDupes = candidates.length;
 
-                    // Preferencia: excluir quienes sirvieron el día anterior (si hay suficientes)
-                    let prevDayAssigned = [];
-                    if (prevDate) {
-                        prevDayAssigned = assignments
-                            .filter(a => a.configuracion_dia_id === configsSorted[i - 1].id)
-                            .map(a => a.usuario_id);
+                    // Consecutividad
+                    let prevDayAssignedIds: string[] = [];
+                    if (prevDateStr && i > 0) {
+                        prevDayAssignedIds = assignments
+                            .filter(a => String(a.configuracion_dia_id) === String(configsSorted[i - 1].id))
+                            .map(a => String(a.usuario_id));
                     }
-                    // Candidatos que NO sirvieron el día anterior
-                    let nonConsecutive = candidates.filter(u => !prevDayAssigned.includes(u.id));
-                    // Si hay suficientes para la cuota, usar solo estos
+
+                    const nonConsecutive = candidates.filter(u => !prevDayAssignedIds.includes(String(u.id)));
                     if (nonConsecutive.length >= quota) {
                         candidates = nonConsecutive;
                     }
-                    // Si no, se permite que repitan, pero se prioriza a los que no repiten
 
-                    // 1. Prioridad: servidores que NO son líderes/sublíderes en otros deptos.
-                    // 2. Prioridad: servidores con menos asignaciones en el último mes.
-                    // 3. Aleatorio para desempates.
+                    // Sort criteria
                     candidates.sort((a, b) => {
-                        // Priorizar no-líderes externos (false < true)
                         if (a.isExternalLeader !== b.isExternalLeader) {
                             return a.isExternalLeader ? 1 : -1;
                         }
-
-                        // Priorizar menos asignaciones recientes
-                        const countA = recentCount[a.id] || 0;
-                        const countB = recentCount[b.id] || 0;
+                        const countA = recentCount[String(a.id)] || 0;
+                        const countB = recentCount[String(b.id)] || 0;
                         if (countA !== countB) return countA - countB;
-
-                        // Aleatorio
                         return 0.5 - Math.random();
                     });
 
@@ -174,13 +197,13 @@ export const useAutoAssign = (selectedDept, deptMeta) => {
                         assignments.push({
                             configuracion_dia_id: config.id,
                             usuario_id: user.id,
-                            usuario: user, // Include the full user object
+                            usuario: user,
                             posicion_id: pos.id
                         });
-                        // Actualizar conteo y fechas para próximas iteraciones
-                        recentCount[user.id] = (recentCount[user.id] || 0) + 1;
-                        if (!userDates[user.id]) userDates[user.id] = [];
-                        userDates[user.id].push(dateStr);
+                        const uid = String(user.id);
+                        recentCount[uid] = (recentCount[uid] || 0) + 1;
+                        if (!userDates[uid]) userDates[uid] = [];
+                        userDates[uid].push(dateStr);
                     });
                 }
             }

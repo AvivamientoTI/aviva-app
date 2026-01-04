@@ -230,7 +230,7 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
                                             </>
                                         ) : (
                                             <>
-                                                <ActionIcon color="blue" variant="light" onClick={() => handleEdit(pos)}>
+                                                <ActionIcon color="gold" variant="light" onClick={() => handleEdit(pos)}>
                                                     <IconEdit size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon color="red" variant="light" onClick={() => handleDelete(pos.id)}>

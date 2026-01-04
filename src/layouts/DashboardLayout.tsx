@@ -1,5 +1,6 @@
-import { AppShell, Burger, Group, NavLink, Title, Text, Stack, Divider } from '@mantine/core';
+import { ActionIcon, AppShell, Burger, Group, NavLink, Title, Text, Stack, Divider, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { IconSun, IconMoon } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
@@ -9,6 +10,9 @@ export function DashboardLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { userProfile, managedDepartments, userMemberships, loading } = useUser();
+
+    const { colorScheme, setColorScheme } = useMantineColorScheme();
+    const dark = colorScheme === 'dark';
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -58,8 +62,8 @@ export function DashboardLayout() {
             padding="md"
         >
             <AppShell.Header style={{
-                backgroundColor: '#fcfaf5',
-                borderBottom: '1px solid #e7e5e4',
+                backgroundColor: 'var(--mantine-color-body)',
+                borderBottom: '1px solid var(--mantine-color-default-border)',
                 boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)'
             }}>
                 <Group justify="space-between" h="100%" px="xl">
@@ -69,36 +73,45 @@ export function DashboardLayout() {
                             SERV AYP
                         </Title>
                     </Group>
-                    {!loading && userName && (
-                        <Group gap="sm">
-                            <Stack gap={0} align="flex-end" visibleFrom="xs">
-                                <Text size="sm" fw={800} c="stone.7">{userName}</Text>
-                                <Text size="xs" c="yellow.8" fw={700} opacity={0.9} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    {managedDepartments.length > 0 ? managedDepartments.map(d => d.nombre).join(', ') : 'Servidor'}
-                                </Text>
-                            </Stack>
-                            <div style={{
-                                width: 42,
-                                height: 42,
-                                borderRadius: '12px',
-                                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'white',
-                                fontWeight: 900,
-                                boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'
-                            }}>
-                                {userName?.[0]}
-                            </div>
-                        </Group>
-                    )}
+                    <Group gap="sm">
+                        <ActionIcon
+                            variant="light"
+                            color="gold"
+                            onClick={() => setColorScheme(dark ? 'light' : 'dark')}
+                            size="lg"
+                            radius="md"
+                            title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                        >
+                            {dark ? <IconSun size={20} /> : <IconMoon size={20} />}
+                        </ActionIcon>
+
+                        <Stack gap={0} align="flex-end" visibleFrom="xs">
+                            <Text size="sm" fw={800} c={dark ? 'gold.2' : 'stone.7'}>{userName}</Text>
+                            <Text size="xs" c={dark ? 'gold.4' : 'gold.6'} fw={700} opacity={0.9} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                {managedDepartments.length > 0 ? managedDepartments.map(d => d.nombre).join(', ') : 'Servidor'}
+                            </Text>
+                        </Stack>
+                        <div style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 900,
+                            boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'
+                        }}>
+                            {userName?.[0]}
+                        </div>
+                    </Group>
                 </Group>
             </AppShell.Header>
 
             <AppShell.Navbar p="md" style={{
-                backgroundColor: '#fffbeb',
-                borderRight: '1px solid #e7e5e4'
+                backgroundColor: 'var(--mantine-color-body)',
+                borderRight: '1px solid var(--mantine-color-default-border)'
             }}>
                 <Stack gap="xs" mt="md">
                     {links.map((link) => (
@@ -117,8 +130,8 @@ export function DashboardLayout() {
                                     fontWeight: 600,
                                     margin: '2px 0',
                                     '&[data-active]': {
-                                        backgroundColor: '#fef3c7', // Amber 100
-                                        color: '#b45309', // Amber 700
+                                        backgroundColor: dark ? 'rgba(217, 119, 6, 0.2)' : '#fef3c7', // Amber 100/200
+                                        color: dark ? '#fbbf24' : '#b45309', // Amber 700
                                         '&::before': {
                                             content: '""',
                                             position: 'absolute',
@@ -130,7 +143,7 @@ export function DashboardLayout() {
                                         }
                                     },
                                     '&:hover': {
-                                        backgroundColor: '#fff7ed', // Orange 50
+                                        backgroundColor: dark ? 'rgba(255, 255, 255, 0.05)' : '#fff7ed', // Orange 50
                                         transform: 'translateX(4px)'
                                     }
                                 },
@@ -150,7 +163,7 @@ export function DashboardLayout() {
                 />
             </AppShell.Navbar>
 
-            <AppShell.Main className="animate-fade-in" style={{ backgroundColor: '#fcfcfd' }}>
+            <AppShell.Main className="animate-fade-in">
                 <Outlet />
             </AppShell.Main>
         </AppShell>

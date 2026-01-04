@@ -13,6 +13,16 @@ export interface UserProfile {
 export interface Department {
     id: number;
     nombre: string;
+    prioridad?: number;
+}
+
+export interface Position {
+    id: number;
+    nombre: string;
+    departamento_id: number;
+    cantidad_default: number;
+    genero_requerido?: 'M' | 'F' | 'A';
+    orden?: number;
 }
 
 export interface PublicUser {
@@ -51,9 +61,24 @@ export interface Assignment {
     id: number;
     usuario_id: number;
     usuario: { nombre: string; apellido: string };
-    posicion: { nombre: string; genero_requerido?: string };
+    posicion: { nombre: string; genero_requerido?: string; orden?: number };
     configuracion_dia: DayConfiguration;
-    // Computed/joined fields for UI convenience
-    nombre?: string;
-    // ...
+    fecha?: string;
 }
+
+export interface MonthlyStat {
+    month: string;
+    asistio: number;
+    faltas: number;
+}
+
+export interface StatsData {
+    summary: {
+        total: number;
+        asistio: number;
+        faltoConAviso: number;
+        faltoSinAviso: number;
+    };
+    byMonth: Record<string, MonthlyStat>;
+}
+

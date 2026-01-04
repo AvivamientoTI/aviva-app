@@ -105,12 +105,11 @@ export const theme = createTheme({
             styles: (theme) => ({
                 root: {
                     transition: 'all 0.2s ease',
-                    backgroundColor: '#ffffff',
-                    borderColor: '#e7e5e4', // Warm border
+                    backgroundColor: 'var(--mantine-color-body)',
+                    borderColor: 'var(--mantine-color-default-border)', // Warm border
                     '&:hover': {
                         transform: 'translateY(-4px)',
-                        boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)', // Gold shadow hint
-                        borderColor: '#d6d3d1',
+                        boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', // Gold shadow hint
                     },
                 },
             }),
@@ -123,8 +122,8 @@ export const theme = createTheme({
             },
             styles: (theme) => ({
                 root: {
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e7e5e4',
+                    backgroundColor: 'var(--mantine-color-body)',
+                    border: '1px solid var(--mantine-color-default-border)',
                 }
             })
         },
@@ -153,18 +152,18 @@ export const theme = createTheme({
             },
             styles: (theme) => ({
                 content: {
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e7e5e4',
+                    backgroundColor: 'var(--mantine-color-body)',
+                    border: '1px solid var(--mantine-color-default-border)',
                     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                 },
                 header: {
-                    borderBottom: '1px solid #f5f5f4',
+                    borderBottom: '1px solid var(--mantine-color-default-border)',
                 },
                 title: {
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 800,
                     fontSize: '1.4rem',
-                    color: '#292524',
+                    color: 'var(--mantine-color-text)',
                 }
             })
         },
@@ -172,16 +171,17 @@ export const theme = createTheme({
         AppShell: {
             styles: (theme) => ({
                 header: {
-                    backgroundColor: '#fcfaf5', // Warm cream background
-                    borderBottom: '1px solid #e7e5e4',
+                    backgroundColor: 'var(--mantine-color-body)',
+                    borderBottom: '1px solid var(--mantine-color-default-border)',
                     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
                 },
                 navbar: {
-                    backgroundColor: '#fffbeb', // Amber 50 (very light)
-                    borderRight: '1px solid #e7e5e4',
+                    backgroundColor: 'var(--mantine-color-body)',
+                    borderRight: '1px solid var(--mantine-color-default-border)',
                 },
                 main: {
-                    backgroundColor: '#fcfaf5', // Warm cream main bg
+                    backgroundColor: 'var(--mantine-glass-bg, var(--mantine-color-body))',
+                    backgroundImage: 'radial-gradient(circle at top right, var(--mantine-color-gold-0), transparent)',
                 }
             })
         }

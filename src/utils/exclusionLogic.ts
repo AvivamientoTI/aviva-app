@@ -1,9 +1,12 @@
+import { supabase } from '../services/supabaseClient';
+import type { PublicUser } from '../types';
+
 /**
  * Fetches users who have NO assignments at all on the given date (strict).
  * Uses a Supabase RPC to bypass RLS for global conflict detection.
  */
-export const getUsersNotAssignedOnDate = async (date, allUsers) => {
-  const blockedIds = new Set();
+export const getUsersNotAssignedOnDate = async (date: string, allUsers: PublicUser[]): Promise<PublicUser[]> => {
+  const blockedIds = new Set<string>();
 
   try {
     const { data: blockedResults, error } = await supabase.rpc('get_blocked_users', {
@@ -13,7 +16,7 @@ export const getUsersNotAssignedOnDate = async (date, allUsers) => {
     if (error) throw error;
 
     if (blockedResults) {
-      blockedResults.forEach(row => {
+      (blockedResults as any[]).forEach(row => {
         if (row.usuario_id) {
           blockedIds.add(String(row.usuario_id));
         }

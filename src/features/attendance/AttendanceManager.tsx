@@ -400,7 +400,7 @@ export function AttendanceManager() {
                                     leftSection={<IconSearch size={16} />}
                                     styles={{
                                         input: {
-                                            backgroundColor: '#ffffff',
+                                            backgroundColor: 'var(--mantine-color-body)',
                                             borderColor: '#e7e5e4',
                                         }
                                     }}

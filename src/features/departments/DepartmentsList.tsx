@@ -139,7 +139,7 @@ export function DepartmentsList() {
                                     {dept.prioridad === 1 ? (
                                         <Badge color="red" variant="light" radius="sm" fw={800}>CRÍTICA (1)</Badge>
                                     ) : (
-                                        <Badge color="blue" variant="light" radius="sm" fw={800}>NORMAL (2)</Badge>
+                                        <Badge color="gold" variant="light" radius="sm" fw={800} c="gold.9">NORMAL (2)</Badge>
                                     )}
                                 </Table.Td>
                                 <Table.Td>
