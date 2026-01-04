@@ -191,7 +191,7 @@ export function Dashboard() {
                 <Grid gutter="lg">
                     <Grid.Col span={{ base: 12, md: 7 }}>
                         <Card style={{
-                            background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)',
+                            background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                             color: 'white',
                             height: '100%',
                             display: 'flex',
@@ -199,7 +199,7 @@ export function Dashboard() {
                             justifyContent: 'center',
                             overflow: 'hidden',
                             position: 'relative',
-                            boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)'
+                            boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.3)'
                         }} padding="xl" radius="lg" withBorder={false}>
                             <Box style={{
                                 position: 'absolute',
@@ -212,7 +212,7 @@ export function Dashboard() {
                             </Box>
 
                             <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
-                                <Badge variant="filled" color="blue.4" radius="sm" size="lg" style={{ width: 'fit-content', color: '#1e3a8a' }}>
+                                <Badge variant="filled" color="white" radius="sm" size="lg" style={{ width: 'fit-content', color: '#b45309', fontWeight: 800 }}>
                                     PLATAFORMA LIDERAZGO
                                 </Badge>
                                 <Title order={1} style={{
@@ -228,18 +228,18 @@ export function Dashboard() {
                                 </Title>
 
                                 <Box style={{
-                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    background: 'rgba(255, 255, 255, 0.15)',
                                     borderLeft: '4px solid #ffffff',
                                     padding: '24px',
                                     borderRadius: '8px',
                                     marginTop: '8px',
                                     maxWidth: '90%'
                                 }}>
-                                    <Text size="lg" fs="italic" fw={700} c="blue.0" style={{ lineHeight: 1.6 }}>
+                                    <Text size="lg" fs="italic" fw={700} c="white" style={{ lineHeight: 1.6 }}>
                                         "Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres..."
                                     </Text>
                                     <Group gap="xs" mt={12}>
-                                        <Text fw={900} size="xs" c="cyan.1" style={{ letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                                        <Text fw={900} size="xs" c="yellow.1" style={{ letterSpacing: '0.15em', textTransform: 'uppercase' }}>
                                             COLOSENSES 3:23
                                         </Text>
                                     </Group>
@@ -251,9 +251,8 @@ export function Dashboard() {
                     <Grid.Col span={{ base: 12, md: 5 }}>
                         {nextService ? (
                             <Card padding="xl" radius="xl" withBorder style={{
-                                background: 'rgba(255, 255, 255, 0.7)',
-                                backdropFilter: 'blur(20px)',
-                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                background: 'rgba(255, 255, 255, 0.9)',
+                                borderColor: '#e7e5e4',
                                 height: '100%',
                                 position: 'relative',
                                 overflow: 'hidden'
@@ -262,19 +261,19 @@ export function Dashboard() {
                                     position: 'absolute',
                                     top: -20,
                                     right: -20,
-                                    opacity: 0.03,
+                                    opacity: 0.05,
                                     transform: 'rotate(15deg)'
                                 }}>
-                                    <IconRocket size={160} color="var(--mantine-color-blue-9)" />
+                                    <IconRocket size={160} color="#d97706" />
                                 </Box>
 
                                 <Stack justify="space-between" h="100%">
                                     <div>
                                         <Group justify="space-between" mb="lg">
-                                            <Badge variant="filled" color="orange" size="lg" radius="md">
+                                            <Badge variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} size="lg" radius="md">
                                                 PRÓXIMA MISIÓN
                                             </Badge>
-                                            <ThemeIcon variant="light" color="blue" radius="xl" size="lg">
+                                            <ThemeIcon variant="light" color="gold" radius="xl" size="lg">
                                                 <IconRocket size={20} />
                                             </ThemeIcon>
                                         </Group>
@@ -286,7 +285,7 @@ export function Dashboard() {
                                             <Title order={3} style={{
                                                 fontFamily: 'Outfit, sans-serif',
                                                 fontSize: '1.8rem',
-                                                color: 'var(--mantine-color-blue-9)',
+                                                color: '#78350f', // deep amber
                                                 letterSpacing: '-0.02em'
                                             }}>
                                                 {getSingle(nextService.posicion)?.nombre || 'Servidor'}
@@ -294,13 +293,13 @@ export function Dashboard() {
                                         </Stack>
 
                                         <Group gap="xs" mt={8}>
-                                            <IconCalendarEvent size={18} color="var(--mantine-color-blue-6)" />
-                                            <Text size="md" fw={700} c="slate.8">
+                                            <IconCalendarEvent size={18} color="#d97706" />
+                                            <Text size="md" fw={700} c="stone.7">
                                                 {dayjs(getSingle(nextService.configuracion_dia)?.fecha).format('dddd, D [de] MMMM')}
                                             </Text>
                                         </Group>
 
-                                        <Badge mt="md" size="md" variant="dot" color="indigo" p="md">
+                                        <Badge mt="md" size="md" variant="light" color="stone" p="md">
                                             {getSingle(nextService.configuracion_dia)?.tipo_servicio}
                                         </Badge>
                                     </div>
@@ -308,7 +307,7 @@ export function Dashboard() {
                                     <Button
                                         fullWidth
                                         variant="filled"
-                                        color="blue"
+                                        color="gold"
                                         mt="xl"
                                         size="md"
                                         rightSection={<IconArrowRight size={18} />}
@@ -321,7 +320,7 @@ export function Dashboard() {
                         ) : (
                             <Card padding="xl" radius="xl" withBorder h="100%">
                                 <Stack align="center" justify="center" h="100%" gap="md">
-                                    <ThemeIcon size={60} radius="xl" color="gray" variant="light">
+                                    <ThemeIcon size={60} radius="xl" color="stone" variant="light">
                                         <IconCalendarEvent size={32} />
                                     </ThemeIcon>
                                     <Stack gap={4} align="center">
@@ -345,26 +344,26 @@ export function Dashboard() {
                         title="Próximos Servicios"
                         value={upcoming.length}
                         icon={<IconCalendarEvent size={24} />}
-                        color="blue"
+                        color="gold"
                     />
                     <StatCard
                         title="Mes Pasado"
                         value={attendanceTotal}
                         icon={<IconChecklist size={24} />}
-                        color="indigo"
+                        color="stone"
                     />
                     <StatCard
                         title="Departamentos"
                         value={attendanceManagedDepartments?.length || 0}
                         icon={<IconUsers size={24} />}
-                        color="grape"
+                        color="orange"
                     />
                 </SimpleGrid>
 
                 <Grid>
                     <Grid.Col span={{ base: 12, md: 8 }}>
                         <Card withBorder p="md" radius="md">
-                            <Title order={4} mb="md">Próximos Servicios</Title>
+                            <Title order={4} mb="md" c="stone.8">Próximos Servicios</Title>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
                                     {upcoming.map((service) => {
@@ -373,20 +372,21 @@ export function Dashboard() {
                                         const dept = getSingle(pos?.departamento);
                                         return (
                                             <Card key={service.id} withBorder padding="sm" radius="md" style={{
-                                                background: 'linear-gradient(135deg, var(--mantine-color-blue-0) 0%, var(--mantine-color-blue-1) 100%)'
+                                                background: 'linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)',
+                                                borderColor: '#e7e5e4'
                                             }}>
                                                 <Group justify="space-between">
                                                     <Stack gap={0}>
                                                         <Group gap={6}>
-                                                            <Text size="xs" fw={700} c="blue.6" tt="uppercase">{dept?.nombre}</Text>
+                                                            <Text size="xs" fw={700} c="gold.6" tt="uppercase">{dept?.nombre}</Text>
                                                         </Group>
-                                                        <Text fw={600} c="blue.9">{configDia?.tipo_servicio}</Text>
-                                                        <Text size="sm" c="blue.8">
+                                                        <Text fw={600} c="stone.8">{configDia?.tipo_servicio}</Text>
+                                                        <Text size="sm" c="stone.5">
                                                             {dayjs(configDia?.fecha).format('dddd, D [de] MMMM')}
                                                         </Text>
                                                     </Stack>
                                                     <Group>
-                                                        <Badge color="blue" variant="light">{pos?.nombre}</Badge>
+                                                        <Badge color="stone" variant="light">{pos?.nombre}</Badge>
                                                         <Badge color={getUniformeColor(configDia?.color_uniforme)} variant="filled">
                                                             {configDia?.color_uniforme}
                                                         </Badge>
@@ -421,7 +421,7 @@ export function Dashboard() {
                                     w={300}
                                     size="md"
                                     styles={{
-                                        label: { fontWeight: 700, color: 'var(--mantine-color-slate-7)' }
+                                        label: { fontWeight: 700, color: '#78716c' }
                                     }}
                                 />
                             </Group>
@@ -430,7 +430,7 @@ export function Dashboard() {
 
                     <Grid.Col span={{ base: 12, md: 4 }}>
                         <Card withBorder p="md" radius="md">
-                            <Title order={4} mb="md">Estado de Asistencia</Title>
+                            <Title order={4} mb="md" c="stone.8">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
                                     <Box w="100%" role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
@@ -438,7 +438,7 @@ export function Dashboard() {
                                             h={220}
                                             data={[
                                                 { name: 'Asistió', value: stats!.summary.asistio, color: 'teal.6' },
-                                                { name: 'Justificado', value: stats!.summary.faltoConAviso, color: 'orange.6' },
+                                                { name: 'Justificado', value: stats!.summary.faltoConAviso, color: 'yellow.6' },
                                                 { name: 'Faltó', value: stats!.summary.faltoSinAviso, color: 'red.6' },
                                             ]}
                                             tooltipDataSource="segment"
@@ -448,7 +448,7 @@ export function Dashboard() {
                                     </Box>
                                     <Group gap="xs">
                                         <Badge color="teal" variant="dot">Asistió</Badge>
-                                        <Badge color="orange" variant="dot">Justificado</Badge>
+                                        <Badge color="yellow" variant="dot">Justificado</Badge>
                                         <Badge color="red" variant="dot">Faltó</Badge>
                                     </Group>
                                 </Stack>
@@ -461,7 +461,7 @@ export function Dashboard() {
                     {stats && stats.byMonth && Object.keys(stats.byMonth).length > 0 && (
                         <Grid.Col span={12}>
                             <Card withBorder p="md" radius="md">
-                                <Title order={4} mb="md">Tendencia de Asistencia (Últimos Meses)</Title>
+                                <Title order={4} mb="md" c="stone.8">Tendencia de Asistencia (Últimos Meses)</Title>
                                 <Box w="100%" role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
                                     <BarChart
                                         h={400}

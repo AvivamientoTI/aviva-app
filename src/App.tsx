@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { DashboardLayout } from './layouts/DashboardLayout';
+// Force re-resolve
+import { DashboardLayout } from './layouts/DashboardLayout.tsx';
 import { Login } from './features/auth/Login';
 import { ScheduleView } from './features/calendar/ScheduleView';
 import { AttendanceManager } from './features/attendance/AttendanceManager';
@@ -43,14 +44,14 @@ function AppContent() {
 
     if (loading || userLoading) {
         return (
-            <Center h="100vh" style={{ backgroundColor: '#fcfcfd' }}>
+            <Center h="100vh" style={{ backgroundColor: '#fcfaf5' }}>
                 <Stack align="center" gap="xl">
-                    <Loader size="xl" color="blue.6" type="dots" />
-                    <Text size="2.4rem" fw={900} variant="gradient" gradient={{ from: 'blue.7', to: 'blue.5' }} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em' }}>
+                    <Loader size="xl" color="yellow.7" type="dots" />
+                    <Text size="2.4rem" fw={900} variant="gradient" gradient={{ from: '#d97706', to: '#b45309' }} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em' }}>
                         Servidores AYP
                     </Text>
-                    <Text size="xs" fw={800} c="gray.5" tt="uppercase" style={{ letterSpacing: '0.15em' }}>
-                        Iniciando Experiencia Clásica
+                    <Text size="xs" fw={800} c="stone.5" tt="uppercase" style={{ letterSpacing: '0.15em' }}>
+                        Iniciando Experiencia Premium
                     </Text>
                 </Stack>
             </Center>

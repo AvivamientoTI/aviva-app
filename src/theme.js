@@ -1,45 +1,46 @@
 import { createTheme } from '@mantine/core';
 
 export const theme = createTheme({
-    /** Paleta de colores Classic Light */
+    /** Paleta de colores Gold Premium */
     colors: {
-        // Sapphire Blue (Professional & High Contrast)
-        blue: [
-            '#eff6ff', // 0: Background tint
-            '#dbeafe', // 1: Hover tint
-            '#bfdbfe', // 2: Muted borders
-            '#93c5fd', // 3: Active borders
-            '#60a5fa', // 4: Secondary elements
-            '#3b82f6', // 5: Interaction
-            '#2563eb', // 6: Primary Brand
-            '#1d4ed8', // 7: Deep Primary
-            '#1e40af', // 8: Hover Deep
-            '#1e3a8a', // 9: Background Base (rarely used in light)
+        // Custom Gold Palette (Matches Login)
+        gold: [
+            '#fffbeb', // 0: Background tint (Amber 50)
+            '#fef3c7', // 1: Hover tint (Amber 100)
+            '#fde68a', // 2: Muted borders
+            '#fcd34d', // 3: Active borders
+            '#fbbf24', // 4: Secondary elements
+            '#f59e0b', // 5: Interaction
+            '#d97706', // 6: Primary Brand (Amber 600)
+            '#b45309', // 7: Deep Primary (matched to login button #ca8a04 roughly)
+            '#92400e', // 8: Hover Deep
+            '#78350f', // 9: Text Base
         ],
-        // Neutral Slate (For professional typography)
-        slate: [
-            '#f8fafc', // 0
-            '#f1f5f9', // 1
-            '#e2e8f0', // 2
-            '#cbd5e1', // 3
-            '#94a3b8', // 4
-            '#64748b', // 5: Medium (Previously low contrast)
-            '#475569', // 6: Stronger (Good for secondary text)
-            '#334155', // 7: Deep
-            '#1e293b', // 8: Title
-            '#0f172a', // 9: Black
+        // Warm Neutral Stone (Matches Login Text)
+        stone: [
+            '#fafaf9', // 0
+            '#f5f5f4', // 1
+            '#e7e5e4', // 2
+            '#d6d3d1', // 3
+            '#a8a29e', // 4
+            '#78716c', // 5: Medium
+            '#57534e', // 6: Stronger
+            '#44403c', // 7: Deep
+            '#292524', // 8: Title
+            '#1c1917', // 9: Black/Warm Dark
         ],
+        // Alias for compatibility if needed, but we prefer 'stone' for gray
         gray: [
-            '#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8',
-            '#64748b', '#475569', '#334155', '#1e293b', '#0f172a'
+            '#fafaf9', '#f5f5f4', '#e7e5e4', '#d6d3d1', '#a8a29e',
+            '#78716c', '#57534e', '#44403c', '#292524', '#1c1917'
         ],
     },
 
-    primaryColor: 'blue',
+    primaryColor: 'gold',
     primaryShade: 6,
     defaultRadius: 'md',
 
-    /** Tipografía Premium: Outfit para títulos, Plus Jakarta para cuerpo */
+    /** Tipografía Premium */
     fontFamily: '"Plus Jakarta Sans", Inter, -apple-system, sans-serif',
     headings: {
         fontFamily: '"Outfit", sans-serif',
@@ -52,11 +53,11 @@ export const theme = createTheme({
         },
     },
 
-    /** Componentes personalizados con Estética Classic Light */
+    /** Componentes personalizados con Estética Gold Premium */
     components: {
         Button: {
             defaultProps: {
-                radius: 'md',
+                radius: 'xl', // More rounded for premium feel
                 loaderProps: { type: 'dots' },
             },
             styles: (theme) => ({
@@ -65,8 +66,34 @@ export const theme = createTheme({
                     letterSpacing: '-0.01em',
                     transition: 'all 0.2s ease',
                     '&:active': { transform: 'scale(0.98)' },
+                    // Gradient buttons by default if variant is filled
+                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                    border: 'none',
+                    color: 'white', // Force white text for contrast
+                    boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)',
+                    '&:hover': {
+                        background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
+                        boxShadow: '0 10px 15px -3px rgba(217, 119, 6, 0.3)',
+                    }
                 },
             }),
+            vars: (theme, props) => {
+                if (props.variant === 'light') {
+                    return {
+                        root: {
+                            background: 'transparent',
+                            backgroundColor: '#fffbeb', // gold[0]
+                            color: '#78350f', // gold[9] for max contrast
+                            boxShadow: 'none',
+                            '&:hover': { backgroundColor: '#fef3c7' } // gold[1]
+                        }
+                    };
+                }
+                if (props.variant === 'outline' || props.variant === 'subtle') {
+                    return { root: { background: undefined, boxShadow: 'none', color: '#78350f' } };
+                }
+                return { root: {} };
+            }
         },
 
         Card: {
@@ -79,11 +106,11 @@ export const theme = createTheme({
                 root: {
                     transition: 'all 0.2s ease',
                     backgroundColor: '#ffffff',
-                    borderColor: '#e2e8f0',
+                    borderColor: '#e7e5e4', // Warm border
                     '&:hover': {
                         transform: 'translateY(-4px)',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                        borderColor: '#cbd5e1',
+                        boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)', // Gold shadow hint
+                        borderColor: '#d6d3d1',
                     },
                 },
             }),
@@ -97,7 +124,7 @@ export const theme = createTheme({
             styles: (theme) => ({
                 root: {
                     backgroundColor: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #e7e5e4',
                 }
             })
         },
@@ -127,17 +154,17 @@ export const theme = createTheme({
             styles: (theme) => ({
                 content: {
                     backgroundColor: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #e7e5e4',
                     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                 },
                 header: {
-                    borderBottom: '1px solid #f1f5f9',
+                    borderBottom: '1px solid #f5f5f4',
                 },
                 title: {
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 800,
                     fontSize: '1.4rem',
-                    color: '#0f172a',
+                    color: '#292524',
                 }
             })
         },
@@ -145,13 +172,16 @@ export const theme = createTheme({
         AppShell: {
             styles: (theme) => ({
                 header: {
-                    backgroundColor: '#ffffff',
-                    borderBottom: '1px solid #e2e8f0',
-                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                    backgroundColor: '#fcfaf5', // Warm cream background
+                    borderBottom: '1px solid #e7e5e4',
+                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
                 },
                 navbar: {
-                    backgroundColor: '#f8fafc',
-                    borderRight: '1px solid #e2e8f0',
+                    backgroundColor: '#fffbeb', // Amber 50 (very light)
+                    borderRight: '1px solid #e7e5e4',
+                },
+                main: {
+                    backgroundColor: '#fcfaf5', // Warm cream main bg
                 }
             })
         }

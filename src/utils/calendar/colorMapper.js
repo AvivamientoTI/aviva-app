@@ -31,7 +31,7 @@ export const getUniformeColor = (uniforme) => {
     }
   }
 
-  return 'grape'; // Default fallback
+  return 'gray'; // Default fallback
 };
 
 /**

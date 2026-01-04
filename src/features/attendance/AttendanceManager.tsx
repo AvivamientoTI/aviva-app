@@ -115,7 +115,13 @@ export function AttendanceManager() {
                 attendanceService.fetchDeptMembers(selectedDept)
             ]);
             setServiceDays(days);
-            setMembers(deptMembers);
+            // Sort members alphabetically by name
+            const sortedMembers = deptMembers.sort((a, b) => {
+                const nameA = `${a.nombre} ${a.apellido}`.toLowerCase();
+                const nameB = `${b.nombre} ${b.apellido}`.toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+            setMembers(sortedMembers);
             if (days.length > 0) {
                 setSelectedService(String(days[0].id));
             } else {
@@ -228,7 +234,7 @@ export function AttendanceManager() {
                             fontFamily: 'Outfit, sans-serif',
                             fontSize: '2.5rem',
                             letterSpacing: '-0.02em',
-                            color: 'var(--mantine-color-blue-9)'
+                            color: '#78350f' // Deep Amber
                         }}>
                             Control de Asistencia
                         </Title>
@@ -242,6 +248,7 @@ export function AttendanceManager() {
                             size="md"
                             radius="xl"
                             w={200}
+                            styles={{ label: { color: '#78716c', fontWeight: 700 } }}
                         />
                         <Select
                             label="Servicio / Fecha"
@@ -253,10 +260,11 @@ export function AttendanceManager() {
                             radius="xl"
                             w={240}
                             leftSection={<IconCalendar size={18} />}
+                            styles={{ label: { color: '#78716c', fontWeight: 700 } }}
                         />
                         <Button
                             variant="light"
-                            color="indigo"
+                            color="gold" // Gold theme
                             radius="xl"
                             leftSection={<IconFileDownload size={18} />}
                             loading={generatingReport}
@@ -325,11 +333,11 @@ export function AttendanceManager() {
 
                 {selectedService && !loading && members.length > 0 && (
                     <Card p="xl" radius="lg" withBorder style={{
-                        background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
-                        borderColor: '#e2e8f0',
+                        background: 'linear-gradient(135deg, #fcfaf5 0%, #fffbeb 100%)', // Warm Cream Gradient
+                        borderColor: '#e7e5e4',
                         position: 'relative',
                         overflow: 'hidden',
-                        borderLeft: '6px solid #2563eb'
+                        borderLeft: '6px solid #d97706' // Amber 600
                     }}>
                         {/* Decorative background icon */}
                         <Box style={{
@@ -338,7 +346,7 @@ export function AttendanceManager() {
                             right: -20,
                             opacity: 0.05,
                             transform: 'rotate(15deg)',
-                            color: '#2563eb'
+                            color: '#d97706'
                         }}>
                             <IconUsers size={160} />
                         </Box>
@@ -346,10 +354,10 @@ export function AttendanceManager() {
                         <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
                             <Group justify="space-between">
                                 <Stack gap={2}>
-                                    <Text fw={900} size="xs" tt="uppercase" c="blue.8" style={{ letterSpacing: '0.05em' }}>Asistencia del Equipo</Text>
-                                    <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Participación</Title>
+                                    <Text fw={900} size="xs" tt="uppercase" c="gold.8" style={{ letterSpacing: '0.05em' }}>Asistencia del Equipo</Text>
+                                    <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#292524' }}>Participación</Title>
                                 </Stack>
-                                <Badge color="blue" variant="filled" size="xl" radius="md" style={{ height: 40, fontSize: '1rem', fontWeight: 800 }}>
+                                <Badge color="gold" variant="filled" size="xl" radius="md" style={{ height: 40, fontSize: '1rem', fontWeight: 800 }}>
                                     {Math.round((Object.values(attendance).filter(a => a.estado === 'Asistió').length / members.length) * 100)}% PRESENTE
                                 </Badge>
                             </Group>
@@ -359,15 +367,15 @@ export function AttendanceManager() {
                                 size="lg"
                                 radius="xl"
                                 animated
-                                color="blue.5"
-                                style={{ background: '#e2e8f0' }}
+                                color="gold.5"
+                                style={{ background: '#e7e5e4' }}
                             />
 
                             <Group justify="space-between" mt="md">
                                 <Button
                                     variant="light"
                                     size="sm"
-                                    color="blue"
+                                    color="gold"
                                     radius="md"
                                     leftSection={<IconUsers size={16} />}
                                     onClick={() => {
@@ -376,7 +384,7 @@ export function AttendanceManager() {
                                             newAttendance[m.id] = { estado: 'Asistió', justificacion: '' };
                                         });
                                         setAttendance(newAttendance);
-                                        notifications.show({ title: '¡Listo!', message: 'Todos marcados como presente', color: 'blue' });
+                                        notifications.show({ title: '¡Listo!', message: 'Todos marcados como presente', color: 'green' });
                                     }}
                                 >
                                     Marcar todos como "Asistió"
@@ -393,7 +401,7 @@ export function AttendanceManager() {
                                     styles={{
                                         input: {
                                             backgroundColor: '#ffffff',
-                                            borderColor: '#e2e8f0',
+                                            borderColor: '#e7e5e4',
                                         }
                                     }}
                                 />
@@ -404,7 +412,7 @@ export function AttendanceManager() {
 
                 {loading ? (
                     <Stack align="center" py="xl">
-                        <Loader size="lg" />
+                        <Loader size="lg" color="gold" />
                         <Text size="sm" c="dimmed">Sincronizando equipo...</Text>
                     </Stack>
                 ) : selectedService ? (
@@ -413,9 +421,9 @@ export function AttendanceManager() {
                             <Table verticalSpacing="md" highlightOnHover>
                                 <Table.Thead>
                                     <Table.Tr>
-                                        <Table.Th style={{ fontFamily: 'Outfit, sans-serif' }}>Servidor</Table.Th>
-                                        <Table.Th ta="center" style={{ fontFamily: 'Outfit, sans-serif' }}>Estado de Asistencia</Table.Th>
-                                        <Table.Th style={{ fontFamily: 'Outfit, sans-serif' }}>Justificación / Notas</Table.Th>
+                                        <Table.Th style={{ fontFamily: 'Outfit, sans-serif', color: '#57534e' }}>Servidor</Table.Th>
+                                        <Table.Th ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: '#57534e' }}>Estado de Asistencia</Table.Th>
+                                        <Table.Th style={{ fontFamily: 'Outfit, sans-serif', color: '#57534e' }}>Justificación / Notas</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
@@ -425,8 +433,8 @@ export function AttendanceManager() {
                                             <Table.Tr key={member.id}>
                                                 <Table.Td>
                                                     <Stack gap={0}>
-                                                        <Text fw={800} size="sm" c="slate.9">{member.nombre} {member.apellido}</Text>
-                                                        <Text size="xs" c="slate.7" fw={700}>Servidor(a)</Text>
+                                                        <Text fw={800} size="sm" c="stone.8">{member.nombre} {member.apellido}</Text>
+                                                        <Text size="xs" c="stone.5" fw={700}>Servidor(a)</Text>
                                                     </Stack>
                                                 </Table.Td>
 
@@ -443,8 +451,8 @@ export function AttendanceManager() {
                                                                 { label: 'Faltó s/ Aviso', value: 'Faltó sin Aviso' },
                                                             ]}
                                                             color={
-                                                                attendance[member.id]?.estado === 'Asistió' ? 'green' :
-                                                                    attendance[member.id]?.estado === 'Faltó con Aviso' ? 'orange' :
+                                                                attendance[member.id]?.estado === 'Asistió' ? 'teal' : // Green -> Teal
+                                                                    attendance[member.id]?.estado === 'Faltó con Aviso' ? 'orange' : // Yellow -> Orange for contrast
                                                                         attendance[member.id]?.estado === 'Faltó sin Aviso' ? 'red' : 'gray'
                                                             }
                                                         />
@@ -458,6 +466,7 @@ export function AttendanceManager() {
                                                         value={attendance[member.id]?.justificacion || ''}
                                                         onChange={(e) => handleAttendanceChange(member.id, 'justificacion', e.target.value)}
                                                         disabled={attendance[member.id]?.estado === 'Asistió'}
+                                                        styles={{ input: { borderColor: '#e7e5e4' } }}
                                                     />
                                                 </Table.Td>
                                             </Table.Tr>
@@ -473,7 +482,11 @@ export function AttendanceManager() {
                                 loading={saving}
                                 size="lg"
                                 radius="xl"
-                                color="blue"
+                                color="gold"
+                                style={{
+                                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                                    boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'
+                                }}
                             >
                                 Guardar Asistencia
                             </Button>

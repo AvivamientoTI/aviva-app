@@ -55,8 +55,8 @@ export function Login() {
 
   return (
     <div className="login-bg" style={{
-      backgroundColor: '#f8fafc',
-      backgroundImage: 'radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.05) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.03) 0px, transparent 50%)',
+      backgroundColor: '#fcfaf5', // Warm white/cream
+      backgroundImage: 'radial-gradient(at 0% 0%, rgba(212, 175, 55, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(197, 160, 89, 0.05) 0px, transparent 50%)',
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
@@ -65,22 +65,29 @@ export function Login() {
       <Container size={420}>
         <Paper withBorder shadow="xl" p="xl" radius="32px" style={{
           backgroundColor: '#ffffff',
-          borderColor: '#e2e8f0',
-          color: '#0f172a'
+          borderColor: '#e2e8f0', // Neutral border is fine, maybe slightly warmer? Let's keep neutral for clean look
+          color: '#1c1917'
         }}>
           <Stack align="center" gap="xs" mb="xl">
             <div style={{
-              padding: '16px',
-              backgroundColor: '#eff6ff',
-              borderRadius: '24px',
-              border: '1px solid #dbeafe'
+              padding: '0px',
+              backgroundColor: '#fffbeb', // Amber 50
+              borderRadius: '50%',
+              border: '4px solid #ffffff',
+              boxShadow: '0 8px 20px rgba(212, 175, 55, 0.15)',
+              width: 140,
+              height: 140,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden'
             }}>
-              <img src="/vite.svg" alt="Logo" style={{ width: 48, height: 48 }} />
+              <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.6)' }} />
             </div>
-            <Title order={2} ta="center" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.4rem', letterSpacing: '-0.02em', color: '#1e3a8a' }}>
-              Aviva <Text span c="blue.6" inherit>App</Text>
+            <Title order={2} ta="center" mt="sm" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.4rem', letterSpacing: '-0.02em', color: '#854d0e' }}>
+              Aviva <Text span c="yellow.7" inherit>App</Text>
             </Title>
-            <Text size="md" ta="center" c="slate.7" fw={700}>
+            <Text size="md" ta="center" c="stone.5" fw={600}>
               Bienvenido al portal de Servidores
             </Text>
           </Stack>
@@ -103,12 +110,12 @@ export function Login() {
                 styles={{
                   input: {
                     backgroundColor: '#fcfcfd',
-                    borderColor: '#e2e8f0',
+                    borderColor: '#e7e5e4',
                     color: '#0f172a',
                     fontWeight: 600,
-                    '&:focus': { borderColor: '#2563eb' }
+                    '&:focus': { borderColor: '#ca8a04' } // Focus Gold
                   },
-                  label: { color: '#475569', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }
+                  label: { color: '#78716c', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }
                 }}
               />
               <PasswordInput
@@ -127,18 +134,21 @@ export function Login() {
                 styles={{
                   input: {
                     backgroundColor: '#fcfcfd',
-                    borderColor: '#e2e8f0',
+                    borderColor: '#e7e5e4',
                     color: '#0f172a',
                     fontWeight: 600,
-                    '&:focus': { borderColor: '#2563eb' }
+                    '&:focus': { borderColor: '#ca8a04' } // Focus Gold
                   },
-                  label: { color: '#475569', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }
+                  label: { color: '#78716c', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }
                 }}
               />
-              <Button fullWidth mt="xl" type="submit" loading={loading} size="lg" radius="xl" color="blue.6" style={{
-                boxShadow: '0 8px 16px rgba(37, 99, 235, 0.2)',
+              <Button fullWidth mt="xl" type="submit" loading={loading} size="lg" radius="xl" style={{
+                background: 'linear-gradient(135deg, #ca8a04 0%, #a16207 100%)', // Gold/Amber gradient
+                boxShadow: '0 8px 16px rgba(202, 138, 4, 0.25)',
                 height: 54,
-                fontSize: '1.1rem'
+                fontSize: '1.1rem',
+                border: 'none',
+                color: 'white'
               }}>
                 Iniciar Sesión
               </Button>

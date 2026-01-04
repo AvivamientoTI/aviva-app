@@ -58,22 +58,22 @@ export function DashboardLayout() {
             padding="md"
         >
             <AppShell.Header style={{
-                backgroundColor: '#ffffff',
-                borderBottom: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                backgroundColor: '#fcfaf5',
+                borderBottom: '1px solid #e7e5e4',
+                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)'
             }}>
                 <Group justify="space-between" h="100%" px="xl">
                     <Group>
-                        <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="blue.6" />
-                        <Title order={3} fw={900} variant="gradient" gradient={{ from: '#1d4ed8', to: '#2563eb' }} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>
+                        <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="yellow.7" />
+                        <Title order={3} fw={900} variant="gradient" gradient={{ from: '#d97706', to: '#b45309' }} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>
                             SERV AYP
                         </Title>
                     </Group>
                     {!loading && userName && (
                         <Group gap="sm">
                             <Stack gap={0} align="flex-end" visibleFrom="xs">
-                                <Text size="sm" fw={800} c="gray.9">{userName}</Text>
-                                <Text size="xs" c="blue.7" fw={700} opacity={0.8} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                <Text size="sm" fw={800} c="stone.7">{userName}</Text>
+                                <Text size="xs" c="yellow.8" fw={700} opacity={0.9} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     {managedDepartments.length > 0 ? managedDepartments.map(d => d.nombre).join(', ') : 'Servidor'}
                                 </Text>
                             </Stack>
@@ -81,13 +81,13 @@ export function DashboardLayout() {
                                 width: 42,
                                 height: 42,
                                 borderRadius: '12px',
-                                background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
+                                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 color: 'white',
                                 fontWeight: 900,
-                                boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+                                boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'
                             }}>
                                 {userName?.[0]}
                             </div>
@@ -97,8 +97,8 @@ export function DashboardLayout() {
             </AppShell.Header>
 
             <AppShell.Navbar p="md" style={{
-                backgroundColor: '#f8fafc',
-                borderRight: '1px solid #e2e8f0'
+                backgroundColor: '#fffbeb',
+                borderRight: '1px solid #e7e5e4'
             }}>
                 <Stack gap="xs" mt="md">
                     {links.map((link) => (
@@ -117,20 +117,20 @@ export function DashboardLayout() {
                                     fontWeight: 600,
                                     margin: '2px 0',
                                     '&[data-active]': {
-                                        backgroundColor: '#eff6ff',
-                                        color: '#1d4ed8',
+                                        backgroundColor: '#fef3c7', // Amber 100
+                                        color: '#b45309', // Amber 700
                                         '&::before': {
                                             content: '""',
                                             position: 'absolute',
                                             left: 0,
                                             height: '24px',
                                             width: '4px',
-                                            backgroundColor: '#2563eb',
+                                            backgroundColor: '#f59e0b', // Amber 500
                                             borderRadius: '0 4px 4px 0'
                                         }
                                     },
                                     '&:hover': {
-                                        backgroundColor: '#f1f5f9',
+                                        backgroundColor: '#fff7ed', // Orange 50
                                         transform: 'translateX(4px)'
                                     }
                                 },
