@@ -1,4 +1,4 @@
-import { useCallback, MutableRefObject } from 'react';
+import { useCallback, type MutableRefObject } from 'react';
 import { toPng } from 'html-to-image';
 import { notifications } from '@mantine/notifications';
 

@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { DatePicker } from '@mantine/dates';
-import { Text, Select, TextInput, NumberInput, Autocomplete, Group, Button, Accordion, Stack, Badge, ActionIcon, Menu, Grid, Paper, ThemeIcon, Alert, ScrollArea } from '@mantine/core';
+import { Accordion, Alert, Autocomplete, Badge, Button, Grid, Group, Menu, NumberInput, Paper, ScrollArea, Stack, Text, ThemeIcon } from '@mantine/core';
 import { IconCalendar, IconApps, IconCheck, IconTrash, IconInfoCircle } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -41,7 +41,7 @@ export const PlanningStepServiceDates = ({
     const minDate = currentMonth.startOf('month').toDate();
     const maxDate = currentMonth.endOf('month').toDate();
 
-    const selectAllDayOfWeek = (dayIndex) => { // 0 = Sunday, 1 = Monday...
+    const selectAllDayOfWeek = (dayIndex: number) => { // 0 = Sunday, 1 = Monday...
         const startOfMonth = currentMonth.startOf('month');
         const endOfMonth = currentMonth.endOf('month');
 
@@ -63,7 +63,7 @@ export const PlanningStepServiceDates = ({
     return (
         <Grid gutter="xl">
             {/* LEFT COLUMN: Calendar & Quick Actions */}
-            <Grid.Col sm={12} md={5} lg={4}>
+            <Grid.Col span={{ base: 12, md: 5, lg: 4 }}>
                 <Stack gap="md" style={{ position: 'sticky', top: 20 }}>
                     <Paper shadow="sm" p="md" radius="lg" withBorder style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                         <Text fw={800} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Selección de Fechas</Text>
@@ -71,9 +71,9 @@ export const PlanningStepServiceDates = ({
                             <DatePicker
                                 value={selectedDates.map(dateStr => dayjs(dateStr).hour(12).toDate())}
                                 onChange={handleDateChange}
-                                required
+
                                 locale="es"
-                                firstDayOfWeek="mo"
+                                firstDayOfWeek={1}
                                 type="multiple"
                                 numberOfColumns={1}
                                 size="md"
@@ -110,7 +110,7 @@ export const PlanningStepServiceDates = ({
             </Grid.Col>
 
             {/* RIGHT COLUMN: Configuration List */}
-            <Grid.Col sm={12} md={7} lg={8}>
+            <Grid.Col span={{ base: 12, md: 7, lg: 8 }}>
                 <Paper shadow="sm" p="lg" radius="lg" withBorder h="100%" style={{ minHeight: 400, backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                     <Group justify="space-between" mb="lg">
                         <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.01em' }}>Configuración de Servicios</Text>
@@ -180,7 +180,7 @@ export const PlanningStepServiceDates = ({
                                                                     <NumberInput
                                                                         variant="unstyled"
                                                                         value={quota}
-                                                                        onChange={(value) => updatePositionQuota(dateStr, pos.id, value)}
+                                                                        onChange={(value) => updatePositionQuota(dateStr, pos.id, Number(value))}
                                                                         min={0}
                                                                         allowNegative={false}
                                                                         styles={{ input: { textAlign: 'center', height: 24, fontSize: 18, fontWeight: 900, color: '#d97706' } }}

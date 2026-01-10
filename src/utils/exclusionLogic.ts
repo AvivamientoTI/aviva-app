@@ -1,5 +1,5 @@
 import { supabase } from '../services/supabaseClient';
-import type { PublicUser } from '../types';
+
 
 /**
  * Fetches users who have NO assignments at all on the given date (strict).

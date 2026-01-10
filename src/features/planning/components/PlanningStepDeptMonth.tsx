@@ -1,5 +1,5 @@
 import { Select, Paper, Text, Grid, ThemeIcon, Stack, Group } from '@mantine/core';
-import { DatePicker, MonthPicker } from '@mantine/dates';
+import { MonthPicker } from '@mantine/dates';
 import { IconBuildingCommunity, IconCalendarEvent } from '@tabler/icons-react';
 
 interface Props {
@@ -19,7 +19,7 @@ export const PlanningStepDeptMonth = ({
 }: Props) => {
     return (
         <Grid gutter="xl">
-            <Grid.Col sm={12} md={6}>
+            <Grid.Col span={{ base: 12, md: 6 }}>
                 <Paper shadow="sm" p="xl" radius="lg" withBorder h="100%" style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                     <Stack align="center" gap="md">
                         <ThemeIcon size={64} radius="xl" variant="light" color="gold.6">
@@ -44,7 +44,7 @@ export const PlanningStepDeptMonth = ({
                 </Paper>
             </Grid.Col>
 
-            <Grid.Col sm={12} md={6}>
+            <Grid.Col span={{ base: 12, md: 6 }}>
                 <Paper shadow="sm" p="xl" radius="lg" withBorder h="100%" style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                     <Stack align="center" gap="md">
                         <ThemeIcon size={64} radius="xl" variant="light" color="amber.6">
@@ -57,7 +57,7 @@ export const PlanningStepDeptMonth = ({
                         <Group justify="center">
                             <MonthPicker
                                 value={selectedMonth}
-                                onChange={setSelectedMonth}
+                                onChange={(val) => setSelectedMonth(val as any)}
                                 locale="es"
                                 size="md"
                             />

@@ -16,7 +16,7 @@ interface ImpactReportTemplateProps {
 export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactReportTemplateProps>(({
     stats,
     members,
-    services,
+
     month,
     year,
     deptName
@@ -142,7 +142,7 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                 {/* Bottom Quote */}
                 <Stack align="center" mt="auto" gap={6} style={{ opacity: 0.8 }}>
                     <IconPray size={32} color="#d97706" />
-                    <Text size="sm" italic ta="center" ml="xl" mr="xl" fw={500} color="#78716c">
+                    <Text size="sm" fs="italic" ta="center" ml="xl" mr="xl" fw={500} c="#78716c">
                         "Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres..."
                     </Text>
                     <Text size="xs" fw={800} c="gold.8" style={{ letterSpacing: '0.05em' }}>COLOSENSES 3:23</Text>

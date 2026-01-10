@@ -9,7 +9,7 @@ export function DashboardLayout() {
     const [opened, { toggle }] = useDisclosure();
     const navigate = useNavigate();
     const location = useLocation();
-    const { userProfile, managedDepartments, userMemberships, loading } = useUser();
+    const { userProfile, managedDepartments, userMemberships } = useUser();
 
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const dark = colorScheme === 'dark';
@@ -69,7 +69,7 @@ export function DashboardLayout() {
                 <Group justify="space-between" h="100%" px="xl">
                     <Group>
                         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="yellow.7" />
-                        <Title order={3} fw={900} variant="gradient" gradient={{ from: '#d97706', to: '#b45309' }} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em' }}>
+                        <Title order={3} fw={900} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em', background: 'linear-gradient(to right, #d97706, #b45309)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                             SERV AYP
                         </Title>
                     </Group>

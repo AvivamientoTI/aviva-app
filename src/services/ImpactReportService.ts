@@ -88,8 +88,8 @@ export const impactReportService = {
         // Inicializar con todos los miembros
         membership?.forEach(m => {
             memberStats.set(m.usuario_id, {
-                nombre: m.usuario.nombre,
-                apellido: m.usuario.apellido,
+                nombre: Array.isArray(m.usuario) ? m.usuario[0]?.nombre : (m.usuario as any).nombre,
+                apellido: Array.isArray(m.usuario) ? m.usuario[0]?.apellido : (m.usuario as any).apellido,
                 asistio: 0
             });
         });
@@ -121,7 +121,7 @@ export const impactReportService = {
             apellido: stats.apellido,
             asistencias: stats.asistio,
             porcentaje: Math.round((stats.asistio / totalServices) * 100),
-            tendencia: 'steady' // Simplicado por ahora
+            tendencia: 'steady' as const // Simplicado por ahora
         })).sort((a, b) => b.porcentaje - a.porcentaje);
 
         const totalAttendancePoints = members.reduce((acc, m) => acc + m.porcentaje, 0);

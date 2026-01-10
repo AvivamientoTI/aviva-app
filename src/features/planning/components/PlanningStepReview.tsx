@@ -1,6 +1,5 @@
-import React from 'react';
-import { Table, Group, ActionIcon, Text, Badge, Paper, Avatar, RingProgress, Stack, Center } from '@mantine/core';
-import { IconEdit, IconTrash, IconUser, IconCheck } from '@tabler/icons-react';
+import { ActionIcon, Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text } from '@mantine/core';
+import { IconCheck, IconEdit, IconUser } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 
@@ -28,7 +27,6 @@ export const PlanningStepReview = ({
     assignments,
     serviceConfigs,
     handleEdit,
-    handleDelete,
     conflicts = {}
 }: Props) => {
     if (assignments.length === 0) {
@@ -42,7 +40,7 @@ export const PlanningStepReview = ({
     }
 
     // Sort by date
-    const sorted = [...assignments].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    const sorted = [...assignments].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
     // Stats
     const uniqueUsers = new Set(sorted.map(a => a.usuario_id)).size;
