@@ -1,4 +1,4 @@
-import { ActionIcon, AppShell, Burger, Group, NavLink, Title, Text, Stack, Divider, useMantineColorScheme } from '@mantine/core';
+import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconSun, IconMoon } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -69,9 +69,7 @@ export function DashboardLayout() {
                 <Group justify="space-between" h="100%" px="xl">
                     <Group>
                         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="yellow.7" />
-                        <Title order={3} fw={900} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em', background: 'linear-gradient(to right, #d97706, #b45309)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                            SERV AYP
-                        </Title>
+                        <img src="/logo.png" alt="Logo" style={{ height: 40, objectFit: 'contain' }} />
                     </Group>
                     <Group gap="sm">
                         <ActionIcon

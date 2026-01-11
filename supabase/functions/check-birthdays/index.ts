@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.39.0";
-import { Resend } from "npm:resend@2.0.0";
+
+import nodemailer from "npm:nodemailer@6.9.7";
 
 // Define Interfaces for Types
 interface User {
@@ -10,19 +11,17 @@ interface User {
     genero: string | null;
 }
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const resend = new Resend(RESEND_API_KEY);
-
 Deno.serve(async (_req: Request) => {
     try {
-        if (!RESEND_API_KEY) {
-            console.error("Missing RESEND_API_KEY");
-            return new Response(JSON.stringify({ error: "Configuration Error: Missing RESEND_API_KEY" }), {
+        if (!GMAIL_APP_PASSWORD) {
+            console.error("Missing GMAIL_APP_PASSWORD");
+            return new Response(JSON.stringify({ error: "Configuration Error: Missing GMAIL_APP_PASSWORD" }), {
                 status: 500,
                 headers: { "Content-Type": "application/json" },
             });
@@ -99,15 +98,15 @@ Deno.serve(async (_req: Request) => {
             .from("membresias")
             .select("usuario_id")
             .eq("departamento_id", servidoresDeptId)
-            .eq("rol_jerarquico", "Lider");
+            .eq("rol_jerarquico", "Líder");
 
         if (leadersError) throw leadersError;
 
-        // Get unique leader IDs
+        // Get unique leader IDs (These are Integers from 'usuarios' table)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const leaderIds = [...new Set(leadersData.map((l: any) => l.usuario_id))];
+        const memberIds = [...new Set(leadersData.map((l: any) => l.usuario_id))];
 
-        if (leaderIds.length === 0) {
+        if (memberIds.length === 0) {
             console.log(`No 'Lider' found for Department ID ${servidoresDeptId} (Servidores).`);
             return new Response(JSON.stringify({ message: "No leader found for Servidores" }), {
                 status: 200,
@@ -115,14 +114,33 @@ Deno.serve(async (_req: Request) => {
             });
         }
 
+        // Fetch Auth UUIDs from user_profiles table
+        const { data: profilesData, error: profilesError } = await supabase
+            .from("user_profiles")
+            .select("id")
+            .in("usuario_id", memberIds);
+
+        if (profilesError) {
+            console.error("Error fetching user profiles:", profilesError);
+            throw profilesError;
+        }
+
+        const authIds = profilesData.map((p: any) => p.id);
+
+        if (authIds.length === 0) {
+            console.log("No linked user_profiles found for these leaders.");
+            return new Response(JSON.stringify({ message: "No linked user profiles found" }), {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+
         // Fetch emails using Admin Auth API
         const emails: string[] = [];
-        for (const uid of leaderIds) {
-            if (typeof uid === 'string') {
-                const { data: userData, error: userError } = await supabase.auth.admin.getUserById(uid);
-                if (!userError && userData.user && userData.user.email) {
-                    emails.push(userData.user.email);
-                }
+        for (const uid of authIds) {
+            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(uid);
+            if (!userError && userData.user && userData.user.email) {
+                emails.push(userData.user.email);
             }
         }
 
@@ -140,9 +158,24 @@ Deno.serve(async (_req: Request) => {
             .map((u: User) => `<li><b>${u.nombre} ${u.apellido}</b> (${u.fecha_nacimiento})</li>`)
             .join("");
 
-        const { data: emailData, error: emailError } = await resend.emails.send({
-            from: "Ujieres App <onboarding@resend.dev>", // Or user's domain
-            to: emails, // Resend handles array of emails
+        console.log(`Sending email to ${emails.length} leaders: ${emails.join(", ")}`);
+
+        const transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false, // Use STARTTLS
+            auth: {
+                user: "geovanniga32@gmail.com",
+                pass: GMAIL_APP_PASSWORD,
+            },
+        });
+
+        console.log("Attempting to send mail via smtp.gmail.com:587...");
+
+
+        const info = await transporter.sendMail({
+            from: 'Ujieres App <geovanniga32@gmail.com>',
+            to: emails,
             subject: `🎉 Cumpleaños del día: ${birthdayNames}`,
             html: `
         <h1>¡Hoy hay cumpleaños!</h1>
@@ -154,12 +187,9 @@ Deno.serve(async (_req: Request) => {
       `,
         });
 
-        if (emailError) {
-            console.error("Resend Error:", emailError);
-            throw emailError;
-        }
+        console.log("Email sent successfully. Message ID:", info.messageId);
 
-        return new Response(JSON.stringify({ message: "Emails sent", data: emailData }), {
+        return new Response(JSON.stringify({ message: "Emails sent", data: info }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
         });

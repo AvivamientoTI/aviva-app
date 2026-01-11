@@ -7,13 +7,17 @@ create extension if not exists pg_net;
 -- REPLACE 'YOUR_SERVICE_ROLE_KEY' with your actual service role key (found in Project Settings > API)
 
 select cron.schedule(
-  'check-birthdays-daily', -- name of the cron job
-  '0 12 * * *',           -- 08:00 AM America/Asuncion (UTC-4 approx) or 12:00 UTC. Adjust as needed.
+  'check-birthdays-daily', -- Nombre del trabajo
+  '0 6 * * *',            -- Programar para las 06:00 UTC (00:00 Hora Costa Rica UTC-6)
   $$
   select
     net.http_post(
-        url:='https://ndgyicayxjgygijvahbu.supabase.co/functions/v1/check-birthdays',
+        -- REEMPLAZAR CON LA URL DE SU FUNCION DESPLEGADA
+        url:='https://ndgyicayxjgygijvahbu.supabase.co/functions/v1/check-birthdays', 
+        
+        -- REEMPLAZAR 'YOUR_SERVICE_ROLE_KEY' CON SU LLAVE REAL (Settings > API > service_role)
         headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
+        
         body:='{}'::jsonb
     ) as request_id;
   $$
