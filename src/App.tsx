@@ -14,6 +14,7 @@ import { supabase } from './services/supabaseClient';
 import { Loader, Center, Stack, Text } from '@mantine/core';
 import { useUser, UserProvider } from './contexts/UserContext';
 import { UsersList } from './features/users/UsersList';
+import { SuspensionManager } from './features/users/SuspensionManager';
 import { RestrictedAccess } from './components/RestrictedAccess';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -95,6 +96,7 @@ function AppContent() {
                 <Route path="planning" element={isLiderOrSublider ? <PlanningWizard /> : <RestrictedAccess />} />
                 <Route path="attendance" element={isLiderSubliderEncargadoServidores ? <AttendanceManager /> : <RestrictedAccess />} />
                 <Route path="servers" element={isLiderOrSubliderServidores ? <UsersList /> : <RestrictedAccess />} />
+                <Route path="suspensions" element={isLiderOrSubliderServidores ? <SuspensionManager /> : <RestrictedAccess />} />
                 <Route path="*" element={isServidoresMember ? <Navigate to="/" /> : <RestrictedAccess />} />
             </Route>
         </Routes>

@@ -45,6 +45,7 @@ export function DashboardLayout() {
         ] : []),
         ...((isLider || isSublider) ? [
             { label: 'Servidores', path: '/servers' },
+            { label: 'Suspensiones', path: '/suspensions' },
         ] : []),
         ...((isLider || isSublider || isEncargado) ? [
             { label: 'Asistencia', path: '/attendance' },
@@ -121,32 +122,21 @@ export function DashboardLayout() {
                                 navigate(link.path);
                                 if (opened) toggle();
                             }}
-                            styles={{
+                            styles={(theme) => ({
                                 root: {
                                     borderRadius: '8px',
                                     transition: 'all 0.2s ease',
                                     fontWeight: 600,
                                     margin: '2px 0',
-                                    '&[data-active]': {
-                                        backgroundColor: dark ? 'rgba(217, 119, 6, 0.2)' : '#fef3c7', // Amber 100/200
-                                        color: dark ? '#fbbf24' : '#b45309', // Amber 700
-                                        '&::before': {
-                                            content: '""',
-                                            position: 'absolute',
-                                            left: 0,
-                                            height: '24px',
-                                            width: '4px',
-                                            backgroundColor: '#f59e0b', // Amber 500
-                                            borderRadius: '0 4px 4px 0'
-                                        }
-                                    },
+                                    backgroundColor: location.pathname === link.path ? (dark ? 'rgba(217, 119, 6, 0.2)' : '#fef3c7') : undefined,
+                                    color: location.pathname === link.path ? (dark ? '#fbbf24' : '#b45309') : undefined,
                                     '&:hover': {
-                                        backgroundColor: dark ? 'rgba(255, 255, 255, 0.05)' : '#fff7ed', // Orange 50
+                                        backgroundColor: dark ? 'rgba(255, 255, 255, 0.05)' : '#fff7ed',
                                         transform: 'translateX(4px)'
                                     }
                                 },
                                 label: { fontSize: '0.9rem' }
-                            }}
+                            })}
                         />
                     ))}
                 </Stack>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
+import { suspensionService } from '../../../services/suspensionService';
 import type { Position, PublicUser } from '../../../types';
 
 interface ServiceDateConfig {
@@ -108,6 +109,9 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                 });
             }
 
+            // 4. Fetch Suspension Data
+            const allSuspensions = await suspensionService.getAllSuspensions();
+
             const assignments: any[] = [];
             const configsSorted = [...savedConfigs].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
@@ -125,7 +129,16 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                 if (!serviceConfig) continue;
 
                 // Eligible users logic needs to be typing and ensured
-                const eligibleUsers = await getUsersNotAssignedOnDate(config.fecha, deptUsers);
+                let eligibleUsers = await getUsersNotAssignedOnDate(config.fecha, deptUsers);
+
+                // Filter out suspended users for this date
+                const suspendedUserIds = allSuspensions
+                    .filter(s => s.fecha_inicio <= dateStr && s.fecha_fin >= dateStr)
+                    .map(s => String(s.usuario_id));
+
+                if (suspendedUserIds.length > 0) {
+                    eligibleUsers = eligibleUsers.filter(u => !suspendedUserIds.includes(String(u.id)));
+                }
 
                 let prevDateStr: string | null = null;
                 if (i > 0) prevDateStr = configsSorted[i - 1].fecha;

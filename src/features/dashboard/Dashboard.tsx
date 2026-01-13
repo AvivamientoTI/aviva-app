@@ -432,7 +432,7 @@ export function Dashboard() {
                             <Title order={4} mb="md" c="gold.5">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
-                                    <Box w="100%" role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
+                                    <Box w="100%" h={220} role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
                                         <DonutChart
                                             h={220}
                                             data={[
@@ -461,7 +461,7 @@ export function Dashboard() {
                         <Grid.Col span={12}>
                             <Card withBorder p="md" radius="md" className="animate-fade-in">
                                 <Title order={4} mb="md" c="gold.5">Tendencia de Asistencia (Últimos Meses)</Title>
-                                <Box w="100%" role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
+                                <Box w="100%" h={400} role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
                                     <BarChart
                                         h={400}
                                         data={Object.values(stats.byMonth)}
