@@ -1,41 +1,103 @@
-import { useMemo } from 'react';
-import { ActionIcon, Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text, ThemeIcon } from '@mantine/core';
-import { IconCheck, IconEdit, IconUser, IconCalendar } from '@tabler/icons-react';
+import { useMemo, useState } from 'react';
+import { Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text, ThemeIcon, ActionIcon, Modal, Button, Select } from '@mantine/core';
+import { IconCheck, IconUser, IconCalendar, IconTrash, IconEdit, IconAlertCircle } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
+import { usePlanning, type DraftAssignment } from '../context/PlanningContext';
+import { useDepartmentUsers } from '../hooks/useDepartmentUsers';
+import { notifications } from '@mantine/notifications';
 
-import type { Position } from '../../../types';
+export const PlanningStepReview = () => {
+    const {
+        previewAssignments,
+        setPreviewAssignments,
+        serviceConfigs,
+        selectedDeptId
+    } = usePlanning();
 
-interface DraftAssignment {
-    id: string;
-    usuario_id: number | string;
-    posicion_id: number | string;
-    fecha: string;
-    posicion?: Position;
-    usuario?: { nombre: string; apellido: string };
-    configuracion_dia?: { fecha: string };
-}
+    const { data: deptUsers } = useDepartmentUsers(selectedDeptId);
 
-interface Props {
-    assignments: DraftAssignment[];
-    serviceConfigs: Record<string, { type: string; uniform: string }[]>;
-    handleEdit: (assignment: DraftAssignment) => void;
-    handleDelete: (id: string) => void;
-    conflicts?: Record<string, string[]>;
-}
+    // Transform users for Select
+    const userOptions = useMemo(() => {
+        return (deptUsers || []).map(u => ({
+            value: String(u.id),
+            label: `${u.nombre} ${u.apellido} (${u.rol_jerarquico || 'Miembro'})`
+        }));
+    }, [deptUsers]);
 
-export const PlanningStepReview = ({
-    assignments,
-    serviceConfigs,
-    handleEdit,
-    conflicts = {}
-}: Props) => {
-    if (assignments.length === 0) {
+    // --- Local State for Edit Modal ---
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editingAssignment, setEditingAssignment] = useState<DraftAssignment | null>(null);
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+    const handleDelete = (id: string) => {
+        setPreviewAssignments((prev: DraftAssignment[]) => prev.filter((a: DraftAssignment) => a.id !== id));
+    };
+
+    const openEdit = (assignment: DraftAssignment) => {
+        setEditingAssignment(assignment);
+        setSelectedUserId(String(assignment.usuario_id));
+        setEditModalOpen(true);
+    };
+
+    const saveEdit = () => {
+        if (!editingAssignment || !selectedUserId) return;
+
+        const selectedUser = deptUsers?.find(u => String(u.id) === selectedUserId);
+        if (!selectedUser) return;
+
+        // Check for duplicates in same date within the draft
+        const isDuplicate = previewAssignments.some(a =>
+            a.id !== editingAssignment.id &&
+            a.fecha === editingAssignment.fecha &&
+            String(a.usuario_id) === String(selectedUser.id)
+        );
+
+        if (isDuplicate) {
+            notifications.show({
+                title: 'Conflicto Detectado',
+                message: `${selectedUser.nombre} ya tiene una asignación en esta fecha.`,
+                color: 'orange',
+                icon: <IconAlertCircle size={18} />
+            });
+            // We allow proceeding but warn the user. Or return to block.
+            // For now, let's just warn but allow, or maybe ask for confirmation?
+            // Simpler to just warn and let them decide, or block. 
+            // Blocking is safer for a "wizard".
+            return;
+        }
+
+        setPreviewAssignments((prev) => prev.map(a => {
+            if (a.id === editingAssignment.id) {
+                return {
+                    ...a,
+                    usuario_id: selectedUser.id,
+                    usuario: {
+                        nombre: selectedUser.nombre,
+                        apellido: selectedUser.apellido
+                    }
+                };
+            }
+            return a;
+        }));
+
+        notifications.show({
+            title: 'Asignación Actualizada',
+            message: `Se ha asignado a ${selectedUser.nombre} ${selectedUser.apellido}.`,
+            color: 'teal',
+            icon: <IconCheck size={18} />
+        });
+
+        setEditModalOpen(false);
+        setEditingAssignment(null);
+    };
+
+    if (previewAssignments.length === 0) {
         return (
             <Paper p="xl" withBorder style={{ textAlign: 'center', opacity: 0.7 }}>
                 <IconUser size={48} />
                 <Text mt="md">No se generaron asignaciones.</Text>
-                <Text size="sm" color="dimmed">Vuelve atrás y revisa la configuración de fechas y cupos.</Text>
+                <Text size="sm" c="dimmed">Vuelve atrás y revisa la configuración de fechas y cupos.</Text>
             </Paper>
         );
     }
@@ -44,19 +106,26 @@ export const PlanningStepReview = ({
     const grouped = useMemo(() => {
         const groups: Record<string, Record<number, DraftAssignment[]>> = {};
 
-        assignments.forEach(a => {
-            const dateStr = a.fecha || a.configuracion_dia?.fecha;
+        previewAssignments.forEach(a => {
+            const dateStr = a.fecha;
             if (!dateStr) return;
 
-            // Resolve Service Index
             let sIdx = 0;
-            const configIdStr = String(a.configuracion_dia?.id || a.configuracion_dia_id || '');
-            if (configIdStr.startsWith('temp-')) {
-                const part = configIdStr.split('-').pop();
-                sIdx = parseInt(part || '0') || 0;
+            // First check configuracion_dia_id for sIdx
+            if (typeof a.configuracion_dia_id === 'string' && a.configuracion_dia_id.startsWith('temp-')) {
+                const parts = a.configuracion_dia_id.split('-');
+                // temp-{date}-{idx}
+                if (parts.length >= 2) { // date can have hyphens, so we need to be careful. Format: temp-2023-01-01-idx
+                    // Actually split by '-' gives: ['temp', '2023', '01', '01', '0'] or similar
+                    // The last part is the index
+                    const lastPart = parts[parts.length - 1];
+                    sIdx = parseInt(lastPart) || 0;
+                }
+            } else if (a.id.startsWith('temp-')) {
+                const parts = a.id.split('-');
+                const lastPart = parts[parts.length - 1];
+                sIdx = parseInt(lastPart) || 0;
             }
-            // Note: If using real DB IDs later, this grouping logic might need adjustment 
-            // to map DB ID -> Service Index via a lookup, but for Draft mode this works.
 
             if (!groups[dateStr]) groups[dateStr] = {};
             if (!groups[dateStr][sIdx]) groups[dateStr][sIdx] = [];
@@ -65,12 +134,11 @@ export const PlanningStepReview = ({
         });
 
         return groups;
-    }, [assignments]);
+    }, [previewAssignments]);
 
     const sortedDates = Object.keys(grouped).sort();
-
-    const uniqueUsers = new Set(assignments.map(a => a.usuario_id)).size;
-    const totalAssignments = assignments.length;
+    const uniqueUsers = new Set(previewAssignments.map(a => a.usuario_id)).size;
+    const totalAssignments = previewAssignments.length;
 
     return (
         <Stack gap="xl">
@@ -136,7 +204,7 @@ export const PlanningStepReview = ({
                                 {serviceIndices.map((sIdx, idx) => {
                                     const serviceAssignments = servicesMap[sIdx];
                                     const configs = serviceConfigs[dateKey] || [];
-                                    const config = configs[sIdx] || { type: 'Desconocido', uniform: 'N/A' };
+                                    const config = configs[sIdx] || { type: 'Generado', uniform: 'N/A' };
 
                                     return (
                                         <div key={sIdx} style={{
@@ -152,9 +220,7 @@ export const PlanningStepReview = ({
                                                         </ThemeIcon>
 
                                                         <Badge
-                                                            size="lg"
-                                                            radius="sm"
-                                                            variant="filled"
+                                                            size="lg" radius="sm" variant="filled"
                                                             color={sIdx === 0 ? 'blue' : 'orange'}
                                                             className="shadow-sm"
                                                             style={{ fontSize: '14px', height: '28px' }}
@@ -165,8 +231,7 @@ export const PlanningStepReview = ({
                                                         <Badge
                                                             variant="light"
                                                             color={getUniformeColor(config.uniform)}
-                                                            size="lg"
-                                                            radius="sm"
+                                                            size="lg" radius="sm"
                                                             style={{ fontSize: '14px', height: '28px' }}
                                                             leftSection={<div style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: `var(--mantine-color-${getUniformeColor(config.uniform)}-6)` }}></div>}
                                                         >
@@ -179,42 +244,34 @@ export const PlanningStepReview = ({
                                             {/* Assignments Table */}
                                             <Table verticalSpacing="sm">
                                                 <Table.Tbody>
-                                                    {serviceAssignments.map(assignment => {
-                                                        const conflictDepts = conflicts[assignment.id];
-                                                        return (
-                                                            <Table.Tr key={assignment.id} style={conflictDepts ? { backgroundColor: 'var(--mantine-color-red-0)' } : {}}>
-                                                                <Table.Td width="40%" style={{ paddingLeft: 20 }}>
-                                                                    <Group gap="sm">
-                                                                        <Avatar color="gold" radius="xl" size="sm">
-                                                                            {assignment.usuario?.nombre?.[0]}{assignment.usuario?.apellido?.[0]}
-                                                                        </Avatar>
-                                                                        <div>
-                                                                            <Text size="sm" fw={600} c="text">{assignment.usuario?.nombre} {assignment.usuario?.apellido}</Text>
-                                                                            {conflictDepts && (
-                                                                                <Text size="xs" c="red.6" fw={700}>
-                                                                                    ⚠️ Ocupado: {conflictDepts.join(', ')}
-                                                                                </Text>
-                                                                            )}
-                                                                        </div>
-                                                                    </Group>
-                                                                </Table.Td>
-                                                                <Table.Td>
-                                                                    <Text size="sm" c="dimmed">Posición:</Text>
-                                                                    <Text size="sm" fw={700} c="text">{assignment.posicion?.nombre || 'General'}</Text>
-                                                                </Table.Td>
-                                                                <Table.Td align="right" style={{ paddingRight: 20 }}>
-                                                                    <ActionIcon
-                                                                        variant="subtle"
-                                                                        color="gray"
-                                                                        onClick={() => handleEdit(assignment)}
-                                                                        aria-label="Editar"
-                                                                    >
+                                                    {serviceAssignments.map(assignment => (
+                                                        <Table.Tr key={assignment.id}>
+                                                            <Table.Td width="40%" style={{ paddingLeft: 20 }}>
+                                                                <Group gap="sm">
+                                                                    <Avatar color="gold" radius="xl" size="sm">
+                                                                        {assignment.usuario?.nombre?.[0]}{assignment.usuario?.apellido?.[0]}
+                                                                    </Avatar>
+                                                                    <div>
+                                                                        <Text size="sm" fw={600} c="text">{assignment.usuario?.nombre} {assignment.usuario?.apellido}</Text>
+                                                                    </div>
+                                                                </Group>
+                                                            </Table.Td>
+                                                            <Table.Td>
+                                                                <Text size="sm" c="dimmed">Posición:</Text>
+                                                                <Text size="sm" fw={700} c="text">{assignment.posicion?.nombre || 'Voluntario'}</Text>
+                                                            </Table.Td>
+                                                            <Table.Td align="right" style={{ paddingRight: 20 }}>
+                                                                <Group gap="xs" justify="flex-end">
+                                                                    <ActionIcon variant="subtle" color="blue" onClick={() => openEdit(assignment)} aria-label="Editar">
                                                                         <IconEdit size={18} />
                                                                     </ActionIcon>
-                                                                </Table.Td>
-                                                            </Table.Tr>
-                                                        );
-                                                    })}
+                                                                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(assignment.id)} aria-label="Eliminar">
+                                                                        <IconTrash size={18} />
+                                                                    </ActionIcon>
+                                                                </Group>
+                                                            </Table.Td>
+                                                        </Table.Tr>
+                                                    ))}
                                                 </Table.Tbody>
                                             </Table>
                                         </div>
@@ -225,6 +282,42 @@ export const PlanningStepReview = ({
                     );
                 })}
             </Stack>
+
+            {/* Edit Modal */}
+            <Modal
+                opened={editModalOpen}
+                onClose={() => setEditModalOpen(false)}
+                title="Editar Asignación"
+                radius="lg"
+            >
+                <Stack>
+                    {editingAssignment && (
+                        <Paper withBorder p="sm" bg="var(--mantine-color-default)">
+                            <Text size="xs" c="dimmed">Posición Actual</Text>
+                            <Text fw={600} size="sm">{editingAssignment.posicion?.nombre}</Text>
+                            <Text size="xs" c="dimmed" mt={4}>Fecha</Text>
+                            <Text fw={600} size="sm">{dayjs(editingAssignment.fecha).format('DD/MM/YYYY')}</Text>
+                        </Paper>
+                    )}
+
+                    <Select
+                        label="Seleccionar Voluntario"
+                        placeholder="Buscar usuario..."
+                        searchable
+                        data={userOptions}
+                        value={selectedUserId}
+                        onChange={setSelectedUserId}
+                        nothingFoundMessage="No se encontraron usuarios"
+                        maxDropdownHeight={200}
+                        leftSection={<IconUser size={16} />}
+                    />
+
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="default" onClick={() => setEditModalOpen(false)}>Cancelar</Button>
+                        <Button color="gold" c="black" onClick={saveEdit}>Guardar Cambios</Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </Stack>
     );
 };

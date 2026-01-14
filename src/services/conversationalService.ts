@@ -252,15 +252,22 @@ export const conversationalService = {
         if (!users) return null;
 
         // Find best match locally to avoid complex DB fuzzy search
-        let bestMatch = null;
+        let bestMatch: { id: any; nombre: any; apellido: any; } | null = null;
         let minScore = 3;
 
         for (const m of users) {
-            const fullName = `${m.usuario.nombre} ${m.usuario.apellido}`.toLowerCase();
+            const user = m.usuario as any; // Cast potential array/object to any to access props safely
+            if (!user) continue;
+
+            // Handle case where it might be array vs object
+            const u = Array.isArray(user) ? user[0] : user;
+            if (!u) continue;
+
+            const fullName = `${u.nombre} ${u.apellido}`.toLowerCase();
             const search = nameFragment.toLowerCase();
 
             if (fullName.includes(search)) {
-                bestMatch = m.usuario;
+                bestMatch = u;
                 break; // Direct match
             }
 
@@ -268,29 +275,14 @@ export const conversationalService = {
             const dist = levenshtein(fullName, search);
             if (dist < minScore && dist < search.length * 0.4) {
                 minScore = dist;
-                bestMatch = m.usuario;
+                bestMatch = u;
             }
         }
 
         if (!bestMatch) return null;
 
         // Get stats for this user
-        const startDate = dayjs().subtract(3, 'months').format('YYYY-MM-DD');
-        const { data: attendance } = await supabase
-            .from('asistencias')
-            .select('estado')
-            .eq('usuario_id', bestMatch.id)
-            .gte('created_at', startDate); // Using created_at or config date join ideally. 
-        // Simplified: let's query Assignments count + Attendance faults
-
-        // Let's get "Total Assignments" and "Faults"
-        const { count: assignmentsCount } = await supabase
-            .from('asignaciones')
-            .select('*', { count: 'exact', head: true })
-            .eq('usuario_id', bestMatch.id)
-            .gte('configuracion_dia.fecha', startDate) as any; // Need join for date filter properly but for now assume id check is fast
-
-        // Re-query correctly for verification
+        // Total stats query
         const { data: statsData } = await supabase
             .from('asistencias')
             .select('estado')

@@ -3,10 +3,10 @@ import { useMemo } from 'react';
 import { useUser } from '../contexts/UserContext';
 
 export function usePermissions() {
-  const { userMemberships, managedDepartments, isServicioGeneralLeader } = useUser();
+  const { userMemberships, managedDepartments, isServidoresAdmin, attendanceManagedDepartments } = useUser();
 
   const permissions = useMemo(() => {
-    const isAdmin = isServicioGeneralLeader();
+    const isAdmin = isServidoresAdmin();
 
     return {
       // Permisos globales
@@ -64,7 +64,7 @@ export function usePermissions() {
         }));
       },
     };
-  }, [userMemberships, managedDepartments, isServicioGeneralLeader]);
+  }, [userMemberships, managedDepartments, isServidoresAdmin, attendanceManagedDepartments]);
 
   return permissions;
 }

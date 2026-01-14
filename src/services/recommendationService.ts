@@ -69,7 +69,9 @@ export const recommendationService = {
         const candidates: ScoredCandidate[] = [];
 
         for (const m of members) {
-            const user = m.usuario;
+            const rawUser = m.usuario as any; // Cast potential array/object to any
+            const user = (Array.isArray(rawUser) ? rawUser[0] : rawUser);
+
             if (!user) continue;
 
             // --- HARD FILTERS ---

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { assignmentsService } from '../services/assignmentsService';
+import { assignmentsService } from '../../services/assignmentsService';
 
-export const useAssignmentsQuery = (deptId: number | string | null) => {
+export const useAssignments = (deptId: number | string | null) => {
     const queryClient = useQueryClient();
 
     const query = useQuery({

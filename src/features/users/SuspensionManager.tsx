@@ -27,15 +27,8 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
 export const SuspensionManager = () => {
-    const { userMemberships } = useUser();
-
-    // Check local permission
-    const isAuthorized = userMemberships.some(m => {
-        const deptName = m.departamento?.nombre || '';
-        const role = m.rol_jerarquico?.toLowerCase() || '';
-        return deptName === 'Servidores' &&
-            ['líder', 'lider', 'sublíder', 'sublider'].includes(role);
-    });
+    const { isServidoresAdmin } = useUser();
+    const isAuthorized = isServidoresAdmin();
 
     const [suspensions, setSuspensions] = useState<Suspension[]>([]);
     const [users, setUsers] = useState<any[]>([]);

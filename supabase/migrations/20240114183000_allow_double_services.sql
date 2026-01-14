@@ -16,4 +16,4 @@ END $$;
 -- 2. Add new unique constraint including 'tipo_servicio'
 -- This allows: Same Header, Same Date, BUT Different Service Type (e.g. 'Mañana' vs 'Tarde')
 ALTER TABLE configuracion_dia
-ADD CONSTRAINT configuracion_dia_composite_key UNIQUE (roles_cabecera_id, fecha, tipo_servicio);
+ADD CONSTRAINT configuracion_dia_composite_key UNIQUE (rol_cabecera_id, fecha, tipo_servicio);

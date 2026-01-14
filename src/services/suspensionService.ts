@@ -31,7 +31,7 @@ export const suspensionService = {
      */
     async getActiveSuspensions(): Promise<Suspension[]> {
         const today = new Date().toISOString().split('T')[0];
-        
+
         const { data, error } = await supabase
             .from('suspensiones')
             .select(`
@@ -66,16 +66,45 @@ export const suspensionService = {
      * O elimina el registro si se prefiere. Por ahora actualizamos fecha.
      */
     async endSuspension(id: number): Promise<void> {
+        // First, get the suspension details to check start date
+        const { data: suspension, error: fetchError } = await supabase
+            .from('suspensiones')
+            .select('fecha_inicio')
+            .eq('id', id)
+            .single();
+
+        if (fetchError) throw fetchError;
+        if (!suspension) return;
+
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-        const { error } = await supabase
-            .from('suspensiones')
-            .update({ fecha_fin: yesterdayStr })
-            .eq('id', id);
+        // If suspension starts today or in Future (>= today's calculated yesterday),
+        // we can't set end_date = yesterday because end >= start constraint.
+        // Logic: 
+        // If start > yesterday => Start is Today or Future. 
+        // Action: DELETE (Cancel entirely)
+        // If start <= yesterday => Start is Yesterday or Past.
+        // Action: UPDATE end_date = yesterday (Shorten it)
 
-        if (error) throw error;
+        if (suspension.fecha_inicio > yesterdayStr) {
+            // Delete it
+            const { error } = await supabase
+                .from('suspensiones')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+        } else {
+            // Shorten it
+            const { error } = await supabase
+                .from('suspensiones')
+                .update({ fecha_fin: yesterdayStr })
+                .eq('id', id);
+
+            if (error) throw error;
+        }
     },
 
     /**

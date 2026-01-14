@@ -35,7 +35,7 @@ interface UserContextType {
     attendanceManagedDepartments: Department[];
     loading: boolean;
     isDepartmentLeader: (departmentId: number | string) => boolean;
-    isServicioGeneralLeader: () => boolean;
+    isServidoresAdmin: () => boolean;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
@@ -152,12 +152,12 @@ export function UserProvider({ children }: UserProviderProps) {
         return managedDepartments.some(d => d.id === Number(departmentId));
     };
 
-    const isServicioGeneralLeader = () => {
+    const isServidoresAdmin = () => {
         return managedDepartments.some(d => {
             if (d.nombre !== 'Servidores') return false;
             const m = userMemberships.find(m => m.departamento_id === d.id);
             const r = m?.rol_jerarquico?.toLowerCase() || '';
-            return r === 'líder' || r === 'lider';
+            return ['líder', 'lider', 'sublíder', 'sublider'].includes(r);
         });
     };
 
@@ -169,7 +169,7 @@ export function UserProvider({ children }: UserProviderProps) {
         attendanceManagedDepartments,
         loading,
         isDepartmentLeader,
-        isServicioGeneralLeader,
+        isServidoresAdmin,
     };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

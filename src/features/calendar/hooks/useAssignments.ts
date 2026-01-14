@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useAssignmentsQuery } from '../../../hooks/useAssignmentsQuery';
+import { useAssignments as useAssignmentsData } from '../../../hooks/queries/useAssignments';
 import { groupAssignmentsByDate, transformToCalendarEvents } from '../../../utils/calendar/dataTransformers';
 
 /**
@@ -14,7 +14,7 @@ export function useAssignments(departmentId: string | undefined | null) {
         isFetching,
         deleteAssignment,
         swapAssignment
-    } = useAssignmentsQuery(departmentId as string | number | null);
+    } = useAssignmentsData(departmentId as string | number | null);
 
     const { groupedAssignments, calendarEvents } = useMemo(() => {
         if (!data || data.length === 0) {

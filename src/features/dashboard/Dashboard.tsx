@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Container,
     Grid,
@@ -7,174 +7,78 @@ import {
     Group,
     Stack,
     Badge,
-    ThemeIcon,
     SimpleGrid,
     Card,
-    Center,
-    Loader,
     Box,
-    Button,
-    Select
+    Select,
+    Skeleton
 } from '@mantine/core';
 import {
     IconCalendarEvent,
     IconChecklist,
     IconUsers,
-    IconTrendingUp,
-    IconRocket,
-    IconArrowRight
+    IconTrendingUp
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
 import { DonutChart, BarChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
-import { analyticsService } from '../../services/analyticsService';
-import dayjs from 'dayjs';
 import { getUniformeColor } from '../../utils/calendar/colorMapper';
 import { AiQueryWidget } from './components/AiQueryWidget';
-
-interface StatCardProps {
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    color: string;
-}
-
-function StatCard({ title, value, icon, color }: StatCardProps) {
-    return (
-        <Card p="xl" radius="lg" withBorder className="animate-fade-in" style={{
-            backgroundColor: 'var(--mantine-color-body)',
-            borderBottom: `4px solid var(--mantine-color-${color}-6)`,
-            overflow: 'hidden',
-            position: 'relative',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-        }}>
-            <Box style={{
-                position: 'absolute',
-                top: -15,
-                right: -15,
-                opacity: 0.03,
-                transform: 'rotate(15deg)',
-                color: `var(--mantine-color-${color}-9)`
-            }}>
-                {React.cloneElement(icon as React.ReactElement, { size: 110 })}
-            </Box>
-
-            <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
-                <Group justify="space-between" align="center">
-                    <Text size="xs" fw={800} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.1em' }}>
-                        {title}
-                    </Text>
-                    <ThemeIcon color={color} variant="light" size="lg" radius="md">
-                        {icon}
-                    </ThemeIcon>
-                </Group>
-                <Text fw={900} size="xl" style={{ fontSize: '2.2rem', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
-                    {value}
-                </Text>
-            </Stack>
-        </Card>
-    );
-}
+import { useDashboardData } from '../../hooks/useDashboardData';
+import { StatCard } from './components/StatCard';
+import { WelcomeCard } from './components/WelcomeCard';
+import { UpcomingServiceCard } from './components/UpcomingServiceCard';
+import dayjs from 'dayjs';
 
 // Helper to safely get the first item or the item itself
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getSingle = (val: any) => Array.isArray(val) ? val[0] : val;
 
-interface UpcomingService {
-    id: string | number;
-    posicion?: {
-        nombre: string;
-        departamento?: { nombre: string } | { nombre: string }[];
-    } | {
-        nombre: string;
-        departamento?: { nombre: string } | { nombre: string }[];
-    }[];
-    configuracion_dia: {
-        fecha: string;
-        tipo_servicio: string;
-        color_uniforme: string;
-    } | {
-        fecha: string;
-        tipo_servicio: string;
-        color_uniforme: string;
-    }[];
-}
-
-interface MonthlyStat {
-    month: string;
-    asistio: number;
-    faltas: number;
-}
-
-interface StatsData {
-    summary: {
-        total: number;
-        asistio: number;
-        faltoConAviso: number;
-        faltoSinAviso: number;
-    };
-    byMonth: Record<string, MonthlyStat> | MonthlyStat[];
-}
-
 export function Dashboard() {
-    const navigate = useNavigate();
     const { userProfile, attendanceManagedDepartments } = useUser();
-    const [upcoming, setUpcoming] = useState<UpcomingService[]>([]);
-    const [stats, setStats] = useState<StatsData | null>(null);
-    const [loading, setLoading] = useState(true);
     const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
 
-    useEffect(() => {
-        if (userProfile?.usuario_id) {
-            loadDashboardData();
-        }
-    }, [userProfile]);
-
-    useEffect(() => {
-        if (selectedDeptId && attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
-            loadAttendanceStats();
-        }
-    }, [selectedDeptId]);
-
+    // Initial department selection
     useEffect(() => {
         if (attendanceManagedDepartments && attendanceManagedDepartments.length > 0 && !selectedDeptId) {
             setSelectedDeptId(attendanceManagedDepartments[0].id);
         }
     }, [attendanceManagedDepartments]);
 
-    const loadDashboardData = async () => {
-        setLoading(true);
-        try {
-            if (userProfile?.usuario_id) {
-                const upcomingData = await analyticsService.fetchUpcomingServices(userProfile.usuario_id);
-                setUpcoming(upcomingData);
-            }
-
-            if (selectedDeptId) {
-                await loadAttendanceStats();
-            }
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadAttendanceStats = async () => {
-        if (!selectedDeptId) return;
-        try {
-            const statsData = await analyticsService.fetchAttendanceStats(selectedDeptId);
-            setStats(statsData);
-        } catch (error) {
-            console.error('Error loading attendance stats:', error);
-        }
-    };
+    const { upcoming, stats, loading } = useDashboardData(selectedDeptId);
 
     if (loading) {
         return (
-            <Center style={{ height: '80vh' }}>
-                <Loader size="xl" />
-            </Center>
+            <Container size="xl" py="md">
+                <Stack gap="lg">
+                    {/* Skeleton for Welcome & Upcoming */}
+                    <Grid gutter="lg">
+                        <Grid.Col span={{ base: 12, md: 7 }}>
+                            <Skeleton height={280} radius="lg" />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, md: 5 }}>
+                            <Skeleton height={280} radius="xl" />
+                        </Grid.Col>
+                    </Grid>
+
+                    {/* Skeleton for Stats */}
+                    <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
+                        <Skeleton height={140} radius="lg" />
+                        <Skeleton height={140} radius="lg" />
+                        <Skeleton height={140} radius="lg" />
+                        <Skeleton height={140} radius="lg" />
+                    </SimpleGrid>
+
+                    {/* Skeleton for Charts/Lists */}
+                    <Grid>
+                        <Grid.Col span={{ base: 12, md: 8 }}>
+                            <Skeleton height={300} radius="md" />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, md: 4 }}>
+                            <Skeleton height={300} radius="md" />
+                        </Grid.Col>
+                    </Grid>
+                </Stack>
+            </Container>
         );
     }
 
@@ -193,146 +97,11 @@ export function Dashboard() {
 
                 <Grid gutter="lg">
                     <Grid.Col span={{ base: 12, md: 7 }}>
-                        <Card style={{
-                            background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                            color: 'white',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.3)'
-                        }} padding="xl" radius="lg" withBorder={false}>
-                            <Box style={{
-                                position: 'absolute',
-                                top: -40,
-                                right: -40,
-                                opacity: 0.1,
-                                transform: 'rotate(15deg)'
-                            }}>
-                                <IconRocket size={240} />
-                            </Box>
-
-                            <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
-                                <Badge variant="filled" color="white" radius="sm" size="lg" style={{ width: 'fit-content', color: '#b45309', fontWeight: 800 }}>
-                                    PLATAFORMA LIDERAZGO
-                                </Badge>
-                                <Title order={1} style={{
-                                    fontFamily: 'Outfit, sans-serif',
-                                    fontSize: '3rem',
-                                    lineHeight: 1,
-                                    letterSpacing: '-0.04em'
-                                }}>
-                                    Hola,<br />
-                                    <Text span c="white" inherit style={{ textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                                        {userProfile?.usuario?.nombre || 'Servidor'}
-                                    </Text>
-                                </Title>
-
-                                <Box style={{
-                                    background: 'rgba(255, 255, 255, 0.15)',
-                                    borderLeft: '4px solid #ffffff',
-                                    padding: '24px',
-                                    borderRadius: '8px',
-                                    marginTop: '8px',
-                                    maxWidth: '90%'
-                                }}>
-                                    <Text size="lg" fs="italic" fw={700} c="white" style={{ lineHeight: 1.6 }}>
-                                        "Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres..."
-                                    </Text>
-                                    <Group gap="xs" mt={12}>
-                                        <Text fw={900} size="xs" c="yellow.1" style={{ letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                                            COLOSENSES 3:23
-                                        </Text>
-                                    </Group>
-                                </Box>
-                            </Stack>
-                        </Card>
+                        <WelcomeCard userName={userProfile?.usuario?.nombre || 'Servidor'} />
                     </Grid.Col>
 
                     <Grid.Col span={{ base: 12, md: 5 }}>
-                        {nextService ? (
-                            <Card padding="xl" radius="xl" withBorder className="animate-fade-in" style={{
-                                background: 'var(--mantine-color-body)',
-                                borderColor: 'var(--mantine-color-default-border)',
-                                height: '100%',
-                                position: 'relative',
-                                overflow: 'hidden'
-                            }}>
-                                <Box style={{
-                                    position: 'absolute',
-                                    top: -20,
-                                    right: -20,
-                                    opacity: 0.05,
-                                    transform: 'rotate(15deg)'
-                                }}>
-                                    <IconRocket size={160} color="#d97706" />
-                                </Box>
-
-                                <Stack justify="space-between" h="100%">
-                                    <div>
-                                        <Group justify="space-between" mb="lg">
-                                            <Badge variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} size="lg" radius="md">
-                                                PRÓXIMA MISIÓN
-                                            </Badge>
-                                            <ThemeIcon variant="light" color="gold" radius="xl" size="lg">
-                                                <IconRocket size={20} />
-                                            </ThemeIcon>
-                                        </Group>
-
-                                        <Stack gap={2}>
-                                            <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 1 }}>
-                                                {getSingle(getSingle(nextService.posicion)?.departamento)?.nombre}
-                                            </Text>
-                                            <Title order={3} style={{
-                                                fontFamily: 'Outfit, sans-serif',
-                                                fontSize: '1.8rem',
-                                                color: 'var(--mantine-color-gold-text)', // Custom variable
-                                                letterSpacing: '-0.02em'
-                                            }}>
-                                                {getSingle(nextService.posicion)?.nombre || 'Servidor'}
-                                            </Title>
-                                        </Stack>
-
-                                        <Group gap="xs" mt={8}>
-                                            <IconCalendarEvent size={18} color="#d97706" />
-                                            <Text size="md" fw={700} c="stone.7">
-                                                {dayjs(getSingle(nextService.configuracion_dia)?.fecha).format('dddd, D [de] MMMM')}
-                                            </Text>
-                                        </Group>
-
-                                        <Badge mt="md" size="md" variant="light" color="stone" p="md">
-                                            {getSingle(nextService.configuracion_dia)?.tipo_servicio}
-                                        </Badge>
-                                    </div>
-
-                                    <Button
-                                        fullWidth
-                                        variant="filled"
-                                        color="gold"
-                                        mt="xl"
-                                        size="md"
-                                        rightSection={<IconArrowRight size={18} />}
-                                        onClick={() => navigate('/calendar')}
-                                    >
-                                        Ver Detalles
-                                    </Button>
-                                </Stack>
-                            </Card>
-                        ) : (
-                            <Card padding="xl" radius="xl" withBorder h="100%">
-                                <Stack align="center" justify="center" h="100%" gap="md">
-                                    <ThemeIcon size={60} radius="xl" color="stone" variant="light">
-                                        <IconCalendarEvent size={32} />
-                                    </ThemeIcon>
-                                    <Stack gap={4} align="center">
-                                        <Text fw={800} size="lg" c="dimmed">Sin misiones próximas</Text>
-                                        <Text size="sm" ta="center" c="dimmed" opacity={0.7}>Descansa y prepárate para el próximo rol.</Text>
-                                    </Stack>
-                                </Stack>
-                            </Card>
-                        )}
+                        <UpcomingServiceCard nextService={nextService} />
                     </Grid.Col>
                 </Grid>
 
@@ -436,7 +205,7 @@ export function Dashboard() {
                             <Title order={4} mb="md" c="gold.5">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
-                                    <Box w="100%" h={220} role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
+                                    <Box w="100%" h={220} style={{ minWidth: 0 }} role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
                                         <DonutChart
                                             h={220}
                                             data={[
@@ -465,7 +234,7 @@ export function Dashboard() {
                         <Grid.Col span={12}>
                             <Card withBorder p="md" radius="md" className="animate-fade-in">
                                 <Title order={4} mb="md" c="gold.5">Tendencia de Asistencia (Últimos Meses)</Title>
-                                <Box w="100%" h={400} role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
+                                <Box w="100%" h={400} style={{ minWidth: 0 }} role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
                                     <BarChart
                                         h={400}
                                         data={Object.values(stats.byMonth)}
