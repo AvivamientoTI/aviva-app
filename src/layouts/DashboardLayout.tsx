@@ -42,6 +42,7 @@ export function DashboardLayout() {
         ...(roles.includes('líder') || roles.includes('sublíder') || roles.includes('lider') || roles.includes('sublider') ? [
             { label: 'Planificación', path: '/planning' },
             { label: 'Departamentos', path: '/departments' },
+            { label: 'Estadísticas', path: '/analytics' },
         ] : []),
         ...((isLider || isSublider) ? [
             { label: 'Servidores', path: '/servers' },
@@ -122,7 +123,7 @@ export function DashboardLayout() {
                                 navigate(link.path);
                                 if (opened) toggle();
                             }}
-                            styles={(theme) => ({
+                            styles={() => ({
                                 root: {
                                     borderRadius: '8px',
                                     transition: 'all 0.2s ease',

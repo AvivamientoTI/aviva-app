@@ -14,7 +14,8 @@ import {
   IconCalendarEvent,
   IconBuilding,
   IconCalendar,
-  IconChecklist
+  IconChecklist,
+  IconRobot
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -22,6 +23,7 @@ import { useAutoAssign } from './hooks/useAutoAssign';
 import { PlanningStepDeptMonth } from './components/PlanningStepDeptMonth';
 import { PlanningStepServiceDates } from './components/PlanningStepServiceDates';
 import { PlanningStepReview } from './components/PlanningStepReview';
+import { SubstituteRecommendationModal } from './components/SubstituteRecommendationModal';
 import type { Position, Assignment } from '../../types';
 
 interface ServiceDateConfig {
@@ -58,12 +60,13 @@ export function PlanningWizard() {
   const [selectedMonth, setSelectedMonth] = useState<Date | null>(new Date());
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
-  const [serviceConfigs, setServiceConfigs] = useState<Record<string, ServiceDateConfig>>({});
+  const [serviceConfigs, setServiceConfigs] = useState<Record<string, ServiceDateConfig[]>>({});
   const [deptMeta, setDeptMeta] = useState<Record<string, { prioridad: number }>>({});
   const [priorityOneIds, setPriorityOneIds] = useState<number[]>([]);
   const [headerState, setHeaderState] = useState<HeaderState | null>(null);
   const [previewAssignments, setPreviewAssignments] = useState<DraftAssignment[]>([]);
   const [editModalOpened, setEditModalOpened] = useState(false);
+  const [aiModalOpened, setAiModalOpened] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editAssignment, setEditAssignment] = useState<Partial<DraftAssignment>>({});
   const [globalAssignments, setGlobalAssignments] = useState<Assignment[]>([]);
@@ -89,14 +92,19 @@ export function PlanningWizard() {
 
     const newConfigs = { ...serviceConfigs };
     selectedDates.forEach(dateStr => {
-      const current = newConfigs[dateStr] || { type: 'Culto General', uniform: 'Formal Gris', positionQuotas: {} };
-      const pq = { ...(current.positionQuotas || {}) };
-      positions.forEach(p => {
-        if (pq[p.id] === undefined) {
-          pq[p.id] = p.cantidad_default;
-        }
+      const currentList = newConfigs[dateStr] || [{ type: 'Culto General', uniform: 'Formal Gris', positionQuotas: {} }];
+
+      const updatedList = currentList.map(current => {
+        const pq = { ...(current.positionQuotas || {}) };
+        positions.forEach(p => {
+          if (pq[p.id] === undefined) {
+            pq[p.id] = p.cantidad_default;
+          }
+        });
+        return { ...current, positionQuotas: pq };
       });
-      newConfigs[dateStr] = { ...current, positionQuotas: pq };
+
+      newConfigs[dateStr] = updatedList;
     });
     setServiceConfigs(newConfigs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,34 +192,64 @@ export function PlanningWizard() {
       if (!newConfigs[dateStr]) {
         const posQuotas: Record<string, number> = {};
         positions.forEach(p => posQuotas[p.id] = (p.cantidad_default ?? 0) > 0 ? p.cantidad_default : 1);
-        newConfigs[dateStr] = {
+        newConfigs[dateStr] = [{
           type: 'Culto General',
           uniform: 'Formal Gris',
           positionQuotas: posQuotas
-        };
+        }];
       }
     });
     setServiceConfigs(newConfigs);
   };
 
-  const updateServiceConfig = (dateStr: string, field: keyof ServiceDateConfig, value: string) => {
-    setServiceConfigs(prev => ({
-      ...prev,
-      [dateStr]: { ...prev[dateStr], [field]: value }
-    }));
+  const updateServiceConfig = (dateStr: string, index: number, field: keyof ServiceDateConfig, value: string) => {
+    setServiceConfigs(prev => {
+      const list = prev[dateStr] ? [...prev[dateStr]] : [];
+      if (list[index]) {
+        list[index] = { ...list[index], [field]: value };
+      }
+      return { ...prev, [dateStr]: list };
+    });
   };
 
-  const updatePositionQuota = (dateStr: string, posId: number | string, value: number) => {
-    setServiceConfigs(prev => ({
-      ...prev,
-      [dateStr]: {
-        ...prev[dateStr],
-        positionQuotas: {
-          ...prev[dateStr].positionQuotas,
-          [posId]: value
-        }
+  const updatePositionQuota = (dateStr: string, index: number, posId: number | string, value: number) => {
+    setServiceConfigs(prev => {
+      const list = prev[dateStr] ? [...prev[dateStr]] : [];
+      if (list[index]) {
+        list[index] = {
+          ...list[index],
+          positionQuotas: {
+            ...list[index].positionQuotas,
+            [posId]: value
+          }
+        };
       }
-    }));
+      return { ...prev, [dateStr]: list };
+    });
+  };
+
+  const addServiceToDate = (dateStr: string) => {
+    setServiceConfigs(prev => {
+      const list = prev[dateStr] ? [...prev[dateStr]] : [];
+      // Copy quotas from first service for convenience
+      const first = list[0];
+      list.push({
+        type: 'Culto Especial', // Default distinct name
+        uniform: first?.uniform || 'Formal Gris',
+        positionQuotas: { ...first?.positionQuotas }
+      });
+      return { ...prev, [dateStr]: list };
+    });
+  };
+
+  const removeServiceFromDate = (dateStr: string, index: number) => {
+    setServiceConfigs(prev => {
+      const list = prev[dateStr] ? [...prev[dateStr]] : [];
+      if (list.length > 1) {
+        list.splice(index, 1);
+      }
+      return { ...prev, [dateStr]: list };
+    });
   };
 
   const handleSave = async () => {
@@ -316,17 +354,23 @@ export function PlanningWizard() {
       }
 
       // 2. Create Daily Configs
-      const configsPayload = selectedDates.map(dateStr => {
-        const conf = serviceConfigs[dateStr];
-        return {
-          rol_cabecera_id: headerId,
-          fecha: dateStr,
-          tipo_servicio: conf?.type,
-          color_uniforme: conf?.uniform,
-          cupo_hombres: 0,
-          cupo_mujeres: 0
-        };
+      const flattenedConfigs = selectedDates.flatMap(dateStr => {
+        const configs = serviceConfigs[dateStr] || [];
+        return configs.map((conf, idx) => ({
+          dateStr,
+          conf,
+          idx // keep index for validation if needed
+        }));
       });
+
+      const configsPayload = flattenedConfigs.map(item => ({
+        rol_cabecera_id: headerId,
+        fecha: item.dateStr,
+        tipo_servicio: item.conf.type,
+        color_uniforme: item.conf.uniform,
+        cupo_hombres: 0,
+        cupo_mujeres: 0
+      }));
 
       const { data: savedConfigs, error: configError } = await supabase
         .from('configuracion_dia')
@@ -338,7 +382,26 @@ export function PlanningWizard() {
       // 3. Save Assignments
       if (previewAssignments.length > 0 && savedConfigs) {
         const finalAssignments = previewAssignments.map(prev => {
-          const realConfig = savedConfigs.find(c => c.fecha === prev.fecha);
+          // Parse the temp ID to find orginal config index
+          // ID format: temp-YYYY-MM-DD-INDEX
+          const mockIdParts = String(prev.configuracion_dia_id).split('-');
+          // temp, Year, Month, Day, Index.  Split by '-' 
+          // Example: temp-2024-01-21-0 or temp-2024-01-21-1
+          // BUT date string is YYYY-MM-DD (3 parts). So temp-YYYY-MM-DD-idx is 5 parts.
+          // Let's use robust lookup.
+
+          let dateStr = prev.fecha;
+          let serviceIndex = 0;
+
+          if (String(prev.configuracion_dia_id).startsWith('temp-')) {
+            const suffix = String(prev.configuracion_dia_id).replace(`temp-${dateStr}-`, '');
+            serviceIndex = parseInt(suffix) || 0;
+          }
+
+          const sourceConfig = serviceConfigs[dateStr]?.[serviceIndex];
+          if (!sourceConfig) return null;
+
+          const realConfig = savedConfigs.find(c => c.fecha === dateStr && c.tipo_servicio === sourceConfig.type);
           if (!realConfig) return null;
 
           return {
@@ -437,29 +500,41 @@ export function PlanningWizard() {
         }
       }
 
+      // Validate configs
       for (const dateStr of selectedDates) {
-        const conf = serviceConfigs[dateStr];
-        if (!conf?.type || !conf?.uniform) {
-          notifications.show({ title: 'Datos incompletos', message: 'Define tipo y uniforme para todas las fechas.', color: 'yellow' });
+        const configs = serviceConfigs[dateStr] || [];
+        if (configs.length === 0) {
+          notifications.show({ title: 'Configuración Vacía', message: `Falta configurar el día ${dateStr}`, color: 'yellow' });
           return;
         }
-        const hasQuota = Object.values(conf.positionQuotas || {}).some(v => (v ?? 0) > 0);
-        if (!hasQuota) {
-          notifications.show({
-            title: 'Configuración de Cupos',
-            message: 'Asegúrate de asignar al menos un voluntario en las posiciones para cada fecha.',
-            color: 'yellow',
-            icon: <IconAlertTriangle size={18} />
-          });
-          return;
+
+        for (const conf of configs) {
+          if (!conf?.type || !conf?.uniform) {
+            notifications.show({ title: 'Datos incompletos', message: 'Define tipo y uniforme para todos los servicios.', color: 'yellow' });
+            return;
+          }
+          const hasQuota = Object.values(conf.positionQuotas || {}).some(v => (v ?? 0) > 0);
+          if (!hasQuota) {
+            notifications.show({
+              title: 'Configuración de Cupos',
+              message: 'Asegúrate de asignar al menos un voluntario en las posiciones para cada servicio.',
+              color: 'yellow',
+              icon: <IconAlertTriangle size={18} />
+            });
+            return;
+          }
         }
       }
 
-      // Generate Preview
-      const mockSavedConfigs = selectedDates.map(dateStr => ({
-        id: `temp-${dateStr}`,
-        fecha: dateStr
-      }));
+      // Generate Preview using flatMap for multiple services
+      const mockSavedConfigs = selectedDates.flatMap(dateStr => {
+        const configs = serviceConfigs[dateStr] || [];
+        return configs.map((_, idx) => ({
+          id: `temp-${dateStr}-${idx}`,
+          fecha: dateStr,
+          serviceIndex: idx
+        }));
+      });
 
       try {
         setLoading(true);
@@ -704,7 +779,7 @@ export function PlanningWizard() {
           <Stepper.Step
             icon={<IconChecklist size={20} />}
             label="Revisión"
-            description="Gestión de borrador"
+            description="Revisar y Guardar"
             allowStepSelect={active > 2}
           />
         </Stepper>
@@ -728,6 +803,8 @@ export function PlanningWizard() {
               positions={positions}
               updatePositionQuota={updatePositionQuota}
               selectedMonth={selectedMonth}
+              addServiceToDate={addServiceToDate}
+              removeServiceFromDate={removeServiceFromDate}
             />
           )}
           {active === 2 && (
@@ -753,7 +830,7 @@ export function PlanningWizard() {
             </Button>
           ) : (
             <Button onClick={handleSave} size="md" color="green" loading={loading || assigningLoading}>
-              Aprobar y Guardar Rol
+              Guardar Planificación
             </Button>
           )}
         </Group>
@@ -793,6 +870,16 @@ export function PlanningWizard() {
             }}
           />
 
+          <Button
+            variant="light"
+            color="grape"
+            leftSection={<IconRobot size={18} />}
+            onClick={() => setAiModalOpened(true)}
+            mt="xs"
+          >
+            Sugerir con IA
+          </Button>
+
           <Group justify="flex-end" mt="md">
             <Button variant="default" onClick={() => setEditModalOpened(false)}>Cancelar</Button>
             <Button onClick={() => {
@@ -809,6 +896,41 @@ export function PlanningWizard() {
           </Group>
         </Stack>
       </Modal>
+
+      {/* AI Recommendation Modal */}
+      {editAssignment.fecha && selectedDept && (
+        <SubstituteRecommendationModal
+          opened={aiModalOpened}
+          onClose={() => setAiModalOpened(false)}
+          currentAssignment={{
+            date: editAssignment.fecha,
+            positionId: Number(editAssignment.posicion_id),
+            positionName: editAssignment.posicion?.nombre || '',
+            departmentId: Number(selectedDept),
+            userToReplaceId: editAssignment.usuario_id ? Number(editAssignment.usuario_id) : undefined
+          }}
+          onSelectSubstitute={async (userId) => {
+            // Find user details in replacements list or fetch if needed
+            // Ideally replacements list has everyone, but if AI suggests someone valid we trust ID
+            // We need the name for the UI update
+            const { data: user } = await supabase.from('usuarios').select('nombre, apellido').eq('id', userId).single();
+            if (user) {
+              setEditAssignment(prev => ({
+                ...prev,
+                usuario_id: userId,
+                usuario: { nombre: user.nombre, apellido: user.apellido }
+              }));
+              notifications.show({
+                title: 'Sugerencia Aplicada',
+                message: `Se ha seleccionado a ${user.nombre} ${user.apellido}`,
+                color: 'teal',
+                icon: <IconCheck size={18} />
+              });
+            }
+            setAiModalOpened(false);
+          }}
+        />
+      )}
     </Container>
   );
 }

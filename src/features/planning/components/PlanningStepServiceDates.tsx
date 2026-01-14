@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { DatePicker } from '@mantine/dates';
-import { Accordion, Alert, Autocomplete, Badge, Button, Grid, Group, Menu, NumberInput, Paper, ScrollArea, Stack, Text, ThemeIcon } from '@mantine/core';
+import { Accordion, Alert, Autocomplete, Badge, Button, Grid, Group, Menu, NumberInput, Paper, ScrollArea, Stack, Text, ThemeIcon, ActionIcon } from '@mantine/core';
 import { IconCalendar, IconApps, IconCheck, IconTrash, IconInfoCircle } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
 import type { Position } from '../../../types';
 
-interface ServiceDateConfig {
+export interface ServiceDateConfig {
     type: string;
     uniform: string;
     positionQuotas: Record<string, number>;
@@ -16,11 +16,13 @@ interface ServiceDateConfig {
 interface Props {
     selectedDates: string[];
     handleDateChange: (dates: Date[] | Date | string[] | null) => void;
-    serviceConfigs: Record<string, ServiceDateConfig>;
-    updateServiceConfig: (dateStr: string, field: keyof ServiceDateConfig, value: string) => void;
+    serviceConfigs: Record<string, ServiceDateConfig[]>;
+    updateServiceConfig: (dateStr: string, index: number, field: keyof ServiceDateConfig, value: string) => void;
     positions: Position[];
-    updatePositionQuota: (dateStr: string, posId: number | string, value: number) => void;
+    updatePositionQuota: (dateStr: string, index: number, posId: number | string, value: number) => void;
     selectedMonth: Date | null;
+    addServiceToDate: (dateStr: string) => void;
+    removeServiceFromDate: (dateStr: string, index: number) => void;
 }
 
 export const PlanningStepServiceDates = ({
@@ -30,7 +32,9 @@ export const PlanningStepServiceDates = ({
     updateServiceConfig,
     positions,
     updatePositionQuota,
-    selectedMonth
+    selectedMonth,
+    addServiceToDate,
+    removeServiceFromDate
 }: Props) => {
 
     // Helpers for Batch Selection
@@ -66,7 +70,7 @@ export const PlanningStepServiceDates = ({
             <Grid.Col span={{ base: 12, md: 5, lg: 4 }}>
                 <Stack gap="md" style={{ position: 'sticky', top: 20 }}>
                     <Paper shadow="sm" p="md" radius="lg" withBorder style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
-                        <Text fw={800} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Selección de Fechas</Text>
+                        <Text fw={800} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--mantine-color-text)' }}>Elige las fechas</Text>
                         <Group justify="center">
                             <DatePicker
                                 value={selectedDates.map(dateStr => dayjs(dateStr).hour(12).toDate())}
@@ -113,7 +117,7 @@ export const PlanningStepServiceDates = ({
             <Grid.Col span={{ base: 12, md: 7, lg: 8 }}>
                 <Paper shadow="sm" p="lg" radius="lg" withBorder h="100%" style={{ minHeight: 400, backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                     <Group justify="space-between" mb="lg">
-                        <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.01em' }}>Configuración de Servicios</Text>
+                        <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--mantine-color-text)', letterSpacing: '-0.01em' }}>Configuración de Servicios</Text>
                         <Badge size="lg" variant="light" color="gold" radius="md" fw={700} c="gold.9">{selectedDates.length} Días Seleccionados</Badge>
                     </Group>
 
@@ -127,69 +131,100 @@ export const PlanningStepServiceDates = ({
                     <ScrollArea h={selectedDates.length > 5 ? 600 : 'auto'} offsetScrollbars scrollbarSize={6}>
                         <Accordion variant="separated" radius="lg" defaultValue={selectedDates.length > 0 ? selectedDates.sort()[0] : null} styles={{ item: { border: '1px solid #e2e8f0' } }}>
                             {selectedDates && Array.isArray(selectedDates) && selectedDates.sort().map(dateStr => {
-                                const config = serviceConfigs[dateStr] || {};
+                                const configs = serviceConfigs[dateStr] || [];
                                 const displayDate = dayjs(dateStr).hour(12);
-                                const hasError = !config.type || !config.uniform || !Object.values(config.positionQuotas || {}).some(v => v > 0);
+                                const isSunday = displayDate.day() === 0;
+
+                                // Check if ANY config has error
+                                const hasError = configs.some(c => !c.type || !c.uniform || !Object.values(c.positionQuotas || {}).some(v => v > 0));
 
                                 return (
                                     <Accordion.Item key={dateStr} value={dateStr} mb="xs">
-                                        <Accordion.Control style={{ backgroundColor: '#f8fafc' }}>
+                                        <Accordion.Control style={{ backgroundColor: 'var(--mantine-color-default-hover)' }}>
                                             <Group justify="space-between">
                                                 <Group>
                                                     <ThemeIcon color={hasError ? 'amber.6' : 'teal.6'} variant="light" radius="md">
                                                         {hasError ? <IconInfoCircle size={16} /> : <IconCheck size={16} />}
                                                     </ThemeIcon>
-                                                    <Text fw={700} c="slate.9">{displayDate.format('dddd D [/] MMMM')}</Text>
+                                                    <Stack gap={0}>
+                                                        <Text fw={700} c="text">{displayDate.format('dddd D [/] MMMM')}</Text>
+                                                        {configs.length > 1 && <Text size="xs" c="dimmed">{configs.length} Servicios</Text>}
+                                                    </Stack>
                                                 </Group>
-                                                {hasError ? <Badge color="amber" variant="light" size="sm" radius="sm">Falta Info</Badge> : <Badge color="teal" variant="light" size="sm" radius="sm">Listo</Badge>}
+                                                {hasError ? <Badge color="amber" variant="light" size="sm" radius="sm">Incompleto</Badge> : <Badge color="teal" variant="light" size="sm" radius="sm">Listo</Badge>}
                                             </Group>
                                         </Accordion.Control>
                                         <Accordion.Panel>
-                                            <Stack gap="sm" p="xs">
-                                                <Grid>
-                                                    <Grid.Col span={6}>
-                                                        <Autocomplete
-                                                            label="Tipo de Servicio"
-                                                            placeholder="Selecciona o escribe"
-                                                            data={['Culto General', 'Escuela Sabática', 'Culto Joven', 'Otro']}
-                                                            value={config.type}
-                                                            onChange={(value) => updateServiceConfig(dateStr, 'type', value)}
-                                                            size="sm"
-                                                        />
-                                                    </Grid.Col>
-                                                    <Grid.Col span={6}>
-                                                        <Autocomplete
-                                                            label="Uniforme"
-                                                            placeholder="Selecciona o escribe"
-                                                            data={['Formal Gris', 'Formal Vino', 'Camisa Beige', 'Camisa Azul', 'Camisa Roja', 'Especial']}
-                                                            value={config.uniform}
-                                                            onChange={(value) => updateServiceConfig(dateStr, 'uniform', value)}
-                                                            size="sm"
-                                                        />
-                                                    </Grid.Col>
-                                                </Grid>
+                                            <Stack gap="xl" p="xs">
+                                                {configs.map((config, idx) => (
+                                                    <Paper key={idx} withBorder p="md" radius="md" style={{ position: 'relative', borderColor: idx > 0 ? '#f59f00' : undefined }}>
+                                                        {configs.length > 1 && (
+                                                            <Group justify="space-between" mb="sm">
+                                                                <Badge variant="filled" color={idx === 0 ? 'blue' : 'orange'}>Servicio {idx + 1}</Badge>
+                                                                <ActionIcon color="red" variant="subtle" onClick={() => removeServiceFromDate(dateStr, idx)} disabled={configs.length === 1}>
+                                                                    <IconTrash size={16} />
+                                                                </ActionIcon>
+                                                            </Group>
+                                                        )}
 
-                                                <Text size="xs" fw={800} mt="xs" c="slate.5" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cupos Requeridos</Text>
-                                                <Group gap="sm">
-                                                    {positions.map(pos => {
-                                                        const quota = config.positionQuotas?.[pos.id] || 0;
-                                                        return (
-                                                            <Paper key={pos.id} withBorder p={8} radius="md" style={{ minWidth: 90, backgroundColor: '#fcfcfd' }}>
-                                                                <Stack align="center" gap={4}>
-                                                                    <Text size="xs" fw={700} c="slate.6" style={{ lineHeight: 1, textAlign: 'center' }}>{pos.nombre}</Text>
-                                                                    <NumberInput
-                                                                        variant="unstyled"
-                                                                        value={quota}
-                                                                        onChange={(value) => updatePositionQuota(dateStr, pos.id, Number(value))}
-                                                                        min={0}
-                                                                        allowNegative={false}
-                                                                        styles={{ input: { textAlign: 'center', height: 24, fontSize: 18, fontWeight: 900, color: '#d97706' } }}
-                                                                    />
-                                                                </Stack>
-                                                            </Paper>
-                                                        );
-                                                    })}
-                                                </Group>
+                                                        <Grid>
+                                                            <Grid.Col span={6}>
+                                                                <Autocomplete
+                                                                    label="Tipo de Servicio"
+                                                                    placeholder="Selecciona o escribe"
+                                                                    data={['Culto General', 'Escuela Sabática', 'Culto Joven', 'Culto Matutino', 'Culto Vespertino']}
+                                                                    value={config.type}
+                                                                    onChange={(value) => updateServiceConfig(dateStr, idx, 'type', value)}
+                                                                    size="sm"
+                                                                />
+                                                            </Grid.Col>
+                                                            <Grid.Col span={6}>
+                                                                <Autocomplete
+                                                                    label="Uniforme"
+                                                                    placeholder="Selecciona o escribe"
+                                                                    data={['Formal Gris', 'Formal Vino', 'Camisa Beige', 'Camisa Azul', 'Camisa Roja', 'Especial']}
+                                                                    value={config.uniform}
+                                                                    onChange={(value) => updateServiceConfig(dateStr, idx, 'uniform', value)}
+                                                                    size="sm"
+                                                                />
+                                                            </Grid.Col>
+                                                        </Grid>
+
+                                                        <Text size="xs" fw={800} mt="xs" c="dimmed" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Voluntarios necesarios</Text>
+                                                        <Group gap="sm">
+                                                            {positions.map(pos => {
+                                                                const quota = config.positionQuotas?.[pos.id] || 0;
+                                                                return (
+                                                                    <Paper key={pos.id} withBorder p={8} radius="md" style={{ minWidth: 90, backgroundColor: 'var(--mantine-color-gray-0)' }}>
+                                                                        <Stack align="center" gap={4}>
+                                                                            <Text size="xs" fw={700} c="stone.6" style={{ lineHeight: 1, textAlign: 'center' }}>{pos.nombre}</Text>
+                                                                            <NumberInput
+                                                                                variant="unstyled"
+                                                                                value={quota}
+                                                                                onChange={(value) => updatePositionQuota(dateStr, idx, pos.id, Number(value))}
+                                                                                min={0}
+                                                                                allowNegative={false}
+                                                                                styles={{ input: { textAlign: 'center', height: 24, fontSize: 18, fontWeight: 900, color: '#d97706' } }}
+                                                                            />
+                                                                        </Stack>
+                                                                    </Paper>
+                                                                );
+                                                            })}
+                                                        </Group>
+                                                    </Paper>
+                                                ))}
+
+                                                {isSunday && configs.length < 2 && (
+                                                    <Button
+                                                        variant="light"
+                                                        color="orange"
+                                                        fullWidth
+                                                        leftSection={<IconApps size={16} />}
+                                                        onClick={() => addServiceToDate(dateStr)}
+                                                    >
+                                                        Añadir otro servicio
+                                                    </Button>
+                                                )}
                                             </Stack>
                                         </Accordion.Panel>
                                     </Accordion.Item>

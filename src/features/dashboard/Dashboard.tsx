@@ -30,6 +30,7 @@ import { useUser } from '../../contexts/UserContext';
 import { analyticsService } from '../../services/analyticsService';
 import dayjs from 'dayjs';
 import { getUniformeColor } from '../../utils/calendar/colorMapper';
+import { AiQueryWidget } from './components/AiQueryWidget';
 
 interface StatCardProps {
     title: string;
@@ -187,6 +188,9 @@ export function Dashboard() {
     return (
         <Container size="xl" py="md">
             <Stack gap="lg">
+                {/* AI Conversational Widget */}
+                {selectedDeptId && <AiQueryWidget departmentId={selectedDeptId} />}
+
                 <Grid gutter="lg">
                     <Grid.Col span={{ base: 12, md: 7 }}>
                         <Card style={{

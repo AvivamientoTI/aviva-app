@@ -13,6 +13,7 @@ interface ServiceDateConfig {
 interface SavedConfig {
     id: string | number;
     fecha: string;
+    serviceIndex?: number;
 }
 
 interface AutoAssignResult {
@@ -34,7 +35,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
 
     const generateAssignments = async (
         savedConfigs: SavedConfig[],
-        serviceConfigs: Record<string, ServiceDateConfig>,
+        serviceConfigs: Record<string, ServiceDateConfig[]>,
         positions: Position[]
     ): Promise<AutoAssignResult> => {
         setLoading(true);
@@ -125,7 +126,12 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                 const config = configsSorted[i];
                 diagnostics.datesProcessed++;
                 const dateStr = config.fecha;
-                const serviceConfig = serviceConfigs[dateStr];
+                // If serviceIndex is present, use it, otherwise default to 0
+                const sIdx = config.serviceIndex || 0;
+
+                const dayConfigs = serviceConfigs[dateStr] || [];
+                const serviceConfig = dayConfigs[sIdx];
+
                 if (!serviceConfig) continue;
 
                 // Eligible users logic needs to be typing and ensured

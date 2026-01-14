@@ -14,7 +14,7 @@ html {
   line-height: 1.6;
   font-weight: 400;
 
-  color-scheme: light;
+  /* color-scheme: light; -- removed to allow dark mode */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

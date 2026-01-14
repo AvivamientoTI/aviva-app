@@ -221,7 +221,7 @@ export const SuspensionManager = () => {
                                 placeholder="Selecciona fecha inicio y fin"
                                 leftSection={<IconCalendar size={16} />}
                                 value={dates}
-                                onChange={setDates}
+                                onChange={(val) => setDates(val as [Date | null, Date | null])}
                                 minDate={new Date()}
                                 required
                             />

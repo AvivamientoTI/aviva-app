@@ -75,5 +75,87 @@ export const analyticsService = {
     });
 
     return stats;
+  },
+
+  /**
+   * Obtiene estadísticas semanales (últimas 12 semanas) para gráficos de tendencia
+   */
+  async fetchWeeklyStats(deptId: number): Promise<any[]> {
+    const startDate = dayjs().subtract(12, 'weeks').startOf('week').format('YYYY-MM-DD');
+
+    // 1. Obtener todas las asistencias en el rango
+    const { data } = await supabase
+      .from('asistencias')
+      .select(`
+            estado,
+            configuracion_dia!inner (
+                fecha,
+                roles_cabecera!inner ( departamento_id )
+            )
+        `)
+      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+      .gte('configuracion_dia.fecha', startDate)
+      .order('configuracion_dia(fecha)', { ascending: true });
+
+    if (!data) return [];
+
+    // 2. Agrupar por semana
+    const weeklyData: Record<string, { weekStart: string, present: number, absent: number, total: number }> = {};
+
+    data.forEach((r: any) => {
+      const date = dayjs(r.configuracion_dia.fecha);
+      const weekLabel = `Semana ${date.week()} (${date.format('DD/MM')})`;
+
+      if (!weeklyData[weekLabel]) {
+        weeklyData[weekLabel] = { weekStart: weekLabel, present: 0, absent: 0, total: 0 };
+      }
+
+      weeklyData[weekLabel].total++;
+      if (r.estado === 'Asistió') weeklyData[weekLabel].present++;
+      else weeklyData[weekLabel].absent++;
+    });
+
+    return Object.values(weeklyData).map(w => ({
+      ...w,
+      rate: w.total > 0 ? Math.round((w.present / w.total) * 100) : 0
+    }));
+  },
+
+  /**
+   * Obtiene estadísticas anuales comparativas y heatmap
+   */
+  async fetchAnnualStats(deptId: number): Promise<any> {
+    const thisYearStart = dayjs().startOf('year').format('YYYY-MM-DD');
+
+    // Stats del año actual
+    const { data } = await supabase
+      .from('asistencias')
+      .select(`
+            estado,
+            configuracion_dia!inner ( fecha, roles_cabecera!inner(departamento_id) )
+        `)
+      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+      .gte('configuracion_dia.fecha', thisYearStart);
+
+    const heatmap: Record<string, number> = {};
+    let totalServices = 0;
+
+    data?.forEach((r: any) => {
+      const date = r.configuracion_dia.fecha; // YYYY-MM-DD
+      if (r.estado === 'Asistió') {
+        heatmap[date] = (heatmap[date] || 0) + 1;
+        totalServices++;
+      }
+    });
+
+    // Transformar para visualización de Heatmap (Calendar)
+    const heatmapData = Object.entries(heatmap).map(([date, count]) => ({ date, count }));
+
+    return {
+      year: dayjs().year(),
+      totalServices,
+      uniqueDates: Object.keys(heatmap).length,
+      heatmapData
+    };
   }
 };
