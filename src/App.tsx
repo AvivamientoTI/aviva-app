@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, BrowserRouter } from 'react-router-dom';
 // Force re-resolve
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './features/auth/Login';
@@ -112,7 +112,9 @@ function App() {
         <ErrorBoundary>
             <QueryClientProvider client={queryClient}>
                 <UserProvider>
-                    <AppContent />
+                    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                        <AppContent />
+                    </BrowserRouter>
                 </UserProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
             </QueryClientProvider>
