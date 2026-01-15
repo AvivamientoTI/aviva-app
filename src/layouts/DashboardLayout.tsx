@@ -1,4 +1,4 @@
-import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme } from '@mantine/core';
+import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme, ThemeIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconSun, IconMoon } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -59,7 +59,7 @@ export function DashboardLayout() {
 
     return (
         <AppShell
-            header={{ height: 70 }}
+            header={{ height: 80 }}
             navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !opened } }}
             padding="md"
         >
@@ -71,7 +71,28 @@ export function DashboardLayout() {
                 <Group justify="space-between" h="100%" px="xl">
                     <Group>
                         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="yellow.7" />
-                        <img src="/logo.png" alt="Logo" style={{ height: 40, objectFit: 'contain' }} />
+                        <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+                            <ThemeIcon size={54} radius="xl" variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6', deg: 135 }} style={{ boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)', transition: 'transform 0.2s ease' }} className="hover:scale-105">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="30"
+                                    height="30"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z" />
+                                </svg>
+                            </ThemeIcon>
+                            <Stack gap={2} visibleFrom="xs">
+                                <Text fw={900} size="xl" lh={0.9} c={dark ? 'white' : 'dark'} style={{ letterSpacing: '-0.02em', fontSize: '1.35rem' }}>SERVIDORES</Text>
+                                <Text size="10px" c="orange.7" fw={800} style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>AVIVAMIENTO Y PODER</Text>
+                            </Stack>
+                        </Group>
                     </Group>
                     <Group gap="sm">
                         <ActionIcon

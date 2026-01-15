@@ -24,6 +24,9 @@ export function DepartmentsList() {
     const [positionsModalOpen, { open: openPositions, close: closePositions }] = useDisclosure(false);
     const [selectedDeptForPositions, setSelectedDeptForPositions] = useState<Department | null>(null);
 
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deptToDelete, setDeptToDelete] = useState<Department | null>(null);
+
     useEffect(() => {
         fetchDepartments();
     }, []);
@@ -70,15 +73,26 @@ export function DepartmentsList() {
         setLoading(false);
     };
 
-    const handleDelete = async (id: number) => {
-        if (window.confirm('¿Estás seguro? Esto podría afectar planificaciones existentes.')) {
-            const { error } = await supabase.from('departamentos').delete().eq('id', id);
-            if (error) {
-                notifications.show({ title: 'Error', message: error.message, color: 'red' });
-            } else {
-                fetchDepartments();
-            }
+    const confirmDelete = async () => {
+        if (!deptToDelete) return;
+
+        setLoading(true);
+        const { error } = await supabase.from('departamentos').delete().eq('id', deptToDelete.id);
+
+        if (error) {
+            notifications.show({ title: 'Error', message: error.message, color: 'red' });
+        } else {
+            notifications.show({ title: 'Eliminado', message: 'Departamento eliminado correctamente', color: 'green' });
+            fetchDepartments();
         }
+        setLoading(false);
+        setDeleteModalOpen(false);
+        setDeptToDelete(null);
+    };
+
+    const openDeleteModal = (dept: Department) => {
+        setDeptToDelete(dept);
+        setDeleteModalOpen(true);
     };
 
     const handleEdit = (dept: Department) => {
@@ -147,10 +161,10 @@ export function DepartmentsList() {
                                         <Button variant="light" size="xs" radius="sm" onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
                                             Posiciones
                                         </Button>
-                                        <Button variant="subtle" color="slate" size="xs" radius="sm" onClick={() => handleEdit(dept)} disabled={!permissions.canManageAllDepartments}>
+                                        <Button variant="filled" color="blue" size="xs" radius="sm" onClick={() => handleEdit(dept)} disabled={!permissions.canManageAllDepartments}>
                                             Editar
                                         </Button>
-                                        <Button variant="subtle" color="red" size="xs" radius="sm" onClick={() => handleDelete(dept.id)} disabled={!permissions.canManageAllDepartments}>
+                                        <Button variant="filled" color="red" size="xs" radius="sm" onClick={() => openDeleteModal(dept)} disabled={!permissions.canManageAllDepartments}>
                                             Eliminar
                                         </Button>
                                     </Group>
@@ -195,6 +209,18 @@ export function DepartmentsList() {
                 size="lg"
             >
                 <PositionsManager departmentId={selectedDeptForPositions?.id} />
+            </Modal>
+
+            <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Confirmar Eliminación" centered>
+                <Text size="sm">
+                    ¿Estás seguro de que deseas eliminar el departamento <strong>{deptToDelete?.nombre}</strong>?
+                    <br /><br />
+                    <span style={{ color: 'red' }}>⚠️ Esta acción podría afectar planificaciones y miembros existentes.</span>
+                </Text>
+                <Group justify="flex-end" mt="lg">
+                    <Button variant="default" onClick={() => setDeleteModalOpen(false)}>Cancelar</Button>
+                    <Button color="red" onClick={confirmDelete} loading={loading}>Eliminar</Button>
+                </Group>
             </Modal>
         </div>
     );

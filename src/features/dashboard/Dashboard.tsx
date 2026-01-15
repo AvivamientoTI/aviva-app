@@ -17,7 +17,8 @@ import {
     IconCalendarEvent,
     IconChecklist,
     IconUsers,
-    IconTrendingUp
+    IconTrendingUp,
+    IconCalendarOff
 } from '@tabler/icons-react';
 import { DonutChart, BarChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
@@ -134,7 +135,7 @@ export function Dashboard() {
 
                 <Grid>
                     <Grid.Col span={{ base: 12, md: 8 }}>
-                        <Card withBorder p="md" radius="md" className="animate-fade-in">
+                        <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
                             <Title order={4} mb="md" c="gold.5">Próximos Servicios</Title>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
@@ -169,7 +170,10 @@ export function Dashboard() {
                                     })}
                                 </Stack>
                             ) : (
-                                <Text ta="center" py="xl" c="dimmed">No tienes asignaciones programadas próximamente.</Text>
+                                <Stack align="center" py="xl" gap="xs">
+                                    <IconCalendarOff size={40} color="var(--mantine-color-dimmed)" stroke={1.5} />
+                                    <Text ta="center" c="dimmed">No tienes asignaciones programadas próximamente.</Text>
+                                </Stack>
                             )}
                         </Card>
                     </Grid.Col>
@@ -201,7 +205,7 @@ export function Dashboard() {
                     )}
 
                     <Grid.Col span={{ base: 12, md: 4 }}>
-                        <Card withBorder p="md" radius="md" className="animate-fade-in">
+                        <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
                             <Title order={4} mb="md" c="gold.5">Estado de Asistencia</Title>
                             {stats ? (
                                 <Stack align="center">
@@ -225,14 +229,17 @@ export function Dashboard() {
                                     </Group>
                                 </Stack>
                             ) : (
-                                <Text ta="center" py="xl" c="dimmed">No hay datos de asistencia todavía.</Text>
+                                <Stack align="center" py="xl" gap="xs">
+                                    <IconUsers size={40} color="var(--mantine-color-dimmed)" stroke={1.5} />
+                                    <Text ta="center" c="dimmed">No hay datos de asistencia todavía.</Text>
+                                </Stack>
                             )}
                         </Card>
                     </Grid.Col>
 
                     {stats && stats.byMonth && Object.keys(stats.byMonth).length > 0 && (
                         <Grid.Col span={12}>
-                            <Card withBorder p="md" radius="md" className="animate-fade-in">
+                            <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
                                 <Title order={4} mb="md" c="gold.5">Tendencia de Asistencia (Últimos Meses)</Title>
                                 <Box w="100%" h={400} style={{ minWidth: 0 }} role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
                                     <BarChart

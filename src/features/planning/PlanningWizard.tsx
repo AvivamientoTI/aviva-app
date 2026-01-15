@@ -259,7 +259,7 @@ function PlanningWizardContent() {
           <Button variant="default" onClick={prevStep} disabled={activeStep === 0}>
             Atrás
           </Button>
-          <Button onClick={handleNext} color="gold" c="black">
+          <Button onClick={handleNext} color="gold" c="white">
             {activeStep === 2 ? 'Finalizar' : 'Siguiente'}
           </Button>
         </Group>

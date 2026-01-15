@@ -52,9 +52,29 @@ body::before {
   background-image:
     radial-gradient(circle at top right, rgba(217, 119, 6, 0.03) 0%, transparent 60%);
   pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  body::before {
+    opacity: 0.1;
+    /* Reduce intensity in dark mode */
+    background-image:
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
+  }
 }
 
 /* Premium Animations */
+.hover-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border-color: var(--mantine-color-orange-4) !important;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

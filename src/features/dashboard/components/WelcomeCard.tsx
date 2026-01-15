@@ -1,6 +1,5 @@
 
 import { Card, Box, Stack, Badge, Title, Text, Group } from '@mantine/core';
-import { IconRocket } from '@tabler/icons-react';
 
 interface WelcomeCardProps {
     userName: string;
@@ -24,9 +23,21 @@ export function WelcomeCard({ userName }: WelcomeCardProps) {
                 top: -40,
                 right: -40,
                 opacity: 0.1,
-                transform: 'rotate(15deg)'
             }}>
-                <IconRocket size={240} />
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="280"
+                    height="280"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z" />
+                </svg>
             </Box>
 
             <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
@@ -63,6 +74,6 @@ export function WelcomeCard({ userName }: WelcomeCardProps) {
                     </Group>
                 </Box>
             </Stack>
-        </Card>
+        </Card >
     );
 }
