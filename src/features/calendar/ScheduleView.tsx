@@ -209,7 +209,6 @@ export function ScheduleView() {
                         <Box ref={detailRef}>
                             <DetailedListTab
                                 groupedAssignments={groupedAssignments}
-                                userMemberships={userMemberships}
                             />
                         </Box>
                     </Tabs.Panel>

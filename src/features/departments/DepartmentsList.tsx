@@ -9,7 +9,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 interface Department {
     id: number;
     nombre: string;
-    prioridad: number;
+    prioridad: number | null;
 }
 
 export function DepartmentsList() {
@@ -97,7 +97,7 @@ export function DepartmentsList() {
 
     const handleEdit = (dept: Department) => {
         setEditingDept(dept);
-        setFormData({ nombre: dept.nombre, prioridad: dept.prioridad });
+        setFormData({ nombre: dept.nombre, prioridad: Number(dept.prioridad) });
         open();
     };
 
@@ -150,7 +150,7 @@ export function DepartmentsList() {
                                 <Table.Td fw={700} c="slate.8">#{dept.id}</Table.Td>
                                 <Table.Td fw={700} c="slate.9">{dept.nombre}</Table.Td>
                                 <Table.Td>
-                                    {dept.prioridad === 1 ? (
+                                    {Number(dept.prioridad) === 1 ? (
                                         <Badge color="red" variant="light" radius="sm" fw={800}>CRÍTICA (1)</Badge>
                                     ) : (
                                         <Badge color="gold" variant="light" radius="sm" fw={800} c="gold.9">NORMAL (2)</Badge>
@@ -161,10 +161,10 @@ export function DepartmentsList() {
                                         <Button variant="light" size="xs" radius="sm" onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
                                             Posiciones
                                         </Button>
-                                        <Button variant="filled" color="blue" size="xs" radius="sm" onClick={() => handleEdit(dept)} disabled={!permissions.canManageAllDepartments}>
+                                        <Button variant="filled" color="blue" size="xs" radius="sm" onClick={() => handleEdit(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
                                             Editar
                                         </Button>
-                                        <Button variant="filled" color="red" size="xs" radius="sm" onClick={() => openDeleteModal(dept)} disabled={!permissions.canManageAllDepartments}>
+                                        <Button variant="filled" color="red" size="xs" radius="sm" onClick={() => openDeleteModal(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
                                             Eliminar
                                         </Button>
                                     </Group>

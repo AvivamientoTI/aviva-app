@@ -44,7 +44,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
             const { data: deptMemberships } = await supabase
                 .from('membresias')
                 .select('usuario_id, rol_jerarquico, usuario:usuarios(*)')
-                .eq('departamento_id', selectedDept);
+                .eq('departamento_id', Number(selectedDept));
 
             if (!deptMemberships || deptMemberships.length === 0) {
                 console.warn("No memberships found for dept:", selectedDept);

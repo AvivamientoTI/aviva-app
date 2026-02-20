@@ -15,8 +15,8 @@ export const useRoleHeader = ({ departmentId, month, year }: RolesCabeceraHelper
                 .from('roles_cabecera')
                 .select('*')
                 .eq('departamento_id', Number(departmentId))
-                .eq('mes', month)
-                .eq('anio', year)
+                .eq('mes', Number(month))
+                .eq('anio', Number(year))
                 .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error; // Ignore "no rows" errors if using maybeSingle, but helpful to be explicit

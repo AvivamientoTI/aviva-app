@@ -62,7 +62,16 @@ export function UserProvider({ children }: UserProviderProps) {
 
     useEffect(() => {
         // Obtener usuario actual de Supabase Auth
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (error) {
+                // If there's an error (like Invalid Refresh Token), clear local session
+                console.error('Auth error:', error.message);
+                if (error.status === 400 || error.message.includes('Refresh Token')) {
+                    supabase.auth.signOut();
+                }
+                setLoading(false);
+                return;
+            }
             if (session?.user) {
                 setUser(session.user);
                 fetchUserProfile(session.user.id);
@@ -101,12 +110,19 @@ export function UserProvider({ children }: UserProviderProps) {
             if (profileError) throw profileError;
 
             if (!profile) {
-                // Silenciosamente fallar o manejar error. console.warn eliminado para limpieza
+                console.log('User has no profile linked');
+                setUserProfile(null);
                 setLoading(false);
                 return;
             }
 
             setUserProfile(profile);
+
+            // Si el usuario no tiene un perfil de usuario, no se puede continuar
+            if (!profile.usuario_id) {
+                setLoading(false);
+                return;
+            }
 
             // Obtener membresías del usuario
             const { data: memberships, error: membError } = await supabase
@@ -117,6 +133,7 @@ export function UserProvider({ children }: UserProviderProps) {
             if (membError) throw membError;
 
             const typedMemberships: Membership[] = memberships as unknown as Membership[] || [];
+            console.log('[UserContext] Setting memberships:', typedMemberships);
             setUserMemberships(typedMemberships);
 
             // Departamentos para gestión general (Líder/Sublíder)

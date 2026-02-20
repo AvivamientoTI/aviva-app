@@ -44,7 +44,12 @@ export function UsersList() {
 
   const fetchDepartments = async () => {
     const { data } = await supabase.from('departamentos').select('*');
-    if (data) setDepartments(data.map(d => ({ value: String(d.id), label: d.nombre })));
+    if (data) {
+      const filtered = data
+        .filter(d => permissions.canManageDepartment(d.id))
+        .map(d => ({ value: String(d.id), label: d.nombre }));
+      setDepartments(filtered);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -114,17 +119,26 @@ export function UsersList() {
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
-      const matchesDept = filterDept ? u.membresias?.some(m => String(m.departamento?.id) === filterDept) : true;
+      // 1. Check department match (respecting permissions)
+      let matchesDept = false;
+      if (filterDept) {
+        matchesDept = u.membresias?.some(m => String(m.departamento?.id) === filterDept);
+      } else {
+        // If no filter selected, show only what user CAN manage
+        // If user has NO memberships that match their permissions, they see nothing (correct)
+        matchesDept = u.membresias?.some(m => permissions.canManageDepartment(m.departamento?.id));
+      }
+
       const matchesSearch = search.toLowerCase().trim() === '' ||
         `${u.nombre} ${u.apellido}`.toLowerCase().includes(search.toLowerCase());
       return matchesDept && matchesSearch;
     });
-  }, [users, filterDept, search]);
+  }, [users, filterDept, search, permissions]);
 
   const stats = [
-    { label: 'Total Servidores(as)', value: users.length, icon: IconUsers, color: 'gold' },
-    { label: 'Hombres', value: users.filter(u => u.genero === 'M').length, icon: IconUser, color: 'teal' },
-    { label: 'Mujeres', value: users.filter(u => u.genero === 'F').length, icon: IconUser, color: 'pink' },
+    { label: 'Total Servidores(as)', value: filteredUsers.length, icon: IconUsers, color: 'gold' },
+    { label: 'Hombres', value: filteredUsers.filter(u => u.genero === 'M').length, icon: IconUser, color: 'teal' },
+    { label: 'Mujeres', value: filteredUsers.filter(u => u.genero === 'F').length, icon: IconUser, color: 'pink' },
   ];
 
   return (

@@ -68,7 +68,7 @@ export const assignmentsService = {
         const { error } = await supabase
             .from('asignaciones')
             .delete()
-            .eq('id', assignmentId);
+            .eq('id', Number(assignmentId));
 
         if (error) throw error;
     },
@@ -79,8 +79,8 @@ export const assignmentsService = {
     async swap(assignmentId: number | string, newUserId: number | string): Promise<void> {
         const { error } = await supabase
             .from('asignaciones')
-            .update({ usuario_id: newUserId })
-            .eq('id', assignmentId);
+            .update({ usuario_id: Number(newUserId) })
+            .eq('id', Number(assignmentId));
 
         if (error) throw error;
     },

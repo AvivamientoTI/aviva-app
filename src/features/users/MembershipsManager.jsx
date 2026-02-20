@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Select, Group, ActionIcon, Text, Loader } from '@mantine/core';
+import { Table, Button, Select, Group, ActionIcon, Text, Loader, Badge } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { supabase } from '../../services/supabaseClient';
 import { calculateAge } from '../../utils/ageCalculator';
+import { ROLES } from '../../constants/roles';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export function MembershipsManager({ userId }) {
+  const permissions = usePermissions();
   const [memberships, setMemberships] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [newDept, setNewDept] = useState(null);
-  const [newRole, setNewRole] = useState('Servidor');
+  const [newRole, setNewRole] = useState(ROLES.SERVIDOR);
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const MIN_LEADER_AGE = 18;
@@ -40,13 +43,18 @@ export function MembershipsManager({ userId }) {
 
   const fetchDepartments = async () => {
     const { data } = await supabase.from('departamentos').select('*');
-    if (data) setDepartments(data.map(d => ({ value: String(d.id), label: d.nombre })));
+    if (data) {
+      const filtered = data
+        .filter(d => permissions.canManageDepartment(d.id))
+        .map(d => ({ value: String(d.id), label: d.nombre }));
+      setDepartments(filtered);
+    }
   };
 
   const handleAdd = async () => {
     if (!newDept) return;
 
-    if (['Lider', 'Sublider', 'Encargado'].includes(newRole)) {
+    if ([ROLES.LIDER, 'Lider', ROLES.SUBLIDER, 'Sublider', ROLES.ENCARGADO].includes(newRole)) {
       if (!userInfo?.fecha_nacimiento) {
         notifications.show({ title: 'Error', message: 'No hay fecha de nacimiento para validar la edad.', color: 'red' });
         return;
@@ -71,7 +79,7 @@ export function MembershipsManager({ userId }) {
     } else {
       fetchMemberships();
       setNewDept(null);
-      setNewRole('Servidor');
+      setNewRole(ROLES.SERVIDOR);
     }
     setLoading(false);
   };
@@ -126,10 +134,10 @@ export function MembershipsManager({ userId }) {
         <Select
           label="Rol"
           data={[
-            { value: 'Lider', label: 'Líder' },
-            { value: 'Sublider', label: 'Sublíder' },
-            { value: 'Encargado', label: 'Encargado(a)' },
-            { value: 'Servidor', label: 'Servidor(a)' }
+            { value: ROLES.LIDER, label: ROLES.LIDER },
+            { value: ROLES.SUBLIDER, label: ROLES.SUBLIDER },
+            { value: ROLES.ENCARGADO, label: ROLES.ENCARGADO },
+            { value: ROLES.SERVIDOR, label: ROLES.SERVIDOR }
           ]}
           value={newRole}
           onChange={setNewRole}

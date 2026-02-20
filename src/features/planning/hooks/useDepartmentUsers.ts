@@ -15,14 +15,22 @@ export const useDepartmentUsers = (deptId: number | string | null) => {
             const { data, error } = await supabase
                 .from('membresias')
                 .select('rol_jerarquico, usuario:usuarios(*)')
-                .eq('departamento_id', deptId);
+                .eq('departamento_id', Number(deptId));
 
             if (error) throw error;
 
-            return data.map((m: any) => ({
-                ...m.usuario,
-                rol_jerarquico: m.rol_jerarquico
-            })) as DepartmentUser[];
+            // Deduplicate users by ID
+            const uniqueUsers = new Map<number, DepartmentUser>();
+
+            data.forEach((m: any) => {
+                if (!m.usuario || uniqueUsers.has(m.usuario.id)) return;
+                uniqueUsers.set(m.usuario.id, {
+                    ...m.usuario,
+                    rol_jerarquico: m.rol_jerarquico
+                });
+            });
+
+            return Array.from(uniqueUsers.values());
         },
         enabled: !!deptId,
         staleTime: 1000 * 60 * 10, // 10 minutes

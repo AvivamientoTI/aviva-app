@@ -4,27 +4,18 @@ import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
-import type { Membership } from '../../../types';
 
-interface Assignment {
-    id: string | number;
-    usuario_id: string | number;
-    departamento_id: string | number;
-    nombre: string;
-    posicion: string;
-    uniforme: string;
-    orden?: number;
-}
+
+import type { CalendarAssignment } from '../../../utils/calendar/transformerTypes';
 
 interface DayData {
     servicio: string;
-    assignments: Assignment[];
+    assignments: CalendarAssignment[];
     encargado: string | null;
 }
 
 interface DetailedListTabProps {
     groupedAssignments: Record<string, DayData>;
-    userMemberships: Membership[];
 }
 
 export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {

@@ -4,12 +4,14 @@ import { IconSun, IconMoon } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
+import { usePermissions } from '../hooks/usePermissions';
 
 export function DashboardLayout() {
     const [opened, { toggle }] = useDisclosure();
     const navigate = useNavigate();
     const location = useLocation();
-    const { userProfile, managedDepartments, userMemberships } = useUser();
+    const { userProfile, managedDepartments } = useUser();
+    const { isLiderOrSublider, isLiderOrSubliderServidores, isLiderSubliderEncargadoServidores } = usePermissions();
 
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const dark = colorScheme === 'dark';
@@ -20,35 +22,22 @@ export function DashboardLayout() {
         window.location.replace('/login');
     };
 
-    // Determinar roles del usuario
-    const roles = userMemberships?.map(m => m.rol_jerarquico?.toLowerCase()) || [];
-    const isLider = userMemberships?.some(m => {
-        const r = m.rol_jerarquico?.toLowerCase();
-        return (r === 'líder' || r === 'lider') && m.departamento?.nombre === 'Servidores';
-    });
-    const isSublider = userMemberships?.some(m => {
-        const r = m.rol_jerarquico?.toLowerCase();
-        return (r === 'sublíder' || r === 'sublider') && m.departamento?.nombre === 'Servidores';
-    });
-    const isEncargado = userMemberships?.some(m => {
-        const r = m.rol_jerarquico?.toLowerCase();
-        return (r === 'encargado' || r === 'encargada') && m.departamento?.nombre === 'Servidores';
-    });
+
 
     // Opciones visibles según rol
     const links = [
         { label: 'Dashboard', path: '/' },
         { label: 'Calendario', path: '/calendar' },
-        ...(roles.includes('líder') || roles.includes('sublíder') || roles.includes('lider') || roles.includes('sublider') ? [
+        ...(isLiderOrSublider ? [
             { label: 'Planificación', path: '/planning' },
             { label: 'Departamentos', path: '/departments' },
             { label: 'Estadísticas', path: '/analytics' },
         ] : []),
-        ...((isLider || isSublider) ? [
+        ...(isLiderOrSubliderServidores ? [
             { label: 'Servidores', path: '/servers' },
             { label: 'Suspensiones', path: '/suspensions' },
         ] : []),
-        ...((isLider || isSublider || isEncargado) ? [
+        ...(isLiderSubliderEncargadoServidores ? [
             { label: 'Asistencia', path: '/attendance' },
         ] : []),
     ];

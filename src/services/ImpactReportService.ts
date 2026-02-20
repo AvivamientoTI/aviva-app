@@ -1,5 +1,18 @@
 import { supabase } from './supabaseClient';
 import dayjs from 'dayjs';
+import type { Database } from '../types/database.types';
+
+type ServiceWithRoles = Database['public']['Tables']['configuracion_dia']['Row'] & {
+    roles_cabecera: { departamento_id: number }[]
+};
+
+type AttendanceWithUser = Database['public']['Tables']['asistencias']['Row'] & {
+    usuario: { nombre: string; apellido: string } | { nombre: string; apellido: string }[] | null
+};
+
+type MembershipWithUser = Database['public']['Tables']['membresias']['Row'] & {
+    usuario: { nombre: string; apellido: string } | { nombre: string; apellido: string }[] | null
+};
 
 export interface MonthlyStats {
     totalServices: number;
@@ -55,7 +68,8 @@ export const impactReportService = {
             return { stats: null, members: [], services: [] };
         }
 
-        const serviceIds = services.map(s => s.id);
+        const typedServices = services as unknown as ServiceWithRoles[];
+        const serviceIds = typedServices.map(s => s.id);
 
         // 2. Obtener asistencias de esos servicios
         const { data: asistencias, error: attendanceError } = await supabase
@@ -86,23 +100,32 @@ export const impactReportService = {
         const memberStats = new Map<number, { nombre: string; apellido: string; asistio: number }>();
 
         // Inicializar con todos los miembros
-        membership?.forEach(m => {
-            memberStats.set(m.usuario_id, {
-                nombre: Array.isArray(m.usuario) ? m.usuario[0]?.nombre : (m.usuario as any).nombre,
-                apellido: Array.isArray(m.usuario) ? m.usuario[0]?.apellido : (m.usuario as any).apellido,
-                asistio: 0
-            });
+        // Inicializar con todos los miembros
+        (membership as unknown as MembershipWithUser[])?.forEach(m => {
+            // Safe access to nested user data which might be an array or object
+            const user = Array.isArray(m.usuario) ? m.usuario[0] : m.usuario;
+
+            // Should verify m.usuario_id is not null
+            if (user && m.usuario_id !== null) {
+                memberStats.set(m.usuario_id, {
+                    nombre: user.nombre || '',
+                    apellido: user.apellido || '',
+                    asistio: 0
+                });
+            }
         });
 
-        const serviceBreakdown: ServiceDetail[] = services.map(s => ({
+        const serviceBreakdown: ServiceDetail[] = typedServices.map(s => ({
             id: s.id,
             fecha: s.fecha,
-            tipo_servicio: s.tipo_servicio,
+            tipo_servicio: s.tipo_servicio || 'Servicio General',
             asistentes: 0,
             ausentes: 0
         }));
 
-        asistencias?.forEach(a => {
+        (asistencias as unknown as AttendanceWithUser[])?.forEach(a => {
+            if (a.configuracion_dia_id === null || a.usuario_id === null) return;
+
             if (a.estado === 'Asistió') {
                 const ms = memberStats.get(a.usuario_id);
                 if (ms) ms.asistio++;

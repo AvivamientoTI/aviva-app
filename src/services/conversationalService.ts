@@ -1,15 +1,16 @@
 import { supabase } from './supabaseClient';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
+import { ATTENDANCE_STATES } from '../constants/attendance';
 
 dayjs.locale('es');
 
 export interface AiResponse {
     type: 'text' | 'chart' | 'list';
     message: string;
-    data?: any;
+    data?: any; // Start strict, but keep flexible for list data
     chartType?: 'bar' | 'donut';
-    chartData?: any[];
+    chartData?: { name: string; value: number; color: string }[];
 }
 
 // Simple Levenshtein implementation for local fuzzy matching
@@ -125,9 +126,9 @@ export const conversationalService = {
         }
 
         const counts = { asistio: 0, falta: 0, justificado: 0 };
-        data.forEach((r: any) => {
-            if (r.estado === 'Asistió') counts.asistio++;
-            else if (r.estado === 'Faltó sin Aviso') counts.falta++;
+        data.forEach((r) => {
+            if (r.estado === ATTENDANCE_STATES.ASISTIO) counts.asistio++;
+            else if (r.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION) counts.falta++;
             else counts.justificado++;
         });
 
@@ -158,15 +159,23 @@ export const conversationalService = {
         if (!rawData || rawData.length === 0) return { type: 'text', message: 'No hay suficientes datos en este periodo.' };
 
         const counter: Record<string, number> = {};
-        rawData.forEach((a: any) => {
-            const name = `${a.usuario.nombre} ${a.usuario.apellido}`;
-            counter[name] = (counter[name] || 0) + 1;
+
+        rawData.forEach((a) => {
+            const user = a.usuario as unknown as { nombre: string; apellido: string };
+            if (user) {
+                const name = `${user.nombre} ${user.apellido}`;
+                counter[name] = (counter[name] || 0) + 1;
+            }
         });
 
         const sorted = Object.entries(counter)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
-            .map(([name, count]) => ({ name, value: count, color: 'blue.6' }));
+            .map(([name, count]) => ({
+                name,
+                value: count,
+                color: 'blue.6'
+            }));
 
         return {
             type: 'chart',
@@ -188,7 +197,7 @@ export const conversationalService = {
                 )
             `)
             .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-            .eq('estado', 'Faltó sin Aviso')
+            .eq('estado', ATTENDANCE_STATES.SIN_JUSTIFICACION)
             .gte('configuracion_dia.fecha', startDate)
             .order('configuracion_dia(fecha)', { ascending: false })
             .limit(5);
@@ -290,8 +299,8 @@ export const conversationalService = {
 
         let asistio = 0, falto = 0;
         statsData?.forEach(s => {
-            if (s.estado === 'Asistió') asistio++;
-            if (s.estado === 'Faltó sin Aviso') falto++;
+            if (s.estado === ATTENDANCE_STATES.ASISTIO) asistio++;
+            if (s.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION) falto++;
         });
 
         return {

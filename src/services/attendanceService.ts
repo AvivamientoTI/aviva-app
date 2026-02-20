@@ -1,15 +1,23 @@
 import { supabase } from './supabaseClient';
-import type { PublicUser } from '../types';
+import type { Database } from '../types/database.types';
 
-export interface DepartmentMember extends PublicUser {
-    roles: string[];
+export type ServiceDay = Pick<Database['public']['Tables']['configuracion_dia']['Row'], 'id' | 'fecha' | 'tipo_servicio'>;
+export type AttendanceRecord = Database['public']['Tables']['asistencias']['Row'];
+export type AttendanceInsert = Database['public']['Tables']['asistencias']['Insert'];
+
+export interface DepartmentMember {
+    id: number;
+    nombre: string;
+    apellido: string;
+    genero?: string | null;
+    roles?: string[];
 }
 
 export const attendanceService = {
     /**
      * Obtiene la configuración de días (servicios) para un departamento
      */
-    async fetchServiceDays(deptId: number | string): Promise<any[]> {
+    async fetchServiceDays(deptId: number | string): Promise<ServiceDay[]> {
         const { data, error } = await supabase
             .from('configuracion_dia')
             .select(`
@@ -20,7 +28,7 @@ export const attendanceService = {
           departamento_id
         )
       `)
-            .eq('roles_cabecera.departamento_id', deptId)
+            .eq('roles_cabecera.departamento_id', Number(deptId))
             .order('fecha', { ascending: false })
             .limit(10); // Mostrar los últimos 10 servicios por defecto
 
@@ -39,21 +47,27 @@ export const attendanceService = {
         rol_jerarquico,
         usuario:usuarios (id, nombre, apellido, genero)
       `)
-            .eq('departamento_id', deptId);
+            .eq('departamento_id', Number(deptId));
 
         if (error) throw error;
 
         // Agrupar todos los roles de cada usuario en el departamento
         const membersMap = new Map<number, DepartmentMember>();
-        const membersData = data as any[] || [];
+        const membersData = data || [];
 
         for (const m of membersData) {
+            if (!m.usuario_id || !m.usuario) continue;
+
+            // Ensure TS knows usuario is not array (based on relationship)
+            const user = Array.isArray(m.usuario) ? m.usuario[0] : m.usuario;
+            if (!user) continue;
+
             if (!membersMap.has(m.usuario_id)) {
                 membersMap.set(m.usuario_id, {
-                    id: m.usuario.id,
-                    nombre: m.usuario.nombre,
-                    apellido: m.usuario.apellido,
-                    genero: m.usuario.genero,
+                    id: user.id,
+                    nombre: user.nombre,
+                    apellido: user.apellido,
+                    genero: user.genero,
                     roles: [m.rol_jerarquico ? m.rol_jerarquico.toLowerCase() : '']
                 });
             } else {
@@ -75,11 +89,11 @@ export const attendanceService = {
     /**
      * Obtiene los registros de asistencia existentes para un día de servicio
      */
-    async fetchAttendance(configDiaId: number | string): Promise<any[]> {
+    async fetchAttendance(configDiaId: number | string): Promise<AttendanceRecord[]> {
         const { data, error } = await supabase
             .from('asistencias')
             .select('*')
-            .eq('configuracion_dia_id', configDiaId);
+            .eq('configuracion_dia_id', Number(configDiaId));
 
         if (error) throw error;
         return data || [];
@@ -88,7 +102,7 @@ export const attendanceService = {
     /**
      * Guarda o actualiza los registros de asistencia
      */
-    async saveAttendance(records: any[]): Promise<void> {
+    async saveAttendance(records: AttendanceInsert[]): Promise<void> {
         const { error } = await supabase
             .from('asistencias')
             .upsert(records, { onConflict: 'configuracion_dia_id, usuario_id' });

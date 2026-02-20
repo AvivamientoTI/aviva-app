@@ -12,7 +12,7 @@ export interface ServiceDateConfig {
 
 export interface HeaderState {
     id: number;
-    estado: string;
+    estado: string | null;
 }
 
 export interface DraftAssignment {
@@ -109,7 +109,7 @@ export function PlanningProvider({ children }: { children: ReactNode }) {
             if (!newConfigs[dateStr]) {
                 const posQuotas: Record<string, number> = {};
                 if (positions.length > 0) {
-                    positions.forEach(p => posQuotas[p.id] = (p.cantidad_default ?? 0) > 0 ? p.cantidad_default : 1);
+                    positions.forEach(p => posQuotas[p.id] = (Number(p.cantidad_default) || 1));
                 }
                 newConfigs[dateStr] = [{
                     type: 'Culto General',

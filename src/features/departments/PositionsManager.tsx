@@ -7,10 +7,10 @@ import { supabase } from '../../services/supabaseClient';
 interface Position {
     id: number;
     nombre: string;
-    cantidad_default: number;
-    genero_requerido: string;
-    orden: number;
-    departamento_id: number;
+    cantidad_default: number | null;
+    genero_requerido: string | null;
+    orden: number | null;
+    departamento_id: number | null;
 }
 
 interface PositionsManagerProps {
@@ -34,10 +34,12 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
     }, [departmentId]);
 
     const fetchPositions = async () => {
+        if (!departmentId) return;
+
         const { data, error } = await supabase
             .from('posiciones_departamento')
             .select('*')
-            .eq('departamento_id', departmentId)
+            .eq('departamento_id', Number(departmentId))
             .order('orden', { ascending: true })
             .order('nombre', { ascending: true });
 
@@ -51,6 +53,8 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.nombre.trim()) return;
+
+        if (!departmentId) return;
 
         setLoading(true);
         const { error } = await supabase
@@ -127,7 +131,7 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
                     />
                     <NumberInput
                         label="Cantidad"
-                        value={formData.cantidad_default}
+                        value={Number(formData.cantidad_default)}
                         onChange={(val) => setFormData({ ...formData, cantidad_default: Number(val) })}
                         min={1}
                         style={{ flex: 1 }}
@@ -145,7 +149,7 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
                     />
                     <NumberInput
                         label="Orden"
-                        value={formData.orden}
+                        value={Number(formData.orden)}
                         onChange={(val) => setFormData({ ...formData, orden: Number(val) })}
                         min={0}
                         style={{ width: 80 }}
@@ -177,7 +181,7 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
                                     {editingId === pos.id ? (
                                         <NumberInput
                                             size="xs"
-                                            value={editFormData.cantidad_default}
+                                            value={Number(editFormData.cantidad_default)}
                                             onChange={(val) => setEditFormData({ ...editFormData, cantidad_default: Number(val) })}
                                             min={1}
                                             w={80}
@@ -208,7 +212,7 @@ export function PositionsManager({ departmentId }: PositionsManagerProps) {
                                     {editingId === pos.id ? (
                                         <NumberInput
                                             size="xs"
-                                            value={editFormData.orden}
+                                            value={Number(editFormData.orden)}
                                             onChange={(val) => setEditFormData({ ...editFormData, orden: Number(val) })}
                                             min={0}
                                             w={70}

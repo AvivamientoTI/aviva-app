@@ -1,3 +1,8 @@
+import type { Database } from './database.types';
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T];
+
 export interface User {
     id: string; // auth id (uuid)
     email?: string;
@@ -10,20 +15,9 @@ export interface UserProfile {
     // ... other profile fields
 }
 
-export interface Department {
-    id: number;
-    nombre: string;
-    prioridad?: number;
-}
+export type Department = Tables<'departamentos'>;
 
-export interface Position {
-    id: number;
-    nombre: string;
-    departamento_id: number;
-    cantidad_default: number;
-    genero_requerido?: 'M' | 'F' | 'A';
-    orden?: number;
-}
+export type Position = Tables<'posiciones_departamento'>;
 
 export interface PublicUser {
     id: number;
@@ -33,11 +27,7 @@ export interface PublicUser {
     roles?: string[]; // Array of role names
 }
 
-export interface Membership {
-    id: number;
-    usuario_id: number;
-    departamento_id: number;
-    rol_jerarquico?: string;
+export interface Membership extends Tables<'membresias'> {
     departamento?: Department;
     usuario?: PublicUser;
 }

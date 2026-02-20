@@ -22,32 +22,26 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCheck, IconDeviceFloppy, IconCalendar, IconUsers, IconSearch, IconFileDownload } from '@tabler/icons-react';
 import { useUser } from '../../contexts/UserContext';
-import { attendanceService, type DepartmentMember } from '../../services/attendanceService';
+import { usePermissions } from '../../hooks/usePermissions';
+import { attendanceService, type DepartmentMember, type ServiceDay, type AttendanceRecord } from '../../services/attendanceService';
 import dayjs from 'dayjs';
 import { useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 import { impactReportService, type MonthlyStats, type MemberImpact, type ServiceDetail } from '../../services/ImpactReportService';
 import { ImpactReportTemplate } from '../reports/ImpactReportTemplate';
+import { DEPARTMENTS } from '../../constants/departments';
+import { ATTENDANCE_STATES } from '../../constants/attendance';
 
-interface AttendanceRecord {
-    estado: string;
-    justificacion: string;
-}
-
-interface ServiceDay {
-    id: string | number;
-    fecha: string;
-    tipo_servicio: string;
-}
+type LocalAttendanceState = Pick<AttendanceRecord, 'estado' | 'justificacion'>;
 
 export function AttendanceManager() {
-    const { attendanceManagedDepartments, userMemberships } = useUser();
+    const { attendanceManagedDepartments } = useUser();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [selectedService, setSelectedService] = useState<string | null>(null);
     const [serviceDays, setServiceDays] = useState<ServiceDay[]>([]);
     const [members, setMembers] = useState<DepartmentMember[]>([]);
-    const [attendance, setAttendance] = useState<Record<string, AttendanceRecord>>({});
+    const [attendance, setAttendance] = useState<Record<string, LocalAttendanceState>>({});
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [generatingReport, setGeneratingReport] = useState(false);
@@ -61,14 +55,8 @@ export function AttendanceManager() {
     const reportRef = useRef<HTMLDivElement>(null);
 
     // Declarar servidoresDept y servidoresMembership antes de los hooks
-    const servidoresDept = attendanceManagedDepartments?.find(d => d.nombre?.toLowerCase() === 'servidores');
-    const servidoresMembership = userMemberships?.find(m => {
-        const nombreDept = m.departamento?.nombre?.toLowerCase() || '';
-        const rol = m.rol_jerarquico?.toLowerCase() || '';
-        return nombreDept === 'servidores' && (
-            rol === 'líder' || rol === 'lider' || rol === 'sublíder' || rol === 'sublider' || rol === 'encargado' || rol === 'encargada'
-        );
-    });
+    const servidoresDept = attendanceManagedDepartments?.find(d => d.nombre?.toLowerCase() === DEPARTMENTS.SERVIDORES.toLowerCase());
+    const { isLiderSubliderEncargadoServidores } = usePermissions();
 
     useEffect(() => {
         if (!selectedDept && attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
@@ -96,7 +84,7 @@ export function AttendanceManager() {
         }
     }, [selectedService]);
 
-    function handleAttendanceChange(userId: string | number, field: keyof AttendanceRecord, value: string) {
+    function handleAttendanceChange(userId: string | number, field: keyof LocalAttendanceState, value: string) {
         setAttendance(prev => ({
             ...prev,
             [userId]: {
@@ -144,8 +132,8 @@ export function AttendanceManager() {
         try {
             if (!selectedService) return;
             const data = await attendanceService.fetchAttendance(selectedService);
-            const attendanceMap: Record<string, AttendanceRecord> = {};
-            data.forEach((rec: any) => {
+            const attendanceMap: Record<string, LocalAttendanceState> = {};
+            data.forEach((rec) => {
                 attendanceMap[rec.usuario_id] = {
                     estado: rec.estado,
                     justificacion: rec.justificacion || ''
@@ -172,7 +160,7 @@ export function AttendanceManager() {
             // Construir registros a guardar
             const records = members.map(member => ({
                 usuario_id: member.id,
-                config_dia_id: selectedService,
+                configuracion_dia_id: Number(selectedService),
                 estado: attendance[member.id]?.estado || '',
                 justificacion: attendance[member.id]?.justificacion || ''
             }));
@@ -183,11 +171,11 @@ export function AttendanceManager() {
                 color: 'green',
                 icon: <IconCheck size={18} />
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             notifications.show({
                 title: 'Error al guardar',
-                message: error.message || 'No se pudo guardar la asistencia.',
+                message: (error as Error).message || 'No se pudo guardar la asistencia.',
                 color: 'red',
                 icon: <IconAlertCircle size={18} />
             });
@@ -214,7 +202,7 @@ export function AttendanceManager() {
         );
     }
 
-    if (!servidoresDept || !servidoresMembership) {
+    if (!servidoresDept || !isLiderSubliderEncargadoServidores) {
         return null;
     }
 
@@ -224,6 +212,14 @@ export function AttendanceManager() {
         value: String(d.id),
         label: `${dayjs(d.fecha).format('DD/MM')} - ${d.tipo_servicio}`
     }));
+
+    const filteredMembers = members.filter(m =>
+        `${m.nombre} ${m.apellido}`.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const presentCount = filteredMembers.filter(m => attendance[m.id]?.estado === ATTENDANCE_STATES.ASISTIO).length;
+    const totalVisible = filteredMembers.length;
+    const attendancePercentage = totalVisible > 0 ? Math.round((presentCount / totalVisible) * 100) : 0;
 
     return (
         <Container size="xl" py="xl">
@@ -288,7 +284,11 @@ export function AttendanceManager() {
                                         return;
                                     }
 
-                                    setReportData(data as any);
+                                    setReportData(data as {
+                                        stats: MonthlyStats;
+                                        members: MemberImpact[];
+                                        services: ServiceDetail[];
+                                    });
 
                                     // Esperar un render para capturar
                                     setTimeout(async () => {
@@ -358,12 +358,12 @@ export function AttendanceManager() {
                                     <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#292524' }}>Participación</Title>
                                 </Stack>
                                 <Badge color="gold" variant="filled" size="xl" radius="md" style={{ height: 40, fontSize: '1rem', fontWeight: 800 }}>
-                                    {Math.round((Object.values(attendance).filter(a => a.estado === 'Asistió').length / members.length) * 100)}% PRESENTE
+                                    {attendancePercentage}% PRESENTE
                                 </Badge>
                             </Group>
 
                             <Progress
-                                value={(Object.values(attendance).filter(a => a.estado === 'Asistió').length / members.length) * 100}
+                                value={attendancePercentage}
                                 size="lg"
                                 radius="xl"
                                 animated
@@ -381,7 +381,7 @@ export function AttendanceManager() {
                                     onClick={() => {
                                         const newAttendance = { ...attendance };
                                         members.forEach(m => {
-                                            newAttendance[m.id] = { estado: 'Asistió', justificacion: '' };
+                                            newAttendance[m.id] = { estado: ATTENDANCE_STATES.ASISTIO, justificacion: '' };
                                         });
                                         setAttendance(newAttendance);
                                         notifications.show({ title: '¡Listo!', message: 'Todos marcados como presente', color: 'green' });
@@ -427,50 +427,48 @@ export function AttendanceManager() {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {members
-                                        .filter(m => `${m.nombre} ${m.apellido}`.toLowerCase().includes(searchQuery.toLowerCase()))
-                                        .map((member) => (
-                                            <Table.Tr key={member.id}>
-                                                <Table.Td>
-                                                    <Stack gap={0}>
-                                                        <Text fw={800} size="sm" c="stone.8">{member.nombre} {member.apellido}</Text>
-                                                        <Text size="xs" c="stone.5" fw={700}>Servidor(a)</Text>
-                                                    </Stack>
-                                                </Table.Td>
+                                    {filteredMembers.map((member) => (
+                                        <Table.Tr key={member.id}>
+                                            <Table.Td>
+                                                <Stack gap={0}>
+                                                    <Text fw={800} size="sm" c="stone.8">{member.nombre} {member.apellido}</Text>
+                                                    <Text size="xs" c="stone.5" fw={700}>Servidor(a)</Text>
+                                                </Stack>
+                                            </Table.Td>
 
-                                                <Table.Td>
-                                                    <Center>
-                                                        <SegmentedControl
-                                                            size="xs"
-                                                            radius="xl"
-                                                            value={attendance[member.id]?.estado || ''}
-                                                            onChange={(val) => handleAttendanceChange(member.id, 'estado', val)}
-                                                            data={[
-                                                                { label: 'Asistió', value: 'Asistió' },
-                                                                { label: 'Faltó c/ Aviso', value: 'Faltó con Aviso' },
-                                                                { label: 'Faltó s/ Aviso', value: 'Faltó sin Aviso' },
-                                                            ]}
-                                                            color={
-                                                                attendance[member.id]?.estado === 'Asistió' ? 'teal' : // Green -> Teal
-                                                                    attendance[member.id]?.estado === 'Faltó con Aviso' ? 'orange' : // Yellow -> Orange for contrast
-                                                                        attendance[member.id]?.estado === 'Faltó sin Aviso' ? 'red' : 'gray'
-                                                            }
-                                                        />
-                                                    </Center>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <TextInput
-                                                        placeholder="Ej: Enfermedad, viaje..."
+                                            <Table.Td>
+                                                <Center>
+                                                    <SegmentedControl
                                                         size="xs"
-                                                        radius="md"
-                                                        value={attendance[member.id]?.justificacion || ''}
-                                                        onChange={(e) => handleAttendanceChange(member.id, 'justificacion', e.target.value)}
-                                                        disabled={attendance[member.id]?.estado === 'Asistió'}
-                                                        styles={{ input: { borderColor: '#e7e5e4' } }}
+                                                        radius="xl"
+                                                        value={attendance[member.id]?.estado || ''}
+                                                        onChange={(val) => handleAttendanceChange(member.id, 'estado', val)}
+                                                        data={[
+                                                            { label: 'Asistió', value: ATTENDANCE_STATES.ASISTIO },
+                                                            { label: 'Con Justificación', value: ATTENDANCE_STATES.CON_JUSTIFICACION },
+                                                            { label: 'Sin Justificación', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
+                                                        ]}
+                                                        color={
+                                                            attendance[member.id]?.estado === ATTENDANCE_STATES.ASISTIO ? 'teal' : // Green -> Teal
+                                                                attendance[member.id]?.estado === ATTENDANCE_STATES.CON_JUSTIFICACION ? 'orange' : // Yellow -> Orange for contrast
+                                                                    attendance[member.id]?.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION ? 'red' : 'gray'
+                                                        }
                                                     />
-                                                </Table.Td>
-                                            </Table.Tr>
-                                        ))}
+                                                </Center>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <TextInput
+                                                    placeholder="Ej: Enfermedad, viaje..."
+                                                    size="xs"
+                                                    radius="md"
+                                                    value={attendance[member.id]?.justificacion || ''}
+                                                    onChange={(e) => handleAttendanceChange(member.id, 'justificacion', e.target.value)}
+                                                    disabled={attendance[member.id]?.estado === ATTENDANCE_STATES.ASISTIO}
+                                                    styles={{ input: { borderColor: '#e7e5e4' } }}
+                                                />
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
                                 </Table.Tbody>
                             </Table>
                         </Table.ScrollContainer>

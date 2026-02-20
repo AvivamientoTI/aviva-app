@@ -11,7 +11,8 @@ import {
     Card,
     Box,
     Select,
-    Skeleton
+    Skeleton,
+    Button
 } from '@mantine/core';
 import {
     IconCalendarEvent,
@@ -29,6 +30,13 @@ import { StatCard } from './components/StatCard';
 import { WelcomeCard } from './components/WelcomeCard';
 import { UpcomingServiceCard } from './components/UpcomingServiceCard';
 import dayjs from 'dayjs';
+import { useRef } from 'react';
+import { jsPDF } from 'jspdf';
+import { toPng } from 'html-to-image';
+import { PersonalRoleTemplate } from '../reports/PersonalRoleTemplate';
+import { analyticsService } from '../../services/analyticsService';
+import { notifications } from '@mantine/notifications';
+import { IconFileDownload } from '@tabler/icons-react';
 
 // Helper to safely get the first item or the item itself
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,6 +54,59 @@ export function Dashboard() {
     }, [attendanceManagedDepartments]);
 
     const { upcoming, stats, loading } = useDashboardData(selectedDeptId);
+
+    const [exporting, setExporting] = useState(false);
+    const [exportData, setExportData] = useState<any[] | null>(null);
+    const reportRef = useRef<HTMLDivElement>(null);
+
+    const handleExportRole = async () => {
+        if (!userProfile?.usuario_id) return;
+        setExporting(true);
+        try {
+            const now = dayjs();
+            const data = await analyticsService.fetchMonthlyUserRole(
+                userProfile.usuario_id,
+                now.month() + 1,
+                now.year()
+            );
+
+            if (data.length === 0) {
+                notifications.show({
+                    title: 'Sin Asignaciones',
+                    message: 'No tienes servicios programados para este mes.',
+                    color: 'orange'
+                });
+                return;
+            }
+
+            setExportData(data);
+
+            // Wait for render
+            setTimeout(async () => {
+                if (reportRef.current) {
+                    const dataUrl = await toPng(reportRef.current, { quality: 0.95, pixelRatio: 2 });
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgProps = pdf.getImageProperties(dataUrl);
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.save(`Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.pdf`);
+                    setExportData(null);
+                    notifications.show({
+                        title: '¡Éxito!',
+                        message: 'Tu rol ha sido exportado.',
+                        color: 'teal',
+                        icon: <IconChecklist size={18} />
+                    });
+                }
+            }, 600);
+        } catch (error) {
+            console.error('Error exporting role:', error);
+            notifications.show({ title: 'Error', message: 'No se pudo generar el PDF de tu rol', color: 'red' });
+        } finally {
+            setExporting(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -127,7 +188,7 @@ export function Dashboard() {
                     />
                     <StatCard
                         title="Departamentos"
-                        value={attendanceManagedDepartments?.length || 0}
+                        value={Array.from(new Set(attendanceManagedDepartments?.map(d => d.id) || [])).length}
                         icon={<IconUsers size={24} />}
                         color="orange"
                     />
@@ -136,7 +197,20 @@ export function Dashboard() {
                 <Grid>
                     <Grid.Col span={{ base: 12, md: 8 }}>
                         <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
-                            <Title order={4} mb="md" c="gold.5">Próximos Servicios</Title>
+                            <Group justify="space-between" mb="md">
+                                <Title order={4} c="gold.5">Próximos Servicios</Title>
+                                <Button
+                                    variant="subtle"
+                                    color="gold"
+                                    size="xs"
+                                    radius="xl"
+                                    leftSection={<IconFileDownload size={16} />}
+                                    loading={exporting}
+                                    onClick={handleExportRole}
+                                >
+                                    Exportar Mi Rol (PDF)
+                                </Button>
+                            </Group>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
                                     {upcoming.map((service) => {
@@ -260,6 +334,19 @@ export function Dashboard() {
                     )}
                 </Grid>
             </Stack>
+
+            {/* Template for export (Hidden) */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                {exportData && (
+                    <PersonalRoleTemplate
+                        ref={reportRef}
+                        userName={`${userProfile?.usuario?.nombre} ${userProfile?.usuario?.apellido}`}
+                        assignments={exportData}
+                        month={dayjs().month() + 1}
+                        year={dayjs().year()}
+                    />
+                )}
+            </div>
         </Container>
     );
 }

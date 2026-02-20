@@ -4,6 +4,16 @@ import weekOfYear from 'dayjs/plugin/weekOfYear';
 
 dayjs.extend(weekOfYear);
 import type { StatsData } from '../types';
+import type { Database } from '../types/database.types';
+
+type AttendanceWithRelations = Database['public']['Tables']['asistencias']['Row'] & {
+  configuracion_dia: {
+    fecha: string;
+    roles_cabecera: {
+      departamento_id: number;
+    }[];
+  };
+};
 
 export const analyticsService = {
   /**
@@ -34,6 +44,36 @@ export const analyticsService = {
   },
 
   /**
+   * Obtiene el rol mensual completo de un usuario específico
+   */
+  async fetchMonthlyUserRole(userId: number, month: number, year: number): Promise<any[]> {
+    const startOfMonth = dayjs(`${year}-${month}-01`).startOf('month').format('YYYY-MM-DD');
+    const endOfMonth = dayjs(`${year}-${month}-01`).endOf('month').format('YYYY-MM-DD');
+
+    const { data, error } = await supabase
+      .from('asignaciones')
+      .select(`
+        id,
+        configuracion_dia!inner (
+          fecha,
+          tipo_servicio,
+          color_uniforme
+        ),
+        posicion:posiciones_departamento (
+          nombre,
+          departamento:departamentos ( nombre )
+        )
+      `)
+      .eq('usuario_id', userId)
+      .gte('configuracion_dia.fecha', startOfMonth)
+      .lte('configuracion_dia.fecha', endOfMonth)
+      .order('configuracion_dia(fecha)', { ascending: true });
+
+    if (error) throw error;
+    return data as any[] || [];
+  },
+
+  /**
    * Obtiene estadísticas de asistencia para un departamento en un rango de fechas
    */
   async fetchAttendanceStats(deptId: number, months: number = 2): Promise<StatsData> {
@@ -55,7 +95,7 @@ export const analyticsService = {
 
     if (error) throw error;
 
-    const rawData = data as any[] || [];
+    const rawData = (data || []) as unknown as AttendanceWithRelations[];
 
     // Procesar datos para gráficos
     const stats: StatsData = {
@@ -105,7 +145,7 @@ export const analyticsService = {
     // 2. Agrupar por semana
     const weeklyData: Record<string, { weekStart: string, present: number, absent: number, total: number }> = {};
 
-    data.forEach((r: any) => {
+    (data as unknown as AttendanceWithRelations[]).forEach((r) => {
       const date = dayjs(r.configuracion_dia.fecha);
       const weekLabel = `Semana ${date.week()} (${date.format('DD/MM')})`;
 
@@ -143,7 +183,7 @@ export const analyticsService = {
     const heatmap: Record<string, number> = {};
     let totalServices = 0;
 
-    data?.forEach((r: any) => {
+    (data as unknown as AttendanceWithRelations[])?.forEach((r) => {
       const date = r.configuracion_dia.fecha; // YYYY-MM-DD
       if (r.estado === 'Asistió') {
         heatmap[date] = (heatmap[date] || 0) + 1;

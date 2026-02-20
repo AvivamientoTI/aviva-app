@@ -9,7 +9,7 @@ export const usePositions = (departmentId: string | number | null) => {
             const { data, error } = await supabase
                 .from('posiciones_departamento')
                 .select('*')
-                .eq('departamento_id', departmentId)
+                .eq('departamento_id', Number(departmentId))
                 .order('nombre');
 
             if (error) throw error;
