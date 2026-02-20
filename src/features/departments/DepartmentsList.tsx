@@ -4,6 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { supabase } from '../../services/supabaseClient';
 import { PositionsManager } from './PositionsManager.tsx';
+import { UniformsManager } from './UniformsManager.tsx';
 import { usePermissions } from '../../hooks/usePermissions';
 
 interface Department {
@@ -23,6 +24,10 @@ export function DepartmentsList() {
     // Positions Modal State
     const [positionsModalOpen, { open: openPositions, close: closePositions }] = useDisclosure(false);
     const [selectedDeptForPositions, setSelectedDeptForPositions] = useState<Department | null>(null);
+
+    // Uniforms Modal State
+    const [uniformsModalOpen, { open: openUniforms, close: closeUniforms }] = useDisclosure(false);
+    const [selectedDeptForUniforms, setSelectedDeptForUniforms] = useState<Department | null>(null);
 
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deptToDelete, setDeptToDelete] = useState<Department | null>(null);
@@ -106,6 +111,11 @@ export function DepartmentsList() {
         openPositions();
     };
 
+    const handleManageUniforms = (dept: Department) => {
+        setSelectedDeptForUniforms(dept);
+        openUniforms();
+    };
+
     const resetForm = () => {
         setEditingDept(null);
         setFormData({ nombre: '', prioridad: 2 });
@@ -161,6 +171,9 @@ export function DepartmentsList() {
                                         <Button variant="light" size="xs" radius="sm" onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
                                             Posiciones
                                         </Button>
+                                        <Button variant="light" color="orange" size="xs" radius="sm" onClick={() => handleManageUniforms(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
+                                            Uniformes
+                                        </Button>
                                         <Button variant="filled" color="blue" size="xs" radius="sm" onClick={() => handleEdit(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
                                             Editar
                                         </Button>
@@ -209,6 +222,15 @@ export function DepartmentsList() {
                 size="lg"
             >
                 <PositionsManager departmentId={selectedDeptForPositions?.id} />
+            </Modal>
+
+            <Modal
+                opened={uniformsModalOpen}
+                onClose={closeUniforms}
+                title={`Uniformes: ${selectedDeptForUniforms?.nombre || ''}`}
+                size="md"
+            >
+                <UniformsManager departmentId={selectedDeptForUniforms?.id} />
             </Modal>
 
             <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Confirmar Eliminación" centered>

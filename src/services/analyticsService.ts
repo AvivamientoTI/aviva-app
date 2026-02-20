@@ -44,6 +44,20 @@ export const analyticsService = {
   },
 
   /**
+   * Obtiene el conteo total de próximos servicios para un usuario
+   */
+  async fetchUpcomingCount(userId: number): Promise<number> {
+    const { count, error } = await supabase
+      .from('asignaciones')
+      .select('id, configuracion_dia!inner(fecha)', { count: 'exact', head: true })
+      .eq('usuario_id', userId)
+      .gte('configuracion_dia.fecha', dayjs().format('YYYY-MM-DD'));
+
+    if (error) throw error;
+    return count || 0;
+  },
+
+  /**
    * Obtiene el rol mensual completo de un usuario específico
    */
   async fetchMonthlyUserRole(userId: number, month: number, year: number): Promise<any[]> {
@@ -73,11 +87,10 @@ export const analyticsService = {
     return data as any[] || [];
   },
 
-  /**
-   * Obtiene estadísticas de asistencia para un departamento en un rango de fechas
-   */
-  async fetchAttendanceStats(deptId: number, months: number = 2): Promise<StatsData> {
-    const startDate = dayjs().subtract(months, 'month').startOf('month').format('YYYY-MM-DD');
+  async fetchAttendanceStats(deptId: number, range: 'YTD' | number = 2): Promise<StatsData> {
+    const startDate = range === 'YTD'
+      ? dayjs().startOf('year').format('YYYY-MM-DD')
+      : dayjs().subtract(range, 'month').startOf('month').format('YYYY-MM-DD');
 
     const { data, error } = await supabase
       .from('asistencias')
@@ -94,10 +107,36 @@ export const analyticsService = {
       .gte('configuracion_dia.fecha', startDate);
 
     if (error) throw error;
+    return this.processAttendanceData(data || []);
+  },
 
-    const rawData = (data || []) as unknown as AttendanceWithRelations[];
+  async fetchUserAttendanceStats(userId: number, deptId: number, range: 'YTD' | number = 2): Promise<StatsData> {
+    const startDate = range === 'YTD'
+      ? dayjs().startOf('year').format('YYYY-MM-DD')
+      : dayjs().subtract(range, 'month').startOf('month').format('YYYY-MM-DD');
 
-    // Procesar datos para gráficos
+    const { data, error } = await supabase
+      .from('asistencias')
+      .select(`
+        estado,
+        configuracion_dia!inner (
+          fecha,
+          roles_cabecera!inner (
+            departamento_id
+          )
+        )
+      `)
+      .eq('usuario_id', userId)
+      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+      .gte('configuracion_dia.fecha', startDate);
+
+    if (error) throw error;
+    return this.processAttendanceData(data || []);
+  },
+
+  processAttendanceData(data: any[]): StatsData {
+    const rawData = data as unknown as AttendanceWithRelations[];
+
     const stats: StatsData = {
       summary: {
         total: rawData.length,
@@ -116,6 +155,11 @@ export const analyticsService = {
       if (r.estado === 'Asistió') stats.byMonth[month].asistio++;
       else stats.byMonth[month].faltas++;
     });
+
+    const lastMonth = dayjs().subtract(1, 'month');
+    const lastMonthStr = lastMonth.format('MMM YYYY');
+    const lastMonthStats = stats.byMonth[lastMonthStr];
+    (stats as any).lastMonthSummary = lastMonthStats || { month: lastMonthStr, asistio: 0, faltas: 0 };
 
     return stats;
   },

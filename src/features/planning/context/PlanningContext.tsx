@@ -113,7 +113,7 @@ export function PlanningProvider({ children }: { children: ReactNode }) {
                 }
                 newConfigs[dateStr] = [{
                     type: 'Culto General',
-                    uniform: 'Formal Gris',
+                    uniform: '',
                     positionQuotas: posQuotas
                 }];
             }
@@ -127,7 +127,7 @@ export function PlanningProvider({ children }: { children: ReactNode }) {
             const first = list[0];
             list.push({
                 type: 'Culto Especial',
-                uniform: first?.uniform || 'Formal Gris',
+                uniform: first?.uniform || '',
                 positionQuotas: { ...first?.positionQuotas }
             });
             return { ...prev, [dateStr]: list };

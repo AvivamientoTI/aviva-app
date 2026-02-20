@@ -4,11 +4,12 @@ import { Card, Box, Stack, Group, Text, ThemeIcon } from '@mantine/core';
 interface StatCardProps {
     title: string;
     value: string | number;
+    subtitle?: string;
     icon: React.ReactNode;
     color: string;
 }
 
-export function StatCard({ title, value, icon, color }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon, color }: StatCardProps) {
     return (
         <Card p="xl" radius="lg" withBorder className="animate-fade-in" style={{
             backgroundColor: 'var(--mantine-color-body)',
@@ -37,9 +38,16 @@ export function StatCard({ title, value, icon, color }: StatCardProps) {
                         {icon}
                     </ThemeIcon>
                 </Group>
-                <Text fw={900} size="xl" style={{ fontSize: '2.2rem', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
-                    {value}
-                </Text>
+                <div>
+                    <Text fw={900} size="xl" style={{ fontSize: '2.2rem', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
+                        {value}
+                    </Text>
+                    {subtitle && (
+                        <Text size="xs" c="dimmed" fw={700} mt={-4}>
+                            {subtitle}
+                        </Text>
+                    )}
+                </div>
             </Stack>
         </Card>
     );

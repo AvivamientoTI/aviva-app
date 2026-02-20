@@ -84,9 +84,15 @@ export function MembershipsManager({ userId }) {
     setLoading(false);
   };
 
-  const handleDelete = async (id) => {
-    const { error } = await supabase.from('membresias').delete().eq('id', id);
+  const handleDelete = async (m) => {
+    if (!permissions.isSystemAdmin && !permissions.canManageDepartment(m.departamento_id)) {
+      notifications.show({ title: 'Acceso Denegado', message: 'No tienes permiso para gestionar este departamento.', color: 'red' });
+      return;
+    }
+
+    const { error } = await supabase.from('membresias').delete().eq('id', m.id);
     if (!error) fetchMemberships();
+    else notifications.show({ title: 'Error', message: error.message, color: 'red' });
   };
 
   return (
@@ -111,7 +117,15 @@ export function MembershipsManager({ userId }) {
                     <Badge variant="light" color="gold" radius="sm" fw={800} c="gold.9">{m.rol_jerarquico}</Badge>
                   </Table.Td>
                   <Table.Td style={{ textAlign: 'right' }}>
-                    <Button color="red" variant="light" size="xs" onClick={() => handleDelete(m.id)}>Eliminar</Button>
+                    <Button
+                      color="red"
+                      variant="light"
+                      size="xs"
+                      onClick={() => handleDelete(m)}
+                      disabled={!permissions.isSystemAdmin && !permissions.canManageDepartment(m.departamento_id)}
+                    >
+                      Eliminar
+                    </Button>
                   </Table.Td>
                 </Table.Tr>
               ))}
@@ -134,8 +148,8 @@ export function MembershipsManager({ userId }) {
         <Select
           label="Rol"
           data={[
-            { value: ROLES.LIDER, label: ROLES.LIDER },
-            { value: ROLES.SUBLIDER, label: ROLES.SUBLIDER },
+            { value: ROLES.LIDER, label: ROLES.LIDER, disabled: !permissions.isSystemAdmin && !permissions.isLider },
+            { value: ROLES.SUBLIDER, label: ROLES.SUBLIDER, disabled: !permissions.isSystemAdmin && !permissions.isLider && !permissions.isSublider },
             { value: ROLES.ENCARGADO, label: ROLES.ENCARGADO },
             { value: ROLES.SERVIDOR, label: ROLES.SERVIDOR }
           ]}

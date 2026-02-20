@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { analyticsService } from '../services/analyticsService';
 import { useUser } from '../contexts/UserContext';
+import { usePermissions } from './usePermissions';
 
 // Types derived from what was in Dashboard.tsx
 export interface UpcomingService {
@@ -41,7 +42,11 @@ export interface StatsData {
 
 export const useDashboardData = (selectedDeptId: number | null) => {
     const { userProfile } = useUser();
+    const permissions = usePermissions();
     const userId = userProfile?.usuario_id;
+
+    // Use departmental stats if user is Admin or Leader of the selected department
+    const shouldShowDeptStats = selectedDeptId ? permissions.canViewReports(selectedDeptId) : false;
 
     const {
         data: upcoming = [],
@@ -49,9 +54,19 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         error: errorUpcoming
     } = useQuery({
         queryKey: ['upcomingServices', userId],
-        queryFn: () => analyticsService.fetchUpcomingServices(userId),
+        queryFn: () => analyticsService.fetchUpcomingServices(userId!),
         enabled: !!userId,
         staleTime: 1000 * 60 * 5, // 5 minutes
+    });
+
+    const {
+        data: upcomingCount = 0,
+        isLoading: loadingUpcomingCount
+    } = useQuery({
+        queryKey: ['upcomingServicesCount', userId],
+        queryFn: () => analyticsService.fetchUpcomingCount(userId!),
+        enabled: !!userId,
+        staleTime: 1000 * 60 * 5,
     });
 
     const {
@@ -59,16 +74,20 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         isLoading: loadingStats,
         error: errorStats
     } = useQuery({
-        queryKey: ['attendanceStats', selectedDeptId],
-        queryFn: () => analyticsService.fetchAttendanceStats(selectedDeptId!),
-        enabled: !!selectedDeptId,
+        queryKey: ['attendanceStats', selectedDeptId, userId, shouldShowDeptStats],
+        queryFn: () => shouldShowDeptStats
+            ? analyticsService.fetchAttendanceStats(selectedDeptId!, 'YTD')
+            : analyticsService.fetchUserAttendanceStats(userId!, selectedDeptId!, 'YTD'),
+        enabled: !!selectedDeptId && !!userId,
         staleTime: 1000 * 60 * 10, // 10 minutes
     });
 
     return {
         upcoming: upcoming as UpcomingService[],
+        upcomingCount,
         stats: stats as StatsData | null,
-        loading: loadingUpcoming || (!!selectedDeptId && loadingStats),
+        shouldShowDeptStats,
+        loading: loadingUpcoming || loadingUpcomingCount || (!!selectedDeptId && loadingStats),
         error: errorUpcoming || errorStats
     };
 };

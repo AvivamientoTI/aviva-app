@@ -18,7 +18,7 @@ import {
     IconTrendingUp,
     IconCalendar
 } from '@tabler/icons-react';
-import { AreaChart } from '@mantine/charts';
+import { AreaChart, BarChart } from '@mantine/charts';
 import { analyticsService } from '../../services/analyticsService';
 import { useUser } from '../../contexts/UserContext';
 import dayjs from 'dayjs';
@@ -33,6 +33,7 @@ export const AnalyticsDashboard = () => {
     // Stats State
     const [weeklyStats, setWeeklyStats] = useState<any[]>([]);
     const [annualStats, setAnnualStats] = useState<any>(null);
+    const [monthlyStats, setMonthlyStats] = useState<any | null>(null);
 
     // Auto-select first managed department
     useEffect(() => {
@@ -59,6 +60,9 @@ export const AnalyticsDashboard = () => {
             } else if (activeTab === 'annual') {
                 const data = await analyticsService.fetchAnnualStats(deptId);
                 setAnnualStats(data);
+            } else if (activeTab === 'monthly') {
+                const data = await analyticsService.fetchAttendanceStats(deptId, 12); // Last 12 months
+                setMonthlyStats(data);
             }
         } catch (error) {
             console.error(error);
@@ -67,13 +71,44 @@ export const AnalyticsDashboard = () => {
         }
     };
 
-    if (loading && !weeklyStats.length && !annualStats) {
+    if (loading && !weeklyStats.length && !annualStats && !monthlyStats) {
         return (
             <Center h={400}>
                 <Loader color="orange" type="dots" />
             </Center>
         );
     }
+
+    const renderMonthly = () => {
+        if (!monthlyStats) return null;
+        const data = Object.values(monthlyStats.byMonth) as any[];
+
+        return (
+            <Stack gap="lg" className="animate-fade-in">
+                <Card padding="xl" radius="md" withBorder>
+                    <Title order={4} mb="md">Desglose por Mes</Title>
+                    {data.length > 0 ? (
+                        <BarChart
+                            h={300}
+                            data={data}
+                            dataKey="month"
+                            series={[
+                                { name: 'asistio', color: 'gold.6', label: 'Asistió' },
+                                { name: 'faltas', color: 'stone.4', label: 'Faltas' },
+                            ]}
+                            withLegend
+                            gridAxis="xy"
+                            barProps={{ radius: [4, 4, 0, 0] }}
+                        />
+                    ) : (
+                        <Center h={300}>
+                            <Text c="dimmed">No hay datos suficientes para mostrar el gráfico mensual</Text>
+                        </Center>
+                    )}
+                </Card>
+            </Stack>
+        );
+    };
 
     const renderWeekly = () => (
         <Stack gap="lg" className="animate-fade-in">
@@ -94,10 +129,11 @@ export const AnalyticsDashboard = () => {
                 <Card padding="lg" radius="md" withBorder>
                     <Group justify="space-between">
                         <div>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Total Servicios</Text>
+                            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Participaciones Totales</Text>
                             <Text fw={700} size="xl">
                                 {weeklyStats.reduce((acc, curr) => acc + curr.total, 0)}
                             </Text>
+                            <Text size="xs" c="dimmed">En las últimas 12 semanas</Text>
                         </div>
                         <ThemeIcon size="xl" radius="md" variant="light" color="blue">
                             <IconCalendarStats size={24} />
@@ -136,9 +172,9 @@ export const AnalyticsDashboard = () => {
                 <Card padding="lg" radius="md" withBorder>
                     <Group justify="space-between">
                         <div>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Total Anual</Text>
+                            <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Participaciones Anuales</Text>
                             <Text fw={700} size="xl">{annualStats?.totalServices || 0}</Text>
-                            <Text size="xs" c="dimmed">Servicios cubiertos este año</Text>
+                            <Text size="xs" c="dimmed">Registros de asistencia este año</Text>
                         </div>
                         <ThemeIcon size="xl" radius="md" variant="light" color="orange">
                             <IconChartBar size={24} />
@@ -198,7 +234,7 @@ export const AnalyticsDashboard = () => {
                 <Tabs value={activeTab} onChange={setActiveTab} variant="pills" radius="md">
                     <Tabs.List>
                         <Tabs.Tab value="weekly" leftSection={<IconTrendingUp size={16} />}>
-                            Esta Semana
+                            Tendencia Semanal
                         </Tabs.Tab>
                         <Tabs.Tab value="monthly" leftSection={<IconChartBar size={16} />}>
                             Por Mes
@@ -213,7 +249,7 @@ export const AnalyticsDashboard = () => {
                             {renderWeekly()}
                         </Tabs.Panel>
                         <Tabs.Panel value="monthly">
-                            <Center h={300}><Text c="dimmed">Próximamente: Análisis de Retención y Crecimiento</Text></Center>
+                            {renderMonthly()}
                         </Tabs.Panel>
                         <Tabs.Panel value="annual">
                             {renderAnnual()}

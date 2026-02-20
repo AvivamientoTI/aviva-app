@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { DatePicker } from '@mantine/dates';
-import { Accordion, Alert, Autocomplete, Badge, Button, Grid, Group, Menu, NumberInput, Paper, ScrollArea, Stack, Text, ThemeIcon, ActionIcon } from '@mantine/core';
-import { IconCalendar, IconApps, IconCheck, IconTrash, IconInfoCircle } from '@tabler/icons-react';
+import { Accordion, Alert, Autocomplete, Badge, Button, Grid, Group, Menu, NumberInput, Paper, ScrollArea, Stack, Text, ThemeIcon, ActionIcon, Loader } from '@mantine/core';
+import { IconCalendar, IconApps, IconCheck, IconTrash, IconInfoCircle, IconShirt } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
 import type { Position } from '../../../types';
+import { usePlanning } from '../context/PlanningContext';
+import { useUniforms } from '../../../hooks/queries/useUniforms';
 
 export interface ServiceDateConfig {
     type: string;
@@ -36,6 +38,12 @@ export const PlanningStepServiceDates = ({
     addServiceToDate,
     removeServiceFromDate
 }: Props) => {
+    const { selectedDeptId } = usePlanning();
+    const { data: uniforms = [], isLoading: loadingUniforms } = useUniforms(selectedDeptId);
+
+    const uniformOptions = useMemo(() => {
+        return uniforms.map(u => u.nombre);
+    }, [uniforms]);
 
     // Helpers for Batch Selection
     const currentMonth = useMemo(() => {
@@ -128,6 +136,20 @@ export const PlanningStepServiceDates = ({
                         </Stack>
                     )}
 
+                    {selectedDates.length > 0 && !loadingUniforms && uniformOptions.length === 0 && (
+                        <Alert
+                            color="orange"
+                            title="Sin Uniformes Configurados"
+                            icon={<IconInfoCircle size={16} />}
+                            variant="light"
+                            mb="md"
+                            radius="md"
+                        >
+                            Este departamento no tiene opciones de uniforme.
+                            Agrega algunos en el menú de Departamentos para que aparezcan aquí.
+                        </Alert>
+                    )}
+
                     <ScrollArea h={selectedDates.length > 5 ? 600 : 'auto'} offsetScrollbars scrollbarSize={6}>
                         <Accordion variant="separated" radius="lg" defaultValue={selectedDates.length > 0 ? selectedDates.sort()[0] : null} styles={{ item: { border: '1px solid #e2e8f0' } }}>
                             {selectedDates && Array.isArray(selectedDates) && selectedDates.sort().map(dateStr => {
@@ -182,10 +204,11 @@ export const PlanningStepServiceDates = ({
                                                                 <Autocomplete
                                                                     label="Uniforme"
                                                                     placeholder="Selecciona o escribe"
-                                                                    data={['Formal Gris', 'Formal Vino', 'Camisa Beige', 'Camisa Azul', 'Camisa Roja', 'Especial']}
+                                                                    data={uniformOptions}
                                                                     value={config.uniform}
                                                                     onChange={(value) => updateServiceConfig(dateStr, idx, 'uniform', value)}
                                                                     size="sm"
+                                                                    leftSection={loadingUniforms ? <Loader size={12} /> : <IconShirt size={16} />}
                                                                 />
                                                             </Grid.Col>
                                                         </Grid>

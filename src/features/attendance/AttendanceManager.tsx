@@ -30,7 +30,6 @@ import { jsPDF } from 'jspdf';
 import { toPng } from 'html-to-image';
 import { impactReportService, type MonthlyStats, type MemberImpact, type ServiceDetail } from '../../services/ImpactReportService';
 import { ImpactReportTemplate } from '../reports/ImpactReportTemplate';
-import { DEPARTMENTS } from '../../constants/departments';
 import { ATTENDANCE_STATES } from '../../constants/attendance';
 
 type LocalAttendanceState = Pick<AttendanceRecord, 'estado' | 'justificacion'>;
@@ -54,21 +53,9 @@ export function AttendanceManager() {
 
     const reportRef = useRef<HTMLDivElement>(null);
 
-    // Declarar servidoresDept y servidoresMembership antes de los hooks
-    const servidoresDept = attendanceManagedDepartments?.find(d => d.nombre?.toLowerCase() === DEPARTMENTS.SERVIDORES.toLowerCase());
-    const { isLiderSubliderEncargadoServidores } = usePermissions();
+    const permissions = usePermissions();
 
-    useEffect(() => {
-        if (!selectedDept && attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
-            setSelectedDept(String(attendanceManagedDepartments[0].id));
-        }
-    }, [attendanceManagedDepartments, selectedDept]);
 
-    useEffect(() => {
-        if (servidoresDept && selectedDept !== String(servidoresDept.id)) {
-            setSelectedDept(String(servidoresDept.id));
-        }
-    }, [servidoresDept, selectedDept]);
 
     useEffect(() => {
         if (selectedDept) {
@@ -202,11 +189,32 @@ export function AttendanceManager() {
         );
     }
 
-    if (!servidoresDept || !isLiderSubliderEncargadoServidores) {
-        return null;
+    if (filteredDepts.length === 0 && !permissions.isSystemAdmin) {
+        return (
+            <Container size="md" py="xl">
+                <Alert icon={<IconAlertCircle size={16} />} title="Sin Acceso" color="red">
+                    La gestión de asistencia es exclusiva para el departamento de Servidores.
+                </Alert>
+            </Container>
+        );
     }
 
-    const deptOptions = [{ value: String(servidoresDept.id), label: servidoresDept.nombre }];
+    // Filter departments to only those the user can manage attendance for (Strictly Servidores per latest rule)
+    const filteredDepts = attendanceManagedDepartments.filter(d => permissions.canManageAttendance(d.id));
+
+    const deptOptions = filteredDepts.map(d => ({
+        value: String(d.id),
+        label: d.nombre
+    }));
+
+    useEffect(() => {
+        if (!selectedDept && filteredDepts.length > 0) {
+            setSelectedDept(String(filteredDepts[0].id));
+        } else if (selectedDept && filteredDepts.length > 0 && !filteredDepts.some(d => String(d.id) === selectedDept)) {
+            // If current selected is not in allowed list, reset to first allowed
+            setSelectedDept(String(filteredDepts[0].id));
+        }
+    }, [filteredDepts, selectedDept]);
 
     const serviceOptions = serviceDays.map(d => ({
         value: String(d.id),
@@ -481,6 +489,7 @@ export function AttendanceManager() {
                                 size="lg"
                                 radius="xl"
                                 color="gold"
+                                disabled={!permissions.canManageAttendance(selectedDept)}
                                 style={{
                                     background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                                     boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'

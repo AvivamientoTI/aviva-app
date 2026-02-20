@@ -53,7 +53,7 @@ export function Dashboard() {
         }
     }, [attendanceManagedDepartments]);
 
-    const { upcoming, stats, loading } = useDashboardData(selectedDeptId);
+    const { upcoming, upcomingCount, stats, loading, shouldShowDeptStats } = useDashboardData(selectedDeptId);
 
     const [exporting, setExporting] = useState(false);
     const [exportData, setExportData] = useState<any[] | null>(null);
@@ -149,6 +149,10 @@ export function Dashboard() {
         ? Math.round((stats!.summary.asistio / attendanceTotal) * 100)
         : 0;
 
+    // Data for "Mes Pasado"
+    const lastMonthStat = (stats as any)?.lastMonthSummary;
+    const lastMonthTotal = lastMonthStat ? (lastMonthStat.asistio + lastMonthStat.faltas) : 0;
+
     const nextService = upcoming.length > 0 ? upcoming[0] : null;
 
     return (
@@ -169,20 +173,22 @@ export function Dashboard() {
 
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
                     <StatCard
-                        title="Asistencia General"
+                        title={shouldShowDeptStats ? "Asistencia Departamento" : "Mi Asistencia"}
                         value={`${attendanceRate}%`}
+                        subtitle={shouldShowDeptStats ? `Promedio de todo el equipo` : `Tu promedio año ${dayjs().year()}`}
                         icon={<IconTrendingUp size={24} />}
                         color="teal"
                     />
                     <StatCard
                         title="Próximos Servicios"
-                        value={upcoming.length}
+                        value={upcomingCount}
                         icon={<IconCalendarEvent size={24} />}
                         color="gold"
                     />
                     <StatCard
                         title="Mes Pasado"
-                        value={attendanceTotal}
+                        value={lastMonthTotal}
+                        subtitle={(stats as any)?.lastMonthSummary?.month || ''}
                         icon={<IconChecklist size={24} />}
                         color="stone"
                     />
@@ -213,7 +219,7 @@ export function Dashboard() {
                             </Group>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
-                                    {upcoming.map((service) => {
+                                    {upcoming.map((service: any) => {
                                         const configDia = getSingle(service.configuracion_dia);
                                         const pos = getSingle(service.posicion);
                                         const dept = getSingle(pos?.departamento);
@@ -280,7 +286,12 @@ export function Dashboard() {
 
                     <Grid.Col span={{ base: 12, md: 4 }}>
                         <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
-                            <Title order={4} mb="md" c="gold.5">Estado de Asistencia</Title>
+                            <Group justify="space-between" mb="md">
+                                <Title order={4} c="gold.5">
+                                    {shouldShowDeptStats ? "Estado del Departamento" : "Mi Estado de Asistencia"}
+                                </Title>
+                                {shouldShowDeptStats && <Badge color="orange" variant="light">Vista Líder</Badge>}
+                            </Group>
                             {stats ? (
                                 <Stack align="center">
                                     <Box w="100%" h={220} style={{ minWidth: 0 }} role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
