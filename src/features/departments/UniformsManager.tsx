@@ -93,7 +93,7 @@ export function UniformsManager({ departmentId }: UniformsManagerProps) {
                 </Group>
             </form>
 
-            <Table highlightOnHover withTableBorder radius="md">
+            <Table highlightOnHover withTableBorder>
                 <Table.Thead style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
                     <Table.Tr>
                         <Table.Th>Nombre del Uniforme</Table.Th>

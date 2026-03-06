@@ -31,6 +31,7 @@ import { toPng } from 'html-to-image';
 import { impactReportService, type MonthlyStats, type MemberImpact, type ServiceDetail } from '../../services/ImpactReportService';
 import { ImpactReportTemplate } from '../reports/ImpactReportTemplate';
 import { ATTENDANCE_STATES } from '../../constants/attendance';
+import { TableSkeleton } from '../../components/TableSkeleton';
 
 type LocalAttendanceState = Pick<AttendanceRecord, 'estado' | 'justificacion'>;
 
@@ -171,20 +172,36 @@ export function AttendanceManager() {
         }
     }
 
-    if (!attendanceManagedDepartments) {
-        return (
-            <Container size="md" py="xl">
-                <Loader size="lg" />
-                <Text>Inicializando...</Text>
-            </Container>
-        );
-    }
+    // Filter departments to only those the user can manage attendance for (Strictly Servidores per latest rule)
+    const filteredDepts = (attendanceManagedDepartments || []).filter(d => permissions.canManageAttendance(d.id));
 
-    if (loading) {
+    useEffect(() => {
+        if (!selectedDept && filteredDepts.length > 0) {
+            setSelectedDept(String(filteredDepts[0].id));
+        } else if (selectedDept && filteredDepts.length > 0 && !filteredDepts.some(d => String(d.id) === selectedDept)) {
+            // If current selected is not in allowed list, reset to first allowed
+            setSelectedDept(String(filteredDepts[0].id));
+        }
+    }, [filteredDepts, selectedDept]);
+
+    if (!attendanceManagedDepartments || loading) {
         return (
-            <Container size="md" py="xl">
-                <Loader size="lg" />
-                <Text>Cargando datos de usuario...</Text>
+            <Container size="xl" py="xl">
+                <Stack gap="xl">
+                    <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
+                        <div>
+                            <Title order={1} style={{
+                                fontFamily: 'Outfit, sans-serif',
+                                fontSize: '2.5rem',
+                                letterSpacing: '-0.02em',
+                                color: '#78350f'
+                            }}>
+                                Control de Asistencia
+                            </Title>
+                        </div>
+                    </Group>
+                    <TableSkeleton rows={6} columns={3} withHeader={false} />
+                </Stack>
             </Container>
         );
     }
@@ -199,22 +216,10 @@ export function AttendanceManager() {
         );
     }
 
-    // Filter departments to only those the user can manage attendance for (Strictly Servidores per latest rule)
-    const filteredDepts = attendanceManagedDepartments.filter(d => permissions.canManageAttendance(d.id));
-
     const deptOptions = filteredDepts.map(d => ({
         value: String(d.id),
         label: d.nombre
     }));
-
-    useEffect(() => {
-        if (!selectedDept && filteredDepts.length > 0) {
-            setSelectedDept(String(filteredDepts[0].id));
-        } else if (selectedDept && filteredDepts.length > 0 && !filteredDepts.some(d => String(d.id) === selectedDept)) {
-            // If current selected is not in allowed list, reset to first allowed
-            setSelectedDept(String(filteredDepts[0].id));
-        }
-    }, [filteredDepts, selectedDept]);
 
     const serviceOptions = serviceDays.map(d => ({
         value: String(d.id),

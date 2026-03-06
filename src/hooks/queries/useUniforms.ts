@@ -19,7 +19,7 @@ export const useUniforms = (departmentId: string | number | null) => {
                 .order('nombre');
 
             if (error) throw error;
-            return data as Uniform[];
+            return data as unknown as Uniform[];
         },
         enabled: !!departmentId,
         staleTime: 1000 * 60 * 60, // 1 hour

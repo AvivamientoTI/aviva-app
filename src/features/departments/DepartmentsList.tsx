@@ -6,6 +6,7 @@ import { supabase } from '../../services/supabaseClient';
 import { PositionsManager } from './PositionsManager.tsx';
 import { UniformsManager } from './UniformsManager.tsx';
 import { usePermissions } from '../../hooks/usePermissions';
+import { TableSkeleton } from '../../components/TableSkeleton';
 
 interface Department {
     id: number;
@@ -144,9 +145,12 @@ export function DepartmentsList() {
                 </Alert>
             )}
 
-            <Table.ScrollContainer minWidth={500}>
-                <Table highlightOnHover style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-                    <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
+            {departments.length === 0 && loading ? (
+                 <TableSkeleton rows={4} columns={4} />
+            ) : (
+                <Table.ScrollContainer minWidth={500}>
+                    <Table highlightOnHover style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                        <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
                         <Table.Tr>
                             <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>ID</Table.Th>
                             <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Nombre</Table.Th>
@@ -187,6 +191,7 @@ export function DepartmentsList() {
                     </Table.Tbody>
                 </Table>
             </Table.ScrollContainer>
+            )}
 
             <Modal opened={opened} onClose={close} title={editingDept ? "Editar Departamento" : "Nuevo Departamento"}>
                 <form onSubmit={handleSubmit}>

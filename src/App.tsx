@@ -11,7 +11,6 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { DepartmentsList } from './features/departments/DepartmentsList';
 import { PlanningWizard } from './features/planning/PlanningWizard';
 import { supabase } from './services/supabaseClient';
-import { Loader, Center, Stack, Text } from '@mantine/core';
 import { useUser, UserProvider } from './contexts/UserContext';
 import { usePermissions } from './hooks/usePermissions';
 import { UsersList } from './features/users/UsersList';
@@ -20,6 +19,7 @@ import { AnalyticsDashboard } from './features/analytics/AnalyticsDashboard';
 
 import { RestrictedAccess } from './components/RestrictedAccess';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { FullScreenLoader } from './components/FullScreenLoader';
 
 function AppContent() {
     const location = useLocation();
@@ -63,19 +63,7 @@ function AppContent() {
     }, []);
 
     if (loading || userLoading) {
-        return (
-            <Center h="100vh" style={{ backgroundColor: '#fcfaf5' }}>
-                <Stack align="center" gap="xl">
-                    <Loader size="xl" color="yellow.7" type="dots" />
-                    <Text size="2.4rem" fw={900} variant="gradient" gradient={{ from: '#d97706', to: '#b45309' }} style={{ fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em' }}>
-                        Servidores AYP
-                    </Text>
-                    <Text size="xs" fw={800} c="stone.5" tt="uppercase" style={{ letterSpacing: '0.15em' }}>
-                        Iniciando Experiencia Premium
-                    </Text>
-                </Stack>
-            </Center>
-        );
+        return <FullScreenLoader />;
     }
 
 

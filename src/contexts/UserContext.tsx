@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { supabase } from '../services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // ---- Interfaces ----
 export interface Department {
@@ -10,7 +11,9 @@ export interface Department {
 }
 
 export interface UserProfileData {
-    usuario: {
+    id: string;
+    usuario_id: number | null;
+    usuario?: {
         nombre: string;
         apellido: string;
         // otros campos de usuario
@@ -29,7 +32,7 @@ export interface Membership {
 
 interface UserContextType {
     user: User | null;
-    userProfile: any | null; // Idealmente tipar esto mejor con UserProfileData
+    userProfile: UserProfileData | null;
     userMemberships: Membership[];
     managedDepartments: Department[];
     attendanceManagedDepartments: Department[];
@@ -54,90 +57,76 @@ interface UserProviderProps {
 
 export function UserProvider({ children }: UserProviderProps) {
     const [user, setUser] = useState<User | null>(null);
-    const [userProfile, setUserProfile] = useState<any | null>(null);
-    const [userMemberships, setUserMemberships] = useState<Membership[]>([]);
-    const [managedDepartments, setManagedDepartments] = useState<Department[]>([]);
-    const [attendanceManagedDepartments, setAttendanceManagedDepartments] = useState<Department[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [authLoading, setAuthLoading] = useState(true);
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         // Obtener usuario actual de Supabase Auth
         supabase.auth.getSession().then(({ data: { session }, error }) => {
             if (error) {
-                // If there's an error (like Invalid Refresh Token), clear local session
                 console.error('Auth error:', error.message);
                 if (error.status === 400 || error.message.includes('Refresh Token')) {
                     supabase.auth.signOut();
                 }
-                setLoading(false);
-                return;
-            }
-            if (session?.user) {
+            } else if (session?.user) {
                 setUser(session.user);
-                fetchUserProfile(session.user.id);
-            } else {
-                setLoading(false);
             }
+            setAuthLoading(false);
         });
 
         // Suscribirse a cambios de autenticación
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
                 setUser(session.user);
-                fetchUserProfile(session.user.id);
             } else {
                 setUser(null);
-                setUserProfile(null);
-                setUserMemberships([]);
-                setManagedDepartments([]);
-                setAttendanceManagedDepartments([]);
-                setLoading(false);
+                queryClient.cancelQueries({ queryKey: ['userProfileData'] });
+                queryClient.removeQueries({ queryKey: ['userProfileData'] });
             }
+            setAuthLoading(false);
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [queryClient]);
 
-    const fetchUserProfile = async (authUserId: string) => {
-        try {
+    // Data fetching centralizado con React Query
+    const { data: profileData, isLoading: queryLoading } = useQuery({
+        queryKey: ['userProfileData', user?.id],
+        queryFn: async () => {
+            if (!user) return null;
+
             // Obtener perfil del usuario
             const { data: profile, error: profileError } = await supabase
                 .from('user_profiles')
                 .select('*, usuario:usuarios(*)')
-                .eq('id', authUserId)
+                .eq('id', user.id)
                 .maybeSingle();
 
             if (profileError) throw profileError;
 
-            if (!profile) {
-                console.log('User has no profile linked');
-                setUserProfile(null);
-                setLoading(false);
-                return;
-            }
-
-            setUserProfile(profile);
-
-            // Si el usuario no tiene un perfil de usuario, no se puede continuar
-            if (!profile.usuario_id) {
-                setLoading(false);
-                return;
+            // Si no hay perfil o usuario vinculado, retornar vacío
+            if (!profile || !profile.usuario_id) {
+                return { 
+                    profile: (profile as UserProfileData) || null, 
+                    memberships: [], 
+                    managed: [], 
+                    attendanceManaged: [] 
+                };
             }
 
             // Obtener membresías del usuario
-            const { data: memberships, error: membError } = await supabase
+            const { data: membershipsData, error: membError } = await supabase
                 .from('membresias')
                 .select('*, departamento:departamentos(*)')
                 .eq('usuario_id', profile.usuario_id);
 
             if (membError) throw membError;
 
-            const typedMemberships: Membership[] = memberships as unknown as Membership[] || [];
-            console.log('[UserContext] Setting memberships:', typedMemberships);
-            setUserMemberships(typedMemberships);
+            // Type assertion seguro una vez mapeado
+            const memberships: Membership[] = (membershipsData as any[]) || [];
 
             // Departamentos para gestión general (Líder/Sublíder)
-            const managed = typedMemberships
+            const managed = memberships
                 .filter(m => {
                     const r = m.rol_jerarquico?.toLowerCase() || '';
                     return r === 'líder' || r === 'lider' || r === 'sublíder' || r === 'sublider';
@@ -146,7 +135,7 @@ export function UserProvider({ children }: UserProviderProps) {
                 .filter((d): d is Department => !!d);
 
             // Departamentos para gestión de asistencia (Líder/Sublíder/Encargado)
-            const attendanceManaged = typedMemberships
+            const attendanceManaged = memberships
                 .filter(m => {
                     const r = m.rol_jerarquico?.toLowerCase() || '';
                     return r === 'líder' || r === 'lider' || r === 'sublíder' || r === 'sublider' ||
@@ -155,35 +144,35 @@ export function UserProvider({ children }: UserProviderProps) {
                 .map(m => m.departamento)
                 .filter((d): d is Department => !!d);
 
-            setManagedDepartments(managed);
-            setAttendanceManagedDepartments(attendanceManaged);
-        } catch (error) {
-            // Manejar error silenciosamente o reportar a servicio externo
-            // console.error('Error fetching user profile:', error); 
-        } finally {
-            setLoading(false);
-        }
-    };
+            return { profile: profile as UserProfileData, memberships, managed, attendanceManaged };
+        },
+        enabled: !!user,
+        staleTime: 1000 * 60 * 15, // Cache de 15 minutos para evitar refetching al navegar
+    });
 
+    // Loading general evalúa Auth Loading y Query Loading
+    const loading = authLoading || (!!user && queryLoading);
+
+    // Helpers
     const isDepartmentLeader = (departmentId: number | string) => {
-        return managedDepartments.some(d => d.id === Number(departmentId));
+        return profileData?.managed.some(d => d.id === Number(departmentId)) ?? false;
     };
 
     const isServidoresAdmin = () => {
-        return managedDepartments.some(d => {
+        return profileData?.managed.some(d => {
             if (d.nombre !== 'Servidores') return false;
-            const m = userMemberships.find(m => m.departamento_id === d.id);
+            const m = profileData.memberships.find(m => m.departamento_id === d.id);
             const r = m?.rol_jerarquico?.toLowerCase() || '';
             return ['líder', 'lider', 'sublíder', 'sublider'].includes(r);
-        });
+        }) ?? false;
     };
 
     const value: UserContextType = {
         user,
-        userProfile,
-        userMemberships,
-        managedDepartments,
-        attendanceManagedDepartments,
+        userProfile: profileData?.profile ?? null,
+        userMemberships: profileData?.memberships ?? [],
+        managedDepartments: profileData?.managed ?? [],
+        attendanceManagedDepartments: profileData?.attendanceManaged ?? [],
         loading,
         isDepartmentLeader,
         isServidoresAdmin,

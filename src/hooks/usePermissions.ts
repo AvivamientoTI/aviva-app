@@ -80,6 +80,17 @@ export function usePermissions() {
         // Legacy helpers for compatibility if needed, though they should be migrated
         isLiderOrSublider: userMemberships?.some(m => userRoles(m).isAnyLeader) ?? false,
         canManageAllDepartments: isSystemAdmin,
-        canManagePositions: canManageDepartment
+        canManagePositions: canManageDepartment,
+        
+        // Restored for App.tsx & DashboardLayout routing
+        isServidoresMember: userMemberships?.some(m => m.departamento?.nombre === DEPARTMENTS.SERVIDORES) ?? false,
+        isLiderSubliderEncargadoServidores: userMemberships?.some(m => {
+            const { isLider, isSublider, isEncargado, isAdmin } = userRoles(m);
+            return m.departamento?.nombre === DEPARTMENTS.SERVIDORES && (isLider || isSublider || isEncargado || isAdmin);
+        }) ?? false,
+        isLiderOrSubliderServidores: userMemberships?.some(m => {
+            const { isLider, isSublider, isAdmin } = userRoles(m);
+            return m.departamento?.nombre === DEPARTMENTS.SERVIDORES && (isLider || isSublider || isAdmin);
+        }) ?? false
     };
 }
