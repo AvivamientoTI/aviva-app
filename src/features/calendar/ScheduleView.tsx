@@ -23,7 +23,7 @@ export function ScheduleView() {
     const permissions = usePermissions();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
-    const { userMemberships } = useUser();
+    const { managedDepartments } = useUser();
     const { exportToPng } = useExport();
     const {
         groupedAssignments,
@@ -52,14 +52,11 @@ export function ScheduleView() {
 
     // Cargar departamentos al montar
     useEffect(() => {
-        // Filtrar departamentos solo asociados al usuario
-        const options = (userMemberships || [])
-            .map(m => m.departamento)
-            .filter((d): d is NonNullable<typeof d> => !!d) // Ensure d is not null/undefined
-            .filter((d, i, arr) => arr.findIndex(dd => dd?.id === d.id) === i)
+        // Usar managedDepartments que ya trae el bypass para Admins Globales
+        const options = (managedDepartments || [])
             .map(dep => ({ value: String(dep.id), label: dep.nombre }));
         setDepartments(options);
-    }, [userMemberships]);
+    }, [managedDepartments]);
 
     // Efecto para inicializar selectedDept
     useEffect(() => {

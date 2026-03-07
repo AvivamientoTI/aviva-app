@@ -12,14 +12,17 @@ import {
     Box,
     Select,
     Skeleton,
-    Button
+    Button,
+    Alert
 } from '@mantine/core';
 import {
     IconCalendarEvent,
     IconChecklist,
     IconUsers,
     IconTrendingUp,
-    IconCalendarOff
+    IconCalendarOff,
+    IconAlertCircle,
+    IconFileDownload
 } from '@tabler/icons-react';
 import { DonutChart, BarChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
@@ -31,8 +34,13 @@ import { StatCard } from './components/StatCard';
 import { WelcomeCard } from './components/WelcomeCard';
 import { UpcomingServiceCard } from './components/UpcomingServiceCard';
 import dayjs from 'dayjs';
+import calendar from 'dayjs/plugin/calendar';
+import 'dayjs/locale/es';
+
+dayjs.extend(calendar);
+dayjs.locale('es');
+
 import { PersonalRoleTemplate } from '../reports/PersonalRoleTemplate';
-import { IconFileDownload } from '@tabler/icons-react';
 
 // Helper to safely get the first item or the item itself
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,7 +116,28 @@ export function Dashboard() {
 
                 <Grid gutter="lg">
                     <Grid.Col span={{ base: 12, md: 7 }}>
-                        <WelcomeCard userName={userProfile?.usuario?.nombre || 'Servidor'} />
+                        <Stack gap="md">
+                            <WelcomeCard userName={userProfile?.usuario?.nombre || 'Servidor'} />
+                            {nextService && dayjs(getSingle(nextService.configuracion_dia)?.fecha).isBefore(dayjs().add(2, 'day')) && (
+                                <Alert
+                                    variant="light"
+                                    color="orange"
+                                    title="Recordatorio de Servicio"
+                                    icon={<IconAlertCircle size={16} />}
+                                    radius="md"
+                                    className="animate-pulse"
+                                >
+                                    ¡Tienes un servicio programado para {dayjs(getSingle(nextService.configuracion_dia)?.fecha).calendar(null, {
+                                        sameDay: '[hoy]',
+                                        nextDay: '[mañana]',
+                                        nextWeek: 'dddd',
+                                        lastDay: '[ayer]',
+                                        lastWeek: '[el] dddd',
+                                        sameElse: 'DD/MM/YYYY'
+                                    })}! No olvides tu uniforme {getSingle(nextService.configuracion_dia)?.color_uniforme}.
+                                </Alert>
+                            )}
+                        </Stack>
                     </Grid.Col>
 
                     <Grid.Col span={{ base: 12, md: 5 }}>

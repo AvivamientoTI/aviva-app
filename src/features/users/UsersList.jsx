@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Modal, TextInput, Select, Group, Title, Badge, ActionIcon, Alert, Paper, Avatar, Text, Menu, SimpleGrid, Card, ThemeIcon } from '@mantine/core';
+import { Table, Button, Modal, TextInput, Select, Group, Title, Badge, ActionIcon, Alert, Paper, Avatar, Text, Menu, SimpleGrid, Card, ThemeIcon, Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
 import { supabase } from '../../services/supabaseClient';
@@ -19,11 +19,16 @@ export function UsersList() {
   const [search, setSearch] = useState('');
   const [opened, { open, close }] = useDisclosure(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [initialPassword, setInitialPassword] = useState('');
+  const [hasAuth, setHasAuth] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
+    username: '',
+    email_personal: '',
     genero: 'M',
     telefono: '',
     fecha_nacimiento: null
@@ -88,11 +93,56 @@ export function UsersList() {
     setFormData({
       nombre: user.nombre,
       apellido: user.apellido,
+      username: user.username || '',
+      email_personal: user.email_personal || '',
       genero: user.genero,
       telefono: user.telefono,
       fecha_nacimiento: user.fecha_nacimiento ? new Date(user.fecha_nacimiento) : null
     });
+    checkAuthStatus(user.id);
     open();
+  };
+
+  const checkAuthStatus = async (usuarioId) => {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('usuario_id', usuarioId)
+      .maybeSingle();
+    setHasAuth(!!data);
+  };
+
+  const handleCreateAuth = async () => {
+    if (!initialPassword || initialPassword.length < 6) {
+      notifications.show({ title: 'Error', message: 'La contraseña debe tener al menos 6 caracteres', color: 'red' });
+      return;
+    }
+
+    setAuthLoading(true);
+    const { data, error } = await supabase.functions.invoke('create-user-auth', {
+      body: { 
+        usuario_id: editingUser.id, 
+        username: formData.username, 
+        password: initialPassword 
+      }
+    });
+
+    if (error || data?.error) {
+      notifications.show({ 
+        title: 'Error al crear acceso', 
+        message: error?.message || data?.error, 
+        color: 'red' 
+      });
+    } else {
+      notifications.show({ 
+        title: 'Éxito', 
+        message: 'Cuenta de acceso creada correctamente', 
+        color: 'green' 
+      });
+      setHasAuth(true);
+      setInitialPassword('');
+    }
+    setAuthLoading(false);
   };
 
   const handleDelete = async (id) => {
@@ -111,6 +161,8 @@ export function UsersList() {
     setFormData({
       nombre: '',
       apellido: '',
+      username: '',
+      email_personal: '',
       genero: 'M',
       telefono: '',
       fecha_nacimiento: null
@@ -322,6 +374,22 @@ export function UsersList() {
             onChange={(val) => setFormData({ ...formData, genero: val })}
           />
           <TextInput
+            label="Nombre de Usuario (Login)"
+            placeholder="ej. juan.perez"
+            required
+            mt="sm"
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().trim() })}
+          />
+          <TextInput
+            label="Email Personal (Notificaciones)"
+            placeholder="ej. juan@gmail.com"
+            required
+            mt="sm"
+            value={formData.email_personal}
+            onChange={(e) => setFormData({ ...formData, email_personal: e.target.value })}
+          />
+          <TextInput
             label="Teléfono"
             placeholder="Ej. 0981 123 456"
             mt="sm"
@@ -342,6 +410,39 @@ export function UsersList() {
 
         {editingUser && (
           <>
+            <div style={{ marginTop: 24, borderTop: '1px solid #e2e8f0', paddingTop: 24 }}>
+              <Text size="sm" fw={800} c="slate.9" mb="md" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Credenciales de Acceso</Text>
+              
+              {hasAuth ? (
+                <Alert color="green" icon={<IconUser size={16} />}>
+                  Este usuario ya tiene una cuenta de acceso activa.
+                </Alert>
+              ) : (
+                <Stack gap="xs">
+                  <Text size="sm" c="dimmed">Genera una cuenta para que el servidor pueda iniciar sesión con su nombre de usuario.</Text>
+                  <Group align="flex-end">
+                    <TextInput
+                      label="Contraseña Inicial"
+                      placeholder="Ej. Aviva2026*"
+                      password
+                      style={{ flex: 1 }}
+                      value={initialPassword}
+                      onChange={(e) => setInitialPassword(e.target.value)}
+                    />
+                    <Button 
+                      variant="filled" 
+                      color="blue" 
+                      onClick={handleCreateAuth} 
+                      loading={authLoading}
+                      disabled={!formData.username}
+                    >
+                      Activar Acceso
+                    </Button>
+                  </Group>
+                </Stack>
+              )}
+            </div>
+
             <MembershipsManager userId={editingUser.id} />
             <AbsencesManager userId={editingUser.id} />
           </>

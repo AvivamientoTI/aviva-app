@@ -11,7 +11,7 @@ export function DashboardLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { userProfile, managedDepartments } = useUser();
-    const { isLiderOrSublider, isLiderOrSubliderServidores, isLiderSubliderEncargadoServidores } = usePermissions();
+    const { isSystemAdmin, isLiderOrSublider, isLiderOrSubliderServidores, isLiderSubliderEncargadoServidores } = usePermissions();
 
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const dark = colorScheme === 'dark';
@@ -28,16 +28,16 @@ export function DashboardLayout() {
     const links = [
         { label: 'Dashboard', path: '/' },
         { label: 'Calendario', path: '/calendar' },
-        ...(isLiderOrSublider ? [
+        ...(isSystemAdmin || isLiderOrSublider ? [
             { label: 'Planificación', path: '/planning' },
             { label: 'Departamentos', path: '/departments' },
             { label: 'Estadísticas', path: '/analytics' },
         ] : []),
-        ...(isLiderOrSubliderServidores ? [
+        ...(isSystemAdmin || isLiderOrSubliderServidores ? [
             { label: 'Servidores', path: '/servers' },
             { label: 'Suspensiones', path: '/suspensions' },
         ] : []),
-        ...(isLiderSubliderEncargadoServidores ? [
+        ...(isSystemAdmin || isLiderSubliderEncargadoServidores ? [
             { label: 'Asistencia', path: '/attendance' },
         ] : []),
     ];
@@ -98,7 +98,7 @@ export function DashboardLayout() {
                         <Stack gap={0} align="flex-end" visibleFrom="xs">
                             <Text size="sm" fw={800} c={dark ? 'gold.2' : 'stone.7'}>{userName}</Text>
                             <Text size="xs" c={dark ? 'gold.4' : 'gold.6'} fw={700} opacity={0.9} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                {managedDepartments.length > 0 ? managedDepartments.map(d => d.nombre).join(', ') : 'Servidor'}
+                                {isSystemAdmin ? 'ADMINISTRADOR DEL SISTEMA' : (managedDepartments.length > 0 ? managedDepartments.map(d => d.nombre).join(', ') : 'Servidor')}
                             </Text>
                         </Stack>
                         <div style={{

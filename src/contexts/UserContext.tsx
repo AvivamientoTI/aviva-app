@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { supabase } from '../services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { parseRoles } from '../utils/roleUtils';
 
 // ---- Interfaces ----
 export interface Department {
@@ -125,24 +126,40 @@ export function UserProvider({ children }: UserProviderProps) {
             // Type assertion seguro una vez mapeado
             const memberships: Membership[] = (membershipsData as any[]) || [];
 
-            // Departamentos para gestión general (Líder/Sublíder)
-            const managed = memberships
-                .filter(m => {
-                    const r = m.rol_jerarquico?.toLowerCase() || '';
-                    return r === 'líder' || r === 'lider' || r === 'sublíder' || r === 'sublider';
-                })
-                .map(m => m.departamento)
-                .filter((d): d is Department => !!d);
+            // Verificar si es Admin Global (rol 'Admin' en depto 'Administración')
+            const isGlobalAdmin = memberships.some(m => {
+                const { isAdmin } = parseRoles(m.rol_jerarquico);
+                return isAdmin && m.departamento?.nombre === 'Administración';
+            });
 
-            // Departamentos para gestión de asistencia (Líder/Sublíder/Encargado)
-            const attendanceManaged = memberships
-                .filter(m => {
-                    const r = m.rol_jerarquico?.toLowerCase() || '';
-                    return r === 'líder' || r === 'lider' || r === 'sublíder' || r === 'sublider' ||
-                        r === 'encargado' || r === 'encargada';
-                })
-                .map(m => m.departamento)
-                .filter((d): d is Department => !!d);
+            // Si es Admin Global, tiene acceso a TODOS los departamentos (pero ocultamos 'Administración' para limpieza visual)
+            let managed: Department[] = [];
+            let attendanceManaged: Department[] = [];
+
+            if (isGlobalAdmin) {
+                const { data: allDepts } = await supabase.from('departamentos').select('*');
+                const filteredDepts = ((allDepts as Department[]) || []).filter(d => d.nombre !== 'Administración');
+                managed = filteredDepts;
+                attendanceManaged = filteredDepts;
+            } else {
+                // Departamentos para gestión general (Líder/Sublíder/Admin) y ocultar 'Administración'
+                managed = memberships
+                    .filter(m => {
+                        const { isLider, isSublider, isAdmin } = parseRoles(m.rol_jerarquico);
+                        return (isLider || isSublider || isAdmin) && m.departamento?.nombre !== 'Administración';
+                    })
+                    .map(m => m.departamento)
+                    .filter((d): d is Department => !!d);
+
+                // Departamentos para gestión de asistencia (Líder/Sublíder/Encargado/Admin) y ocultar 'Administración'
+                attendanceManaged = memberships
+                    .filter(m => {
+                        const { isLider, isSublider, isEncargado, isAdmin } = parseRoles(m.rol_jerarquico);
+                        return (isLider || isSublider || isEncargado || isAdmin) && m.departamento?.nombre !== 'Administración';
+                    })
+                    .map(m => m.departamento)
+                    .filter((d): d is Department => !!d);
+            }
 
             return { profile: profile as UserProfileData, memberships, managed, attendanceManaged };
         },
@@ -159,12 +176,7 @@ export function UserProvider({ children }: UserProviderProps) {
     };
 
     const isServidoresAdmin = () => {
-        return profileData?.managed.some(d => {
-            if (d.nombre !== 'Servidores') return false;
-            const m = profileData.memberships.find(m => m.departamento_id === d.id);
-            const r = m?.rol_jerarquico?.toLowerCase() || '';
-            return ['líder', 'lider', 'sublíder', 'sublider'].includes(r);
-        }) ?? false;
+        return profileData?.managed.some(d => d.nombre === 'Servidores') ?? false;
     };
 
     const value: UserContextType = {

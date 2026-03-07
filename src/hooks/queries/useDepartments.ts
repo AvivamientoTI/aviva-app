@@ -19,8 +19,9 @@ export const useDepartments = () => {
         },
         staleTime: 1000 * 60 * 60, // 1 hour (departments change rarely)
         select: (data) => {
-            // Derived state: Filter for manageable departments
-            const manageable = data.filter(d => permissions.canManageDepartment(d.id));
+            // Filtrar 'Administración' para que no sea gestionable operativamente en la UI
+            const filteredData = data.filter(d => d.nombre !== 'Administración');
+            const manageable = filteredData.filter(d => permissions.canManageDepartment(d.id));
 
             // Calculate metadata mapping
             const meta: Record<string, { prioridad: number }> = {};

@@ -78,7 +78,8 @@ export const conversationalService = {
             top_servers: ['top', 'mejor', 'ranking', 'mas sirven', 'destacados'],
             absentees: ['falta', 'ausencia', 'faltaron', 'inasistencia', 'fallando'],
             upcoming_events: ['proximo', 'evento', 'agenda', 'futuro', 'servicio'],
-            specific_user: ['como va', 'informe de', 'datos de', 'status de', 'perfil de']
+            specific_user: ['como va', 'informe de', 'datos de', 'status de', 'perfil de'],
+            discipline_alerts: ['alerta', 'disciplina', 'faltan mucho', 'amonestar', 'problema']
         };
 
         const intent = findBestIntent(query, intents);
@@ -90,6 +91,7 @@ export const conversationalService = {
         if (intent === 'top_servers') return await this.getTopServers(departmentId, startDate);
         if (intent === 'absentees') return await this.getAbsentees(departmentId, startDate);
         if (intent === 'upcoming_events') return await this.getUpcomingEvents(departmentId);
+        if (intent === 'discipline_alerts') return await this.getDisciplineAlerts(departmentId);
 
         // Special Handling for Specific User Query
         // Try to extract a name if the intent matches OR if we see capitalized words that look like names
@@ -306,9 +308,58 @@ export const conversationalService = {
         return {
             type: 'text',
             message: `Informe de **${bestMatch.nombre} ${bestMatch.apellido}**:
-            \n• Asistencias totales: ${asistio}
-            \n• Faltas (Global): ${falto}
-            \n• Calificación sugerida: ${falto === 0 ? '⭐⭐⭐⭐⭐' : falto < 3 ? '⭐⭐⭐' : '⭐'}`
+            \n• **Asistencias totales**: ${asistio}
+            \n• **Faltas (Global)**: ${falto}
+            \n• **Calificación sugerida**: ${falto === 0 ? '⭐⭐⭐⭐⭐' : falto < 3 ? '⭐⭐⭐' : '⭐'}`
+        };
+    },
+
+    async getDisciplineAlerts(deptId: number): Promise<AiResponse> {
+        // Find users with 3 or more UNJUSTIFIED absences in the last 60 days
+        const sixtyDaysAgo = dayjs().subtract(60, 'day').format('YYYY-MM-DD');
+
+        const { data } = await supabase
+            .from('asistencias')
+            .select(`
+                usuario:usuarios(nombre, apellido),
+                configuracion_dia!inner(fecha, roles_cabecera!inner(departamento_id))
+            `)
+            .eq('estado', ATTENDANCE_STATES.SIN_JUSTIFICACION)
+            .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+            .gte('configuracion_dia.fecha', sixtyDaysAgo);
+
+        if (!data || data.length === 0) {
+            return {
+                type: 'text',
+                message: '✅ **Todo en orden**. No se detectan servidores con patrones de inasistencia crítica en los últimos 60 días.'
+            };
+        }
+
+        const counts: Record<string, number> = {};
+        data.forEach((r: any) => {
+            const name = `${r.usuario.nombre} ${r.usuario.apellido}`;
+            counts[name] = (counts[name] || 0) + 1;
+        });
+
+        const atRisk = Object.entries(counts)
+            .filter(([, count]) => count >= 3)
+            .map(([name, count]) => ({
+                title: name,
+                desc: `${count} faltas injustificadas en los últimos 2 meses.`,
+                icon: 'alert'
+            }));
+
+        if (atRisk.length === 0) {
+            return {
+                type: 'text',
+                message: 'He revisado los datos y **ningún servidor** ha superado el límite de 3 faltas. ¡El equipo va bien!'
+            };
+        }
+
+        return {
+            type: 'list',
+            message: '⚠️ **Alerta de Disciplina**: Los siguientes servidores requieren supervisión por inasistencias reiteradas:',
+            data: atRisk
         };
     }
 };

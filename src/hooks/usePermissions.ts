@@ -1,27 +1,14 @@
 import { useUser } from '../contexts/UserContext';
-import { ROLES } from '../constants/roles';
 import { DEPARTMENTS } from '../constants/departments';
+import { parseRoles } from '../utils/roleUtils';
 
 export function usePermissions() {
     const { userMemberships } = useUser();
 
-    const userRoles = (m: any) => {
-        const r = m.rol_jerarquico?.toLowerCase() || '';
-        const isLider = r === ROLES.LIDER.toLowerCase() || r === 'lider';
-        const isSublider = r === ROLES.SUBLIDER.toLowerCase() || r === 'sublider';
-        const isEncargado = r === ROLES.ENCARGADO.toLowerCase() || r === 'encargado' || r === ROLES.ENCARGADA.toLowerCase() || r === 'encargada';
-        const isServidor = r === ROLES.SERVIDOR.toLowerCase() || r === 'servidor' || r === ROLES.SERVIDORA.toLowerCase() || r === 'servidora';
-        const isAdmin = r === ROLES.ADMIN.toLowerCase() || r === 'admin';
+    const userRoles = (m: any) => parseRoles(m.rol_jerarquico);
 
-        return { isLider, isSublider, isEncargado, isServidor, isAdmin, isAnyLeader: isLider || isSublider || isAdmin };
-    };
-
-    // Global Admin Check (Role Admin OR Leader in 'Servidores')
-    const isSystemAdmin = userMemberships?.some(m => {
-        const { isAdmin, isLider, isSublider } = userRoles(m);
-        const isServidoresDept = m.departamento?.nombre === DEPARTMENTS.SERVIDORES;
-        return isAdmin || (isServidoresDept && (isLider || isSublider));
-    }) ?? false;
+    // Global Admin Check: ONLY 'Admin' role users (Decoupled from 'Servidores' Leader)
+    const isSystemAdmin = userMemberships?.some(m => userRoles(m).isAdmin) ?? false;
 
     // Permissions by functional area
 
@@ -54,6 +41,7 @@ export function usePermissions() {
     // 5. Attendance (Recording assisted/absent) - Exclusive to Servidores department
     const canManageAttendance = (deptId: number | string | null) => {
         if (!deptId) return false;
+        if (isSystemAdmin) return true;
         return userMemberships?.some(m => {
             const { isLider, isSublider, isEncargado, isAdmin } = userRoles(m);
             const isTargetDept = m.departamento_id === Number(deptId);

@@ -24,6 +24,7 @@ import { IconAlertCircle, IconCheck, IconDeviceFloppy, IconCalendar, IconUsers, 
 import { useUser } from '../../contexts/UserContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { attendanceService, type DepartmentMember, type ServiceDay, type AttendanceRecord } from '../../services/attendanceService';
+import { supabase } from '../../services/supabaseClient';
 import dayjs from 'dayjs';
 import { useRef } from 'react';
 import { jsPDF } from 'jspdf';
@@ -67,6 +68,36 @@ export function AttendanceManager() {
     useEffect(() => {
         if (selectedService) {
             fetchAttendanceData();
+
+            // Sincronización Realtime: Escuchar cambios en la tabla de asistencias
+            const channel = supabase
+                .channel(`attendance:${selectedService}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'asistencias',
+                        filter: `configuracion_dia_id=eq.${selectedService}`
+                    },
+                    (payload: any) => {
+                        const newRecord = payload.new as AttendanceRecord;
+                        if (newRecord) {
+                            setAttendance(prev => ({
+                                ...prev,
+                                [newRecord.usuario_id]: {
+                                    estado: newRecord.estado,
+                                    justificacion: newRecord.justificacion || ''
+                                }
+                            }));
+                        }
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         } else {
             setAttendance({});
         }

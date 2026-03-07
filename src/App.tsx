@@ -73,8 +73,8 @@ function AppContent() {
         return <RestrictedAccess type="no-profile" />;
     }
 
-    // Si tiene perfil pero no es miembro de ningún departamento válido
-    if (session && !isServidoresMember && location.pathname !== '/login') {
+    // Si tiene perfil pero no es miembro de ningún departamento válido y no es administrador global
+    if (session && !isServidoresMember && !perms.isSystemAdmin && location.pathname !== '/login') {
         const { userMemberships } = useUser();
         return <RestrictedAccess type="no-permissions" memberships={userMemberships} isMember={isServidoresMember} />;
     }
@@ -85,12 +85,12 @@ function AppContent() {
             <Route path="/" element={session ? <DashboardLayout /> : <Navigate to="/login" />}>
                 <Route index element={<Dashboard />} />
                 <Route path="calendar" element={<ScheduleView />} />
-                <Route path="departments" element={isLiderOrSublider ? <DepartmentsList /> : <RestrictedAccess />} />
-                <Route path="planning" element={isLiderOrSublider ? <PlanningWizard /> : <RestrictedAccess />} />
-                <Route path="attendance" element={isLiderSubliderEncargadoServidores ? <AttendanceManager /> : <RestrictedAccess />} />
-                <Route path="servers" element={isLiderOrSubliderServidores ? <UsersList /> : <RestrictedAccess />} />
-                <Route path="suspensions" element={isLiderOrSubliderServidores ? <SuspensionManager /> : <RestrictedAccess />} />
-                <Route path="analytics" element={isLiderOrSublider ? <AnalyticsDashboard /> : <RestrictedAccess />} />
+                <Route path="departments" element={perms.isSystemAdmin || isLiderOrSublider ? <DepartmentsList /> : <RestrictedAccess />} />
+                <Route path="planning" element={perms.isSystemAdmin || isLiderOrSublider ? <PlanningWizard /> : <RestrictedAccess />} />
+                <Route path="attendance" element={perms.isSystemAdmin || isLiderSubliderEncargadoServidores ? <AttendanceManager /> : <RestrictedAccess />} />
+                <Route path="servers" element={perms.isSystemAdmin || isLiderOrSubliderServidores ? <UsersList /> : <RestrictedAccess />} />
+                <Route path="suspensions" element={perms.isSystemAdmin || isLiderOrSubliderServidores ? <SuspensionManager /> : <RestrictedAccess />} />
+                <Route path="analytics" element={perms.isSystemAdmin || isLiderOrSublider ? <AnalyticsDashboard /> : <RestrictedAccess />} />
                 <Route path="*" element={<Navigate to="/" />} />
             </Route>
         </Routes>

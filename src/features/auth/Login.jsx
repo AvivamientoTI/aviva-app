@@ -6,45 +6,41 @@ import { notifications } from '@mantine/notifications';
 import './login.css';
 
 export function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) return 'El email es requerido';
-    if (!emailRegex.test(email)) return 'Formato de email inválido';
-    return '';
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
-    setEmailError('');
+    setUsernameError('');
     setPasswordError('');
 
-    const emailValidation = validateEmail(email);
+    const usernameValidation = username.trim() ? '' : 'El nombre de usuario es requerido';
     const passwordValidation = password.length >= 6 ? '' : 'La contraseña debe tener al menos 6 caracteres';
 
-    if (emailValidation || passwordValidation) {
-      setEmailError(emailValidation);
+    if (usernameValidation || passwordValidation) {
+      setUsernameError(usernameValidation);
       setPasswordError(passwordValidation);
       return;
     }
 
     setLoading(true);
 
+    // Estrategia de Email Virtual: convertimos el username a un email interno para Supabase Auth
+    const virtualEmail = `${username.trim().toLowerCase()}@ayp.com`;
+
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: virtualEmail,
       password,
     });
 
     if (error) {
       notifications.show({
         title: 'Error de inicio de sesión',
-        message: error.message,
+        message: 'Usuario o contraseña incorrectos',
         color: 'red',
       });
     } else {
@@ -95,15 +91,15 @@ export function Login() {
           <form onSubmit={handleLogin}>
             <Stack gap="md">
               <TextInput
-                label="Email"
-                placeholder="ejemplo@correo.com"
+                label="Nombre de Usuario"
+                placeholder="ej. juan.perez"
                 required
-                value={email}
+                value={username}
                 onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError('');
+                  setUsername(e.target.value);
+                  setUsernameError('');
                 }}
-                error={emailError}
+                error={usernameError}
                 autoComplete="username"
                 size="md"
                 radius="xl"
@@ -159,3 +155,4 @@ export function Login() {
     </div>
   );
 }
+
