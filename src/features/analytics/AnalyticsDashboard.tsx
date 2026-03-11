@@ -19,6 +19,7 @@ import {
     IconCalendar
 } from '@tabler/icons-react';
 import { AreaChart, BarChart } from '@mantine/charts';
+import { ActivityHeatmap } from './components/ActivityHeatmap';
 import { analyticsService } from '../../services/analyticsService';
 import { useUser } from '../../contexts/UserContext';
 import dayjs from 'dayjs';
@@ -195,28 +196,11 @@ export const AnalyticsDashboard = () => {
                 </Card>
             </SimpleGrid>
 
-            {/* Heatmap Simulation using Grid since Mantine Heatmap requires complex data structure */}
-            {/* Ideally we use a dedicated library or build a custom grid, for now a simple list of active dates */}
             <Card padding="xl" radius="md" withBorder>
-                <Title order={4} mb="md">Calendario de Servicios</Title>
-                <Text size="sm" c="dimmed" mb="lg">Frecuencia de servicios por fecha en {dayjs().year()}</Text>
+                <Title order={4} mb="xs">Calendario de Actividad Anual</Title>
+                <Text size="sm" c="dimmed" mb="xl">Frecuencia de servicios realizados por fecha en el año {dayjs().year()}</Text>
 
-                <Group gap={4}>
-                    {annualStats?.heatmapData?.map((d: any) => (
-                        <Card
-                            key={d.date}
-                            p={0}
-                            w={30}
-                            h={30}
-                            radius="xs"
-                            style={{
-                                backgroundColor: `var(--mantine-color-teal-${Math.min(9, d.count * 2)})`,
-                                opacity: 0.8
-                            }}
-                            title={`${d.date}: ${d.count} servicios`}
-                        />
-                    ))}
-                </Group>
+                <ActivityHeatmap data={annualStats?.heatmapData || []} />
             </Card>
         </Stack>
     );

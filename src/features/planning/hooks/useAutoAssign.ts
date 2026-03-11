@@ -62,7 +62,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                 .in('usuario_id', userIds);
 
             const normalize = (str: string | null | undefined) => str?.toLowerCase()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || '';
 
             // 3. Process users and identify internal/external roles
             const usersMap: Record<string, UserWithMetadata> = {};
@@ -75,7 +75,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                         ...m.usuario,
                         roles: [],
                         isExternalLeader: false,
-                        isInternalLeader: ['lider', 'sublider', 'encargado'].includes(internalRole)
+                        isInternalLeader: ['lider', 'sublider', 'encargado', 'liderazgo'].includes(internalRole)
                     };
                 }
                 usersMap[uid].roles.push(internalRole);
@@ -140,6 +140,9 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
 
                 // Eligible users logic needs to be typing and ensured
                 let eligibleUsers = await getUsersNotAssignedOnDate(config.fecha, deptUsers);
+                
+                // 4.5 Filter out inactive users
+                eligibleUsers = eligibleUsers.filter(u => u.activo !== false);
 
                 // Filter out suspended users for this date
                 const suspendedUserIds = allSuspensions

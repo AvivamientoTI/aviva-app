@@ -25,6 +25,7 @@ export interface PublicUser {
     apellido: string;
     genero?: string;
     roles?: string[]; // Array of role names
+    activo?: boolean;
 }
 
 export interface Membership extends Tables<'membresias'> {

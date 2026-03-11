@@ -1,6 +1,6 @@
 // Refreshing and ensuring TS service pickup
 import { useEffect } from 'react';
-import { Stepper, Button, Group, Title, Paper, Text, Stack, Container, Progress, Badge } from '@mantine/core';
+import { Stepper, Button, Group, Title, Paper, Text, Stack, Container, Progress, Badge, Transition } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -380,7 +380,7 @@ function PlanningWizardContent() {
             <Text c="dimmed" size="sm" fw={500}>Configura, asigna y aprueba el rol mensual de tu departamento</Text>
           </Stack>
           <Badge size="lg" variant="light" color="gold" radius="md">
-            VERSIÓN 2.5
+            VERSIÓN 3.0
           </Badge>
         </Group>
 
@@ -415,32 +415,44 @@ function PlanningWizardContent() {
           />
         </Stepper>
 
-        <div style={{ minHeight: 400 }}>
-          {activeStep === 0 && (
-            <PlanningStepDeptMonth
-              departments={(deptData?.options || []).filter(opt => permissions.canManageDepartment(Number(opt.value)))}
-              selectedDept={selectedDeptId}
-              setSelectedDept={setSelectedDeptId}
-              selectedMonth={selectedMonth}
-              setSelectedMonth={setSelectedMonth}
-            />
-          )}
-          {activeStep === 1 && (
-            <PlanningStepServiceDates
-              selectedDates={selectedDates}
-              handleDateChange={handleDateChange}
-              serviceConfigs={serviceConfigs}
-              updateServiceConfig={updateServiceConfig}
-              positions={positions}
-              updatePositionQuota={updatePositionQuota}
-              selectedMonth={selectedMonth}
-              addServiceToDate={addServiceToDate}
-              removeServiceFromDate={removeServiceFromDate}
-            />
-          )}
-          {activeStep === 2 && (
-            <PlanningStepReview />
-          )}
+        <div style={{ minHeight: 400, position: 'relative' }}>
+          <Transition mounted={activeStep === 0} transition="fade-up" duration={350} timingFunction="ease">
+            {(styles) => (
+              <div style={{ ...styles }}>
+                <PlanningStepDeptMonth
+                  departments={(deptData?.options || []).filter(opt => permissions.canManageDepartment(Number(opt.value)))}
+                  selectedDept={selectedDeptId}
+                  setSelectedDept={setSelectedDeptId}
+                  selectedMonth={selectedMonth}
+                  setSelectedMonth={setSelectedMonth}
+                />
+              </div>
+            )}
+          </Transition>
+          <Transition mounted={activeStep === 1} transition="fade-up" duration={350} timingFunction="ease">
+            {(styles) => (
+              <div style={{ ...styles }}>
+                <PlanningStepServiceDates
+                  selectedDates={selectedDates}
+                  handleDateChange={handleDateChange}
+                  serviceConfigs={serviceConfigs}
+                  updateServiceConfig={updateServiceConfig}
+                  positions={positions}
+                  updatePositionQuota={updatePositionQuota}
+                  selectedMonth={selectedMonth}
+                  addServiceToDate={addServiceToDate}
+                  removeServiceFromDate={removeServiceFromDate}
+                />
+              </div>
+            )}
+          </Transition>
+          <Transition mounted={activeStep === 2} transition="fade-up" duration={350} timingFunction="ease">
+            {(styles) => (
+              <div style={{ ...styles }}>
+                <PlanningStepReview />
+              </div>
+            )}
+          </Transition>
         </div>
 
         <Group justify="center" mt="xl">

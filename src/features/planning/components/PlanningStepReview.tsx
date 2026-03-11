@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text, ThemeIcon, ActionIcon, Modal, Button, Select } from '@mantine/core';
 import { IconCheck, IconUser, IconCalendar, IconTrash, IconEdit, IconAlertCircle } from '@tabler/icons-react';
 import dayjs from 'dayjs';
@@ -7,6 +7,72 @@ import { usePlanning, type DraftAssignment } from '../context/PlanningContext';
 import { useDepartmentUsers } from '../hooks/useDepartmentUsers';
 import { notifications } from '@mantine/notifications';
 import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
+
+const normalize = (s: string) => s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || '';
+
+// --- Helper: extraer fecha de forma robusta ---
+function getAssignmentDate(a: DraftAssignment): string {
+    if (a.fecha) return a.fecha;
+    if (typeof a.configuracion_dia_id === 'string' && a.configuracion_dia_id.startsWith('temp-')) {
+        const parts = a.configuracion_dia_id.split('-');
+        // temp-YYYY-MM-DD-idx → parts[1]-parts[2]-parts[3]
+        if (parts.length >= 4) return `${parts[1]}-${parts[2]}-${parts[3]}`;
+    }
+    return '';
+}
+
+// --- Helper: filtrar candidatos según disponibilidad, género y rol ---
+function buildCandidates(
+    allUsers: any[],
+    editingAssignment: DraftAssignment,
+    previewAssignments: DraftAssignment[],
+    blockedIds: Set<string>
+): { value: string; label: string }[] {
+    const pos = editingAssignment.posicion;
+    const date = getAssignmentDate(editingAssignment);
+    const currentUserId = String(editingAssignment.usuario_id);
+
+    let candidates = [...allUsers];
+
+    // 1. GLOBAL: Excluir bloqueados en BD (otros deptos/ausencias).
+    //    La persona actual del puesto siempre es opción válida.
+    candidates = candidates.filter(u =>
+        String(u.id) === currentUserId || !blockedIds.has(String(u.id))
+    );
+
+    // 2. LOCAL: Excluir quienes ya están en el borrador ese mismo día.
+    //    La persona actual puede quedar (para confirmarla sin cambio).
+    if (date) {
+        const assignedTodayInDraft = new Set(
+            previewAssignments
+                .filter(a => getAssignmentDate(a) === date && a.id !== editingAssignment.id)
+                .map(a => String(a.usuario_id))
+        );
+        candidates = candidates.filter(u =>
+            String(u.id) === currentUserId || !assignedTodayInDraft.has(String(u.id))
+        );
+    }
+
+    // 3. Sólo activos
+    candidates = candidates.filter(u => u.activo !== false);
+
+    if (pos) {
+        // 4. Género
+        if (pos.genero_requerido === 'M') candidates = candidates.filter(u => u.genero === 'M');
+        else if (pos.genero_requerido === 'F') candidates = candidates.filter(u => u.genero === 'F');
+
+        // 5. Liderazgo para posiciones Encargado
+        if (normalize(pos.nombre || '').includes('encargado')) {
+            const leaderRoles = ['lider', 'sublider', 'encargado', 'liderazgo'];
+            candidates = candidates.filter(u => leaderRoles.includes(normalize(u.rol_jerarquico)));
+        }
+    }
+
+    return candidates.map(u => ({
+        value: String(u.id),
+        label: `${u.nombre} ${u.apellido} (${u.rol_jerarquico || 'Miembro'})`
+    }));
+}
 
 export const PlanningStepReview = () => {
     const {
@@ -18,58 +84,13 @@ export const PlanningStepReview = () => {
 
     const { data: deptUsers } = useDepartmentUsers(selectedDeptId);
 
-    // --- Local State for Edit Modal ---
+    // --- Modal State ---
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingAssignment, setEditingAssignment] = useState<DraftAssignment | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-    const [blockedGlobalIds, setBlockedGlobalIds] = useState<Set<string>>(new Set());
     const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
-
-    // Transform users for Select with intelligent filtering
-    const userOptions = useMemo(() => {
-        if (!deptUsers || isLoadingGlobal) return [];
-        
-        let candidates = [...deptUsers];
-        
-        if (editingAssignment) {
-            const pos = editingAssignment.posicion;
-            const date = editingAssignment.fecha;
-
-            // 1. GLOBAL: Exclude people with existing assignments in DB (other depts)
-            candidates = candidates.filter(u => !blockedGlobalIds.has(String(u.id)));
-
-            // 2. LOCAL: Exclude people already in this DRAFT for this date
-            const draftAssignedToday = new Set(
-                previewAssignments
-                    .filter(a => a.fecha === date && a.id !== editingAssignment.id)
-                    .map(a => String(a.usuario_id))
-            );
-            candidates = candidates.filter(u => !draftAssignedToday.has(String(u.id)));
-
-            // 3. STATUS: Only active users
-            candidates = candidates.filter(u => (u as any).activo !== false);
-
-            if (pos) {
-                // 4. GENDER: Match position requirements
-                if (pos.genero_requerido === 'M') candidates = candidates.filter(u => u.genero === 'M');
-                else if (pos.genero_requerido === 'F') candidates = candidates.filter(u => u.genero === 'F');
-                
-                // 5. ROLE: Leadership for Encargado
-                const isEncargadoPos = pos.nombre?.toLowerCase().includes('encargado');
-                if (isEncargadoPos) {
-                    const normalize = (s: string) => s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
-                    candidates = candidates.filter(u => 
-                        ['lider', 'sublider', 'encargado'].includes(normalize(u.rol_jerarquico))
-                    );
-                }
-            }
-        }
-
-        return candidates.map(u => ({
-            value: String(u.id),
-            label: `${u.nombre} ${u.apellido} (${u.rol_jerarquico || 'Miembro'})`
-        }));
-    }, [deptUsers, editingAssignment, blockedGlobalIds, previewAssignments, isLoadingGlobal]);
+    // Opciones calculadas de forma determinista en openEdit, no en useMemo
+    const [selectOptions, setSelectOptions] = useState<{ value: string; label: string }[]>([]);
 
     const handleDelete = (id: string) => {
         setPreviewAssignments((prev) => prev.filter(a => a.id !== id));
@@ -77,36 +98,42 @@ export const PlanningStepReview = () => {
             title: 'Asignación Removida',
             message: 'Se ha eliminado la asignación del servidor.',
             color: 'red',
-            icon: <IconTrash size={18} />
+            icon: <IconTrash size={18} />,
         });
     };
 
     const openEdit = async (assignment: DraftAssignment) => {
+        setIsLoadingGlobal(true);
+        setSelectOptions([]);
+        setEditModalOpen(true); // Abrir modal YA con spinner
         setEditingAssignment(assignment);
         setSelectedUserId(String(assignment.usuario_id));
-        setBlockedGlobalIds(new Set()); // Reset previous blocks
-        setIsLoadingGlobal(true);
-        
-        if (assignment.fecha) {
-            try {
-                const availableGlobal = await getUsersNotAssignedOnDate(assignment.fecha, deptUsers || []);
-                const availableIds = new Set(availableGlobal.map(u => String(u.id)));
-                
-                const blocked = (deptUsers || [])
-                    .filter(u => !availableIds.has(String(u.id)))
-                    .map(u => String(u.id));
-                
-                setBlockedGlobalIds(new Set(blocked));
-            } catch (err) {
-                console.error("Error check global:", err);
-            } finally {
-                setIsLoadingGlobal(false);
+
+        const dateToCheck = getAssignmentDate(assignment);
+        const allUsers = deptUsers || [];
+
+        try {
+            // Obtener bloqueados globalmente (asignaciones en otros deptos + ausencias)
+            const blockedIds = new Set<string>();
+            if (dateToCheck) {
+                const available = await getUsersNotAssignedOnDate(dateToCheck, allUsers);
+                const availableIds = new Set(available.map(u => String(u.id)));
+                allUsers.forEach(u => {
+                    if (!availableIds.has(String(u.id))) blockedIds.add(String(u.id));
+                });
             }
-        } else {
+
+            // Calcular opciones con todos los filtros aplicados
+            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds);
+            setSelectOptions(options);
+        } catch (err) {
+            console.error('Error calculando opciones de sustitución:', err);
+            // Si falla el check global, al menos aplicar filtros locales
+            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set());
+            setSelectOptions(options);
+        } finally {
             setIsLoadingGlobal(false);
         }
-        
-        setEditModalOpen(true);
     };
 
     const saveEdit = () => {
@@ -171,39 +198,29 @@ export const PlanningStepReview = () => {
         );
     }
 
-    // 1. Group by Date -> Service Index
-    const grouped = useMemo(() => {
-        const groups: Record<string, Record<number, DraftAssignment[]>> = {};
+    // Group assignments by Date -> Service Index
+    const grouped: Record<string, Record<number, DraftAssignment[]>> = {};
 
-        previewAssignments.forEach(a => {
-            const dateStr = a.fecha;
-            if (!dateStr) return;
+    previewAssignments.forEach(a => {
+        const dateStr = a.fecha;
+        if (!dateStr) return;
 
-            let sIdx = 0;
-            // First check configuracion_dia_id for sIdx
-            if (typeof a.configuracion_dia_id === 'string' && a.configuracion_dia_id.startsWith('temp-')) {
-                const parts = a.configuracion_dia_id.split('-');
-                // temp-{date}-{idx}
-                if (parts.length >= 2) { // date can have hyphens, so we need to be careful. Format: temp-2023-01-01-idx
-                    // Actually split by '-' gives: ['temp', '2023', '01', '01', '0'] or similar
-                    // The last part is the index
-                    const lastPart = parts[parts.length - 1];
-                    sIdx = parseInt(lastPart) || 0;
-                }
-            } else if (a.id.startsWith('temp-')) {
-                const parts = a.id.split('-');
+        let sIdx = 0;
+        if (typeof a.configuracion_dia_id === 'string' && a.configuracion_dia_id.startsWith('temp-')) {
+            const parts = a.configuracion_dia_id.split('-');
+            if (parts.length >= 2) {
                 const lastPart = parts[parts.length - 1];
                 sIdx = parseInt(lastPart) || 0;
             }
+        } else if (a.id.startsWith('draft-')) {
+            // draft-idx-timestamp: defaults to service 0
+            sIdx = 0;
+        }
 
-            if (!groups[dateStr]) groups[dateStr] = {};
-            if (!groups[dateStr][sIdx]) groups[dateStr][sIdx] = [];
-
-            groups[dateStr][sIdx].push(a);
-        });
-
-        return groups;
-    }, [previewAssignments]);
+        if (!grouped[dateStr]) grouped[dateStr] = {};
+        if (!grouped[dateStr][sIdx]) grouped[dateStr][sIdx] = [];
+        grouped[dateStr][sIdx].push(a);
+    });
 
     const sortedDates = Object.keys(grouped).sort();
     const uniqueUsers = new Set(previewAssignments.map(a => a.usuario_id)).size;
@@ -370,18 +387,19 @@ export const PlanningStepReview = () => {
                     )}
 
                     <Select
+                        key={`${editingAssignment?.id}-${isLoadingGlobal}`}
                         label="Seleccionar Voluntario"
-                        placeholder={isLoadingGlobal ? "Verificando disponibilidad global..." : "Buscar usuario..."}
+                        placeholder={isLoadingGlobal ? "Verificando disponibilidad..." : "Buscar usuario..."}
                         searchable
-                        data={userOptions}
+                        data={selectOptions}
                         value={selectedUserId}
                         onChange={setSelectedUserId}
                         disabled={isLoadingGlobal}
                         nothingFoundMessage={isLoadingGlobal ? "Consultando base de datos..." : "No hay servidores disponibles para esta posición/fecha"}
-                        maxDropdownHeight={200}
+                        maxDropdownHeight={220}
                         leftSection={isLoadingGlobal ? <IconCalendar size={16} className="animate-spin" /> : <IconUser size={16} />}
-                        description={editingAssignment?.posicion ? 
-                            `Filtros aplicados: ${editingAssignment.posicion.genero_requerido !== 'A' ? `Género ${editingAssignment.posicion.genero_requerido}, ` : ''}${editingAssignment.posicion.nombre?.toLowerCase().includes('encargado') ? 'Liderazgo, ' : ''}Disponibilidad Global`
+                        description={editingAssignment?.posicion ?
+                            `REQUISITOS: ${editingAssignment.posicion.genero_requerido && editingAssignment.posicion.genero_requerido !== 'A' ? `Solo ${editingAssignment.posicion.genero_requerido === 'M' ? 'Hombres' : 'Mujeres'}, ` : ''}${normalize(editingAssignment.posicion.nombre || '').includes('encargado') ? 'Solo Liderazgo, ' : ''}Sin conflictos.`
                             : ''}
                     />
 
