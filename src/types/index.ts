@@ -39,6 +39,9 @@ export interface DayConfiguration {
     color_uniforme?: string;
     rol_cabecera_id: number;
     encargado?: { nombre: string; apellido: string };
+    encargado_2?: { nombre: string; apellido: string };
+    encargado_id?: number;
+    encargado_2_id?: number;
     roles_cabecera?: {
         departamento_id: number;
         departamento?: Department;

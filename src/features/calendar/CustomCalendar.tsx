@@ -28,21 +28,10 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
                 return d.isSame(startMonth, 'month');
             })
             .map(([fecha, dayData]) => {
-                const assignmentsWithEncargado = [...dayData.assignments];
-                if (dayData.encargado && String(dayData.encargado).trim() !== '') {
-                    assignmentsWithEncargado.push({
-                        id: `encargado-${fecha}`,
-                        usuario_id: dayData.encargado_id || 'encargado',
-                        nombre: dayData.encargado,
-                        posicion: 'Encargado',
-                        orden: 0, // El más bajo posible para que aparezca primero
-                    });
-                }
-
                 return {
                     fecha,
                     date: dayjs(fecha),
-                    assignments: assignmentsWithEncargado,
+                    assignments: dayData.assignments,
                     encargado: dayData.encargado,
                     servicio: dayData.servicio,
                     uniforme: dayData.uniforme,

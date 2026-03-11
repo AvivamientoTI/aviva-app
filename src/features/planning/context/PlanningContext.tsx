@@ -7,6 +7,8 @@ import dayjs from 'dayjs';
 export interface ServiceDateConfig {
     type: string;
     uniform: string;
+    encargado_id: string | number | null;
+    encargado_2_id: string | number | null;
     positionQuotas: Record<string, number>;
 }
 
@@ -114,6 +116,8 @@ export function PlanningProvider({ children }: { children: ReactNode }) {
                 newConfigs[dateStr] = [{
                     type: 'Culto General',
                     uniform: '',
+                    encargado_id: null,
+                    encargado_2_id: null,
                     positionQuotas: posQuotas
                 }];
             }
@@ -128,6 +132,8 @@ export function PlanningProvider({ children }: { children: ReactNode }) {
             list.push({
                 type: 'Culto Especial',
                 uniform: first?.uniform || '',
+                encargado_id: first?.encargado_id || null,
+                encargado_2_id: first?.encargado_2_id || null,
                 positionQuotas: { ...first?.positionQuotas }
             });
             return { ...prev, [dateStr]: list };

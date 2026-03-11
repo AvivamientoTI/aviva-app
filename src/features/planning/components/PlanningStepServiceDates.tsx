@@ -12,6 +12,7 @@ import { useUniforms } from '../../../hooks/queries/useUniforms';
 export interface ServiceDateConfig {
     type: string;
     uniform: string;
+    encargado_id: string | number | null;
     positionQuotas: Record<string, number>;
 }
 
@@ -83,7 +84,6 @@ export const PlanningStepServiceDates = ({
                             <DatePicker
                                 value={selectedDates.map(dateStr => dayjs(dateStr).hour(12).toDate())}
                                 onChange={handleDateChange}
-
                                 locale="es"
                                 firstDayOfWeek={1}
                                 type="multiple"
@@ -157,7 +157,7 @@ export const PlanningStepServiceDates = ({
                                 const displayDate = dayjs(dateStr).hour(12);
                                 const isSunday = displayDate.day() === 0;
 
-                                // Check if ANY config has error
+                                // Check if ANY config has error (Tipo, Uniforme y al menos una cuota)
                                 const hasError = configs.some(c => !c.type || !c.uniform || !Object.values(c.positionQuotas || {}).some(v => v > 0));
 
                                 return (

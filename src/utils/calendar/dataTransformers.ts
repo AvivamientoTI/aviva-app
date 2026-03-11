@@ -16,8 +16,6 @@ const getDepartmentPriority = (deptName: string | undefined): number => {
 const getSafeOrder = (item: TransformerAssignment): number => {
     if (!item) return 999;
 
-    if (typeof item.orden === 'number') return item.orden;
-
     const p = item.posicion;
     let ordenVal: any = null;
     let nombreVal: string = '';
@@ -35,6 +33,8 @@ const getSafeOrder = (item: TransformerAssignment): number => {
             nombreVal = p;
         }
     }
+
+    if (typeof item.orden === 'number') return item.orden;
 
     if (ordenVal === null || ordenVal === undefined) {
         const alt = item.posiciones_departamento;

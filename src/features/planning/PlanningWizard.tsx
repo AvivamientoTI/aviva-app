@@ -118,8 +118,8 @@ function PlanningWizardContent() {
         return;
       }
 
-      // Servidores Priority Check (ID 1)
-      if (selectedDeptId !== '1') {
+      // Servidores Priority Check (ID 2)
+      if (selectedDeptId !== '2') {
         setLoading(true);
         const monthNum = dayjs(selectedMonth).month() + 1;
         const yearNum = dayjs(selectedMonth).year();
@@ -128,7 +128,7 @@ function PlanningWizardContent() {
           const { data: servHeader } = await supabase
             .from('roles_cabecera')
             .select('id')
-            .eq('departamento_id', 1)
+            .eq('departamento_id', 2)
             .eq('mes', monthNum)
             .eq('anio', yearNum)
             .maybeSingle();
@@ -158,6 +158,25 @@ function PlanningWizardContent() {
           color: 'yellow'
         });
         return;
+      }
+
+      // VALIDATION: Check for incomplete service configs
+      for (const dateStr of selectedDates) {
+        const configs = serviceConfigs[dateStr] || [];
+        for (let i = 0; i < configs.length; i++) {
+          const config = configs[i];
+          const hasQuotas = Object.values(config.positionQuotas).some(v => v > 0);
+          
+          if (!config.type || !config.uniform || !hasQuotas) {
+            notifications.show({
+              title: 'Configuración Incompleta',
+              message: `El servicio ${i + 1} del día ${dayjs(dateStr).format('DD/MM')} está incompleto (falta tipo, uniforme o voluntarios).`,
+              color: 'red',
+              icon: <IconAlertCircle size={18} />
+            });
+            return;
+          }
+        }
       }
 
       // Automatically Generate Draft
@@ -214,7 +233,7 @@ function PlanningWizardContent() {
     }
 
     if (activeStep === 2) {
-      handleFinish();
+      await handleFinish();
       return;
     }
 
@@ -259,34 +278,61 @@ function PlanningWizardContent() {
         await supabase.from('configuracion_dia').delete().eq('rol_cabecera_id', headerId);
       }
 
-      // 3. Save configuracion_dia and map temp to real IDs
-      const tempToRealConfigId: Record<string, number> = {};
+      // 3. Save configuracion_dia in bulk
+      const configsToInsert = [];
+      const configKeys: string[] = [];
 
       for (const dateStr of selectedDates) {
         const dayConfigs = serviceConfigs[dateStr] || [];
         for (let idx = 0; idx < dayConfigs.length; idx++) {
           const config = dayConfigs[idx];
-          const { data: savedConfig, error: cError } = await supabase
-            .from('configuracion_dia')
-            .insert({
-              rol_cabecera_id: headerId,
-              fecha: dateStr,
-              tipo_servicio: config.type,
-              color_uniforme: config.uniform,
-              cupo_hombres: 0,
-              cupo_mujeres: 0
-            })
-            .select()
-            .single();
+          
+          // Calculate gender quotas based on positions
+          let cupoH = 0;
+          let cupoM = 0;
+          Object.entries(config.positionQuotas).forEach(([posId, count]) => {
+            const pos = positions.find(p => String(p.id) === posId);
+            if (pos?.genero_requerido === 'M') cupoH += Number(count);
+            else if (pos?.genero_requerido === 'F') cupoM += Number(count);
+          });
 
-          if (cError) throw cError;
-          tempToRealConfigId[`temp-${dateStr}-${idx}`] = savedConfig.id;
+          // Extract encargados from previewAssignments for this service
+          const serviceAssignments = previewAssignments.filter(a => a.configuracion_dia_id === `temp-${dateStr}-${idx}`);
+          const encargados = serviceAssignments
+            .filter(a => a.posicion?.nombre?.toLowerCase().includes('encargado'))
+            .map(a => Number(a.usuario_id));
+
+          configsToInsert.push({
+            rol_cabecera_id: headerId,
+            fecha: dateStr,
+            tipo_servicio: config.type,
+            color_uniforme: config.uniform,
+            encargado_id: encargados[0] || null,
+            encargado_2_id: encargados[1] || null,
+            cupo_hombres: cupoH,
+            cupo_mujeres: cupoM
+          });
+          configKeys.push(`temp-${dateStr}-${idx}`);
         }
       }
 
+      const { data: savedConfigs, error: cError } = await supabase
+        .from('configuracion_dia')
+        .insert(configsToInsert)
+        .select();
+
+      if (cError) throw cError;
+      if (!savedConfigs) throw new Error('Error al guardar configuraciones de día');
+
+      const tempToRealConfigId: Record<string, number> = {};
+      savedConfigs.forEach((sc, idx) => {
+        // Postgres returns rows in insertion order for bulk inserts
+        tempToRealConfigId[configKeys[idx]] = sc.id;
+      });
+
       // 4. Save asignaciones
       const assignmentsChunks = [];
-      const batchSize = 50;
+      const batchSize = 500;
       const rawAssignments = previewAssignments.map(a => ({
         configuracion_dia_id: tempToRealConfigId[a.configuracion_dia_id as string],
         usuario_id: Number(a.usuario_id),

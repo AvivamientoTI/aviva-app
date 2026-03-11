@@ -110,18 +110,6 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                                     </Group>
                                 </Group>
 
-                                {dayData.encargado && (
-                                    <Paper p="md" mb="lg" radius="md" withBorder style={{
-                                        background: 'linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%)',
-                                        borderColor: '#fde047',
-                                        borderLeft: '4px solid #f59e0b'
-                                    }}>
-                                        <Group gap="xs">
-                                            <Text size="xs" fw={900} c="amber.9" tt="uppercase" style={{ letterSpacing: '0.05em' }}>Encargado(a):</Text>
-                                            <Text size="md" fw={700} c="slate.9">{dayData.encargado}</Text>
-                                        </Group>
-                                    </Paper>
-                                )}
 
                                 <Table verticalSpacing="sm" horizontalSpacing="md" style={{ border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
                                     <Table.Thead style={{ height: 44, background: '#f8fafc' }}>

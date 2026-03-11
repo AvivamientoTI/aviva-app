@@ -7,6 +7,8 @@ import type { Position, PublicUser } from '../../../types';
 interface ServiceDateConfig {
     type: string;
     uniform: string;
+    encargado_id?: string | number | null;
+    encargado_2_id?: string | number | null;
     positionQuotas: Record<string, number>;
 }
 
@@ -62,19 +64,21 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
             const normalize = (str: string | null | undefined) => str?.toLowerCase()
                 .normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
 
-            // 3. Process users and identify external leaders
+            // 3. Process users and identify internal/external roles
             const usersMap: Record<string, UserWithMetadata> = {};
             deptMemberships.forEach((m: any) => {
                 if (!m.usuario) return;
                 const uid = String(m.usuario.id);
+                const internalRole = normalize(m.rol_jerarquico);
                 if (!usersMap[uid]) {
                     usersMap[uid] = {
                         ...m.usuario,
                         roles: [],
-                        isExternalLeader: false
+                        isExternalLeader: false,
+                        isInternalLeader: ['lider', 'sublider', 'encargado'].includes(internalRole)
                     };
                 }
-                usersMap[uid].roles.push(normalize(m.rol_jerarquico));
+                usersMap[uid].roles.push(internalRole);
             });
 
             // Flag users who are leaders/subleaders in other departments
@@ -170,7 +174,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
 
                         // ENCARGADO LOGIC
                         if (isEncargadoPos) {
-                            return u.roles.some(r => ['lider', 'sublider', 'encargado'].includes(r));
+                            return (u as any).isInternalLeader;
                         }
 
                         return true;

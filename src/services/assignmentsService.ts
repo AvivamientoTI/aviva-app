@@ -89,34 +89,12 @@ export const assignmentsService = {
      * Obtiene todos los usuarios asignados en una fecha específica (en todos los departamentos)
      */
     async fetchUsersByDate(fecha: string): Promise<any[]> {
-        // Consulta más robusta: empezar por configuración del día
-        const { data: configs, error } = await supabase
-            .from('configuracion_dia')
-            .select(`
-        encargado_id,
-        asignaciones (
-          usuario_id,
-          usuario:usuarios (id, nombre, apellido)
-        )
-      `)
-            .eq('fecha', fecha);
+        const { data, error } = await supabase.rpc('get_blocked_users', {
+            p_date: fecha
+        });
 
         if (error) throw error;
-
-        // Aplanar las asignaciones de todas las configuraciones encontradas (varios departamentos)
-        const allAssignments: any[] = [];
-        if (configs) {
-            configs.forEach((c: any) => {
-                if (c.encargado_id) {
-                    allAssignments.push({ usuario_id: c.encargado_id });
-                }
-                if (c.asignaciones) {
-                    allAssignments.push(...c.asignaciones);
-                }
-            });
-        }
-
-        return allAssignments;
+        return data || [];
     },
 
     /**

@@ -6,6 +6,7 @@ import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 import { usePlanning, type DraftAssignment } from '../context/PlanningContext';
 import { useDepartmentUsers } from '../hooks/useDepartmentUsers';
 import { notifications } from '@mantine/notifications';
+import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
 
 export const PlanningStepReview = () => {
     const {
@@ -17,26 +18,94 @@ export const PlanningStepReview = () => {
 
     const { data: deptUsers } = useDepartmentUsers(selectedDeptId);
 
-    // Transform users for Select
-    const userOptions = useMemo(() => {
-        return (deptUsers || []).map(u => ({
-            value: String(u.id),
-            label: `${u.nombre} ${u.apellido} (${u.rol_jerarquico || 'Miembro'})`
-        }));
-    }, [deptUsers]);
-
     // --- Local State for Edit Modal ---
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingAssignment, setEditingAssignment] = useState<DraftAssignment | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [blockedGlobalIds, setBlockedGlobalIds] = useState<Set<string>>(new Set());
+    const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
+
+    // Transform users for Select with intelligent filtering
+    const userOptions = useMemo(() => {
+        if (!deptUsers || isLoadingGlobal) return [];
+        
+        let candidates = [...deptUsers];
+        
+        if (editingAssignment) {
+            const pos = editingAssignment.posicion;
+            const date = editingAssignment.fecha;
+
+            // 1. GLOBAL: Exclude people with existing assignments in DB (other depts)
+            candidates = candidates.filter(u => !blockedGlobalIds.has(String(u.id)));
+
+            // 2. LOCAL: Exclude people already in this DRAFT for this date
+            const draftAssignedToday = new Set(
+                previewAssignments
+                    .filter(a => a.fecha === date && a.id !== editingAssignment.id)
+                    .map(a => String(a.usuario_id))
+            );
+            candidates = candidates.filter(u => !draftAssignedToday.has(String(u.id)));
+
+            // 3. STATUS: Only active users
+            candidates = candidates.filter(u => (u as any).activo !== false);
+
+            if (pos) {
+                // 4. GENDER: Match position requirements
+                if (pos.genero_requerido === 'M') candidates = candidates.filter(u => u.genero === 'M');
+                else if (pos.genero_requerido === 'F') candidates = candidates.filter(u => u.genero === 'F');
+                
+                // 5. ROLE: Leadership for Encargado
+                const isEncargadoPos = pos.nombre?.toLowerCase().includes('encargado');
+                if (isEncargadoPos) {
+                    const normalize = (s: string) => s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
+                    candidates = candidates.filter(u => 
+                        ['lider', 'sublider', 'encargado'].includes(normalize(u.rol_jerarquico))
+                    );
+                }
+            }
+        }
+
+        return candidates.map(u => ({
+            value: String(u.id),
+            label: `${u.nombre} ${u.apellido} (${u.rol_jerarquico || 'Miembro'})`
+        }));
+    }, [deptUsers, editingAssignment, blockedGlobalIds, previewAssignments, isLoadingGlobal]);
 
     const handleDelete = (id: string) => {
-        setPreviewAssignments((prev: DraftAssignment[]) => prev.filter((a: DraftAssignment) => a.id !== id));
+        setPreviewAssignments((prev) => prev.filter(a => a.id !== id));
+        notifications.show({
+            title: 'Asignación Removida',
+            message: 'Se ha eliminado la asignación del servidor.',
+            color: 'red',
+            icon: <IconTrash size={18} />
+        });
     };
 
-    const openEdit = (assignment: DraftAssignment) => {
+    const openEdit = async (assignment: DraftAssignment) => {
         setEditingAssignment(assignment);
         setSelectedUserId(String(assignment.usuario_id));
+        setBlockedGlobalIds(new Set()); // Reset previous blocks
+        setIsLoadingGlobal(true);
+        
+        if (assignment.fecha) {
+            try {
+                const availableGlobal = await getUsersNotAssignedOnDate(assignment.fecha, deptUsers || []);
+                const availableIds = new Set(availableGlobal.map(u => String(u.id)));
+                
+                const blocked = (deptUsers || [])
+                    .filter(u => !availableIds.has(String(u.id)))
+                    .map(u => String(u.id));
+                
+                setBlockedGlobalIds(new Set(blocked));
+            } catch (err) {
+                console.error("Error check global:", err);
+            } finally {
+                setIsLoadingGlobal(false);
+            }
+        } else {
+            setIsLoadingGlobal(false);
+        }
+        
         setEditModalOpen(true);
     };
 
@@ -302,14 +371,18 @@ export const PlanningStepReview = () => {
 
                     <Select
                         label="Seleccionar Voluntario"
-                        placeholder="Buscar usuario..."
+                        placeholder={isLoadingGlobal ? "Verificando disponibilidad global..." : "Buscar usuario..."}
                         searchable
                         data={userOptions}
                         value={selectedUserId}
                         onChange={setSelectedUserId}
-                        nothingFoundMessage="No se encontraron usuarios"
+                        disabled={isLoadingGlobal}
+                        nothingFoundMessage={isLoadingGlobal ? "Consultando base de datos..." : "No hay servidores disponibles para esta posición/fecha"}
                         maxDropdownHeight={200}
-                        leftSection={<IconUser size={16} />}
+                        leftSection={isLoadingGlobal ? <IconCalendar size={16} className="animate-spin" /> : <IconUser size={16} />}
+                        description={editingAssignment?.posicion ? 
+                            `Filtros aplicados: ${editingAssignment.posicion.genero_requerido !== 'A' ? `Género ${editingAssignment.posicion.genero_requerido}, ` : ''}${editingAssignment.posicion.nombre?.toLowerCase().includes('encargado') ? 'Liderazgo, ' : ''}Disponibilidad Global`
+                            : ''}
                     />
 
                     <Group justify="flex-end" mt="md">
