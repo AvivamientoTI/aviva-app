@@ -14,6 +14,7 @@ export interface AttendanceRecordWithDetails extends AttendanceRecord {
     posicion: {
         nombre: string;
     } | null;
+    hora_registro?: string | null;
 }
 
 export interface DepartmentMember {
@@ -122,6 +123,7 @@ export const attendanceService = {
         // Y el upsert necesita el usuario_id y configuracion_dia_id para el conflicto.
         
         // Vamos a mejorar el manejador para que sea robusto.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const toUpsert = records.map(r => {
             const isTemp = String(r.id).startsWith('temp-');
             const data: any = {

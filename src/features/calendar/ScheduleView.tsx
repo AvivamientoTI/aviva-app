@@ -18,10 +18,7 @@ import {
     Stack, 
     Container, 
     Paper, 
-    Card,
-    ThemeIcon,
-    Loader,
-    Center
+    Card
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -29,9 +26,7 @@ import {
     IconCalendar, 
     IconList, 
     IconRocket, 
-    IconBuildingCommunity,
-    IconUsers,
-    IconCheck
+    IconBuildingCommunity
 } from '@tabler/icons-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useUser } from '../../contexts/UserContext';
@@ -44,7 +39,7 @@ import { SwapServerModal } from './components/SwapServerModal';
 import { AssignmentDetailModal } from './components/AssignmentDetailModal';
 import { DetailedListTab } from './components/DetailedListTab';
 
-async function getUsersNotAssignedOnDate(date: string, members: any[], headerId?: number) {
+async function getUsersNotAssignedOnDate(_date: string, members: any[], _headerId?: number) {
   // Mock logic or real fetch - assuming it exists in the scope or handled by hook
   return members; 
 }
@@ -88,7 +83,7 @@ export function ScheduleView() {
                 acc.push(current);
             }
             return acc;
-        }, []);
+        }, [] as any[]);
         const options = combined.map((dep: any) => ({ value: String(dep.id), label: dep.nombre }));
         setDepartments(options);
     }, [managedDepartments, userMemberships]);
@@ -171,7 +166,7 @@ export function ScheduleView() {
                 notifications.show({ title: 'Éxito', message: 'Asignación eliminada', color: 'green' });
                 close();
             },
-            onError: (error: any) => {
+            onError: () => {
                 notifications.show({ title: 'Error', message: 'No se pudo eliminar', color: 'red' });
             }
         });

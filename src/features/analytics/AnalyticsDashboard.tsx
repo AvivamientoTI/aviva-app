@@ -10,9 +10,6 @@ import {
     ThemeIcon, 
     Tabs, 
     Box, 
-    Skeleton, 
-    Loader, 
-    Center,
     Card,
     Badge
 } from '@mantine/core';
@@ -25,7 +22,6 @@ import {
     IconActivity,
     IconArrowUpRight
 } from '@tabler/icons-react';
-import { supabase } from '../../services/supabaseClient';
 import dayjs from 'dayjs';
 
 // Re-using the logic for activity heatmap if needed, or keeping it simple for now
@@ -50,6 +46,7 @@ const ActivityHeatmap = ({ data }: { data: { date: string, count: number }[] }) 
 
 export function AnalyticsDashboard() {
     const [activeTab, setActiveTab] = useState<string | null>('weekly');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(true);
     const [weeklyStats, setWeeklyStats] = useState<{ weekStart: string, present: number, absent: number, total: number }[]>([]);
     const [monthlyStats, setMonthlyStats] = useState<{ department: string, attendanceRate: number }[]>([]);

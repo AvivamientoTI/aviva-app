@@ -12,9 +12,7 @@ import {
     Table,
     Text,
     Badge,
-    ActionIcon,
     LoadingOverlay,
-    TextInput,
     ThemeIcon,
     SimpleGrid,
     Paper,
@@ -30,7 +28,6 @@ import {
     IconTrash,
     IconScale,
     IconHistory,
-    IconUserPlus,
     IconCheck,
     IconAlertCircle,
     IconUser,
@@ -131,7 +128,7 @@ export const SuspensionManager = () => {
     const handleDelete = async (id: number) => {
         if (!confirm('¿Estás seguro de eliminar esta suspensión?')) return;
         try {
-            await suspensionService.deleteSuspension(id);
+            await suspensionService.delete(id);
             notifications.show({ title: 'Eliminado', message: 'Registro borrado', color: 'blue' });
             await loadData();
         } catch (err) {
@@ -196,7 +193,7 @@ export const SuspensionManager = () => {
                                             label="Fecha Inicio"
                                             placeholder="Seleccionar"
                                             value={formData.fecha_inicio}
-                                            onChange={(val) => setFormData({ ...formData, fecha_inicio: val })}
+                                            onChange={(val) => setFormData({ ...formData, fecha_inicio: val as Date | null })}
                                             radius="md"
                                             leftSection={<IconCalendar size={18} />}
                                         />
@@ -204,7 +201,7 @@ export const SuspensionManager = () => {
                                             label="Fecha Fin"
                                             placeholder="Seleccionar"
                                             value={formData.fecha_fin}
-                                            onChange={(val) => setFormData({ ...formData, fecha_fin: val })}
+                                            onChange={(val) => setFormData({ ...formData, fecha_fin: val as Date | null })}
                                             radius="md"
                                             leftSection={<IconCalendar size={18} />}
                                         />

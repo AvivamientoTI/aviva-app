@@ -10,10 +10,8 @@ import {
     Stack,
     Button,
     SegmentedControl,
-    TextInput,
     Loader,
     Alert,
-    Badge,
     Paper,
     SimpleGrid,
     ThemeIcon,
@@ -89,9 +87,9 @@ export function AttendanceManager() {
         }
     }, [selectedService]);
 
-    function handleAttendanceChange(recordId: number, newState: string) {
+    function handleAttendanceChange(recordId: string | number, newState: string) {
         setAttendance(prev => prev.map(rec =>
-            rec.id === recordId ? { ...rec, estado: newState } : rec
+            String(rec.id) === String(recordId) ? { ...rec, estado: newState } : rec
         ));
     }
 
@@ -235,7 +233,13 @@ export function AttendanceManager() {
                             label="Fecha del Servicio"
                             placeholder="Seleccionar fecha"
                             value={selectedDate}
-                            onChange={setSelectedDate}
+                            onChange={(val) => {
+                                if (val instanceof Date || val === null) {
+                                    setSelectedDate(val);
+                                } else if (typeof val === 'string') {
+                                    setSelectedDate(new Date(val));
+                                }
+                            }}
                             radius="md"
                             size="md"
                             leftSection={<IconCalendarEvent size={18} color="var(--mantine-color-gold-6)" />}
@@ -243,7 +247,10 @@ export function AttendanceManager() {
                         <Select
                             label="Servicio / Turno"
                             placeholder="Selecciona servicio"
-                            data={serviceOptions}
+                            data={serviceOptions.map(opt => ({ 
+                                ...opt, 
+                                label: opt.label || 'Sin Nombre' 
+                            }))}
                             value={selectedService}
                             onChange={setSelectedService}
                             disabled={!selectedDept || !selectedDate}

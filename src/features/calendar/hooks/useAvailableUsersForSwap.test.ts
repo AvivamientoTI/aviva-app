@@ -12,7 +12,7 @@ describe('useAvailableUsersForSwap', () => {
 
     it('should return empty array if loadingAssignedUsers is true', () => {
         const { result } = renderHook(() =>
-            useAvailableUsersForSwap(mockUsers as any, null, [], true)
+            useAvailableUsersForSwap(mockUsers as any, null, [], new Set(), true)
         );
         expect(result.current).toEqual([]);
     });
@@ -22,7 +22,7 @@ describe('useAvailableUsersForSwap', () => {
         const allAssignedIds = [1, 2]; // Juan and María are busy
 
         const { result } = renderHook(() =>
-            useAvailableUsersForSwap(mockUsers as any, swapTarget, allAssignedIds, false)
+            useAvailableUsersForSwap(mockUsers as any, swapTarget, allAssignedIds, new Set(), false)
         );
 
         // Should include Juan (swap target), Pedro and Ana. María is excluded.
@@ -41,7 +41,7 @@ describe('useAvailableUsersForSwap', () => {
         };
 
         const { result } = renderHook(() =>
-            useAvailableUsersForSwap(mockUsers as any, swapTarget, [], false)
+            useAvailableUsersForSwap(mockUsers as any, swapTarget, [], new Set(), false)
         );
 
         const labels = result.current.map(u => u.label);
@@ -59,7 +59,7 @@ describe('useAvailableUsersForSwap', () => {
         };
 
         const { result } = renderHook(() =>
-            useAvailableUsersForSwap(mockUsers as any, swapTarget, [], false)
+            useAvailableUsersForSwap(mockUsers as any, swapTarget, [], new Set(), false)
         );
 
         const labels = result.current.map(u => u.label);
@@ -77,7 +77,7 @@ describe('useAvailableUsersForSwap', () => {
         };
 
         const { result } = renderHook(() =>
-            useAvailableUsersForSwap(mockUsers as any, swapTarget, [], false)
+            useAvailableUsersForSwap(mockUsers as any, swapTarget, [], new Set(), false)
         );
 
         const labels = result.current.map(u => u.label);

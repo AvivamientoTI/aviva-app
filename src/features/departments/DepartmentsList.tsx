@@ -15,7 +15,6 @@ import {
     Alert,
     Paper,
     ThemeIcon,
-    Loader,
     Center
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';

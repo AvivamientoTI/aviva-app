@@ -15,6 +15,7 @@ import {
     Button,
     Alert
 } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import {
     IconCalendarEvent,
     IconChecklist,

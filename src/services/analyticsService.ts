@@ -136,30 +136,48 @@ export const analyticsService = {
 
   processAttendanceData(data: any[]): StatsData {
     const rawData = data as unknown as AttendanceWithRelations[];
+    
+    // Inicializar sumario
+    const summary = {
+      total: rawData.length,
+      asistio: 0,
+      faltoConAviso: 0,
+      faltoSinAviso: 0,
+    };
+    
+    const byMonth: Record<string, MonthlyStat> = {};
+    const lastMonthStr = dayjs().subtract(1, 'month').format('MMM YYYY');
+
+    for (let i = 0; i < rawData.length; i++) {
+        const r = rawData[i];
+        const status = r.estado;
+        
+        // Actualizar sumario
+        if (status === 'Asistió') summary.asistio++;
+        else if (status === 'Faltó con Aviso') summary.faltoConAviso++;
+        else if (status === 'Faltó sin Aviso') summary.faltoSinAviso++;
+        
+        // Actualizar por mes
+        const date = dayjs(r.configuracion_dia.fecha);
+        const monthKey = date.format('MMM YYYY');
+        
+        if (!byMonth[monthKey]) {
+            byMonth[monthKey] = { month: monthKey, asistio: 0, faltas: 0 };
+        }
+        
+        if (status === 'Asistió') {
+            byMonth[monthKey].asistio++;
+        } else {
+            byMonth[monthKey].faltas++;
+        }
+    }
 
     const stats: StatsData = {
-      summary: {
-        total: rawData.length,
-        asistio: rawData.filter(r => r.estado === 'Asistió').length,
-        faltoConAviso: rawData.filter(r => r.estado === 'Faltó con Aviso').length,
-        faltoSinAviso: rawData.filter(r => r.estado === 'Faltó sin Aviso').length,
-      },
-      byMonth: {}
+      summary,
+      byMonth
     };
 
-    rawData.forEach(r => {
-      const month = dayjs(r.configuracion_dia.fecha).format('MMM YYYY');
-      if (!stats.byMonth[month]) {
-        stats.byMonth[month] = { month, asistio: 0, faltas: 0 };
-      }
-      if (r.estado === 'Asistió') stats.byMonth[month].asistio++;
-      else stats.byMonth[month].faltas++;
-    });
-
-    const lastMonth = dayjs().subtract(1, 'month');
-    const lastMonthStr = lastMonth.format('MMM YYYY');
-    const lastMonthStats = stats.byMonth[lastMonthStr];
-    (stats as any).lastMonthSummary = lastMonthStats || { month: lastMonthStr, asistio: 0, faltas: 0 };
+    (stats as any).lastMonthSummary = byMonth[lastMonthStr] || { month: lastMonthStr, asistio: 0, faltas: 0 };
 
     return stats;
   },

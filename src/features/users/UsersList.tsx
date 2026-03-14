@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Table, Button, Modal, TextInput, Select, Group, Title, Badge, 
     ActionIcon, Alert, Paper, Avatar, Text, Menu, SimpleGrid, 
-    Card, ThemeIcon, Stack, Container, Box, Center 
+    ThemeIcon, Stack, Container, Box, Center 
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
@@ -31,7 +31,6 @@ export function UsersList() {
   const [initialPassword, setInitialPassword] = useState('');
   const [hasAuth, setHasAuth] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -50,13 +49,11 @@ export function UsersList() {
   }, []);
 
   const fetchUsers = async () => {
-    setLoading(true);
     const { data, error } = await supabase
       .from('usuarios')
       .select('*, membresias(rol_jerarquico, departamento:departamentos(id, nombre))')
       .order('nombre');
     if (data) setUsers(data);
-    setLoading(false);
   };
 
   const fetchDepartments = async () => {
@@ -461,7 +458,7 @@ export function UsersList() {
                             required
                             radius="md"
                             value={formData.fecha_nacimiento}
-                            onChange={(val) => setFormData({ ...formData, fecha_nacimiento: val })}
+                            onChange={(val) => setFormData({ ...formData, fecha_nacimiento: val as Date | null })}
                             locale="es"
                             leftSection={<IconCake size={16} />}
                         />
