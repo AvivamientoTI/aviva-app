@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Table, Button, Modal, TextInput, Select, Group, Title, Badge, 
     ActionIcon, Alert, Paper, Avatar, Text, Menu, SimpleGrid, 
-    ThemeIcon, Stack, Container, Box, Center 
+    ThemeIcon, Stack, Container, Box, Center, NumberInput 
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
@@ -19,13 +19,26 @@ import { MembershipsManager } from './MembershipsManager';
 import { AbsencesManager } from './AbsencesManager';
 import { calculateAge } from '../../utils/ageCalculator';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useUsers } from '../../hooks/queries/useUsers';
+import { useDepartments } from '../../hooks/queries/useDepartments';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function UsersList() {
   const permissions = usePermissions();
-  const [users, setUsers] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const queryClient = useQueryClient();
+  
+  // Queries
+  const { data: usersData, isLoading: usersLoading } = useUsers();
+  const { data: deptsData } = useDepartments();
+  const departmentsOptions = deptsData?.options || [];
+
+  // Filter state
   const [filterDept, setFilterDept] = useState<string | null>(null);
+  const [filterGender, setFilterGender] = useState<string | null>(null);
+  const [filterAgeMin, setFilterAgeMin] = useState<number | string | null>(null);
+  const [filterAgeMax, setFilterAgeMax] = useState<number | string | null>(null);
   const [search, setSearch] = useState('');
+
   const [opened, { open, close }] = useDisclosure(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [initialPassword, setInitialPassword] = useState('');
@@ -43,28 +56,7 @@ export default function UsersList() {
     fecha_nacimiento: null as Date | null
   });
 
-  useEffect(() => {
-    fetchUsers();
-    fetchDepartments();
-  }, []);
-
-  const fetchUsers = async () => {
-    const { data } = await supabase
-      .from('usuarios')
-      .select('*, membresias(rol_jerarquico, departamento:departamentos(id, nombre))')
-      .order('nombre');
-    if (data) setUsers(data);
-  };
-
-  const fetchDepartments = async () => {
-    const { data } = await supabase.from('departamentos').select('*');
-    if (data) {
-      const filtered = data
-        .filter(d => permissions.canManageDepartment(d.id))
-        .map(d => ({ value: String(d.id), label: d.nombre }));
-      setDepartments(filtered);
-    }
-  };
+  // Manual fetches removed in favor of useQuery
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +84,7 @@ export default function UsersList() {
     } else {
       notifications.show({ title: 'Éxito', message: 'Usuario guardado', color: 'green' });
       close();
-      fetchUsers();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       resetForm();
     }
   };
@@ -160,7 +152,7 @@ export default function UsersList() {
       if (error) {
         notifications.show({ title: 'Error', message: error.message, color: 'red' });
       } else {
-        fetchUsers();
+        queryClient.invalidateQueries({ queryKey: ['users'] });
       }
     }
   };
@@ -179,7 +171,9 @@ export default function UsersList() {
   };
 
   const filteredUsers = useMemo(() => {
+    const users = usersData || [];
     return users.filter(u => {
+      // Dept Filter
       let matchesDept = false;
       if (filterDept) {
         matchesDept = u.membresias?.some((m: any) => String(m.departamento?.id) === filterDept);
@@ -187,11 +181,21 @@ export default function UsersList() {
         matchesDept = u.membresias?.some((m: any) => permissions.canManageDepartment(m.departamento?.id));
       }
 
+      // Gender Filter
+      const matchesGender = !filterGender || u.genero === filterGender;
+
+      // Age Filter
+      const age = calculateAge(u.fecha_nacimiento);
+      const matchesAgeMin = filterAgeMin === null || filterAgeMin === '' || (age !== null && age >= Number(filterAgeMin));
+      const matchesAgeMax = filterAgeMax === null || filterAgeMax === '' || (age !== null && age <= Number(filterAgeMax));
+
+      // Search Query
       const matchesSearch = search.toLowerCase().trim() === '' ||
         `${u.nombre} ${u.apellido}`.toLowerCase().includes(search.toLowerCase());
-      return matchesDept && matchesSearch;
+
+      return matchesDept && matchesGender && matchesAgeMin && matchesAgeMax && matchesSearch;
     });
-  }, [users, filterDept, search, permissions]);
+  }, [usersData, filterDept, filterGender, filterAgeMin, filterAgeMax, search, permissions]);
 
   const stats = [
     { label: 'Total Servidores(as)', value: filteredUsers.length, icon: IconUsers, color: 'gold' },
@@ -262,28 +266,88 @@ export default function UsersList() {
             backgroundColor: 'var(--mantine-glass-bg, rgba(255, 255, 255, 0.5))',
             backdropFilter: 'blur(10px)',
         }}>
-            <Group grow gap="md">
-            <TextInput
-                placeholder="Buscar por nombre o apellido..."
-                leftSection={<IconSearch size={18} color="var(--mantine-color-gold-6)" />}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                radius="md"
-                size="md"
-                styles={{ input: { border: 'none', backgroundColor: 'transparent' } }}
-            />
-            <Select
-                placeholder="Filtrar por departamento"
-                data={departments}
-                value={filterDept}
-                onChange={setFilterDept}
-                clearable
-                radius="md"
-                size="md"
-                leftSection={<IconFilter size={18} color="var(--mantine-color-gold-6)" />}
-                styles={{ input: { border: 'none', backgroundColor: 'transparent' } }}
-            />
-            </Group>
+            <Stack gap="md">
+                <Group grow gap="md" align="flex-end">
+                    <TextInput
+                        placeholder="Buscar por nombre o apellido..."
+                        leftSection={<IconSearch size={18} color="var(--mantine-color-gold-6)" />}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        radius="md"
+                        size="md"
+                        styles={{ input: { border: 'none', backgroundColor: 'transparent' } }}
+                    />
+                    <Select
+                        placeholder="Departamento"
+                        data={departmentsOptions}
+                        value={filterDept}
+                        onChange={setFilterDept}
+                        clearable
+                        radius="md"
+                        size="md"
+                        leftSection={<IconFilter size={18} color="var(--mantine-color-gold-6)" />}
+                        styles={{ input: { border: 'none', backgroundColor: 'transparent' } }}
+                    />
+                    <Select
+                        placeholder="Género"
+                        data={[
+                            { value: 'M', label: 'Masculino' },
+                            { value: 'F', label: 'Femenino' }
+                        ]}
+                        value={filterGender}
+                        onChange={setFilterGender}
+                        clearable
+                        radius="md"
+                        size="md"
+                        leftSection={<IconUser size={18} color="var(--mantine-color-gold-6)" />}
+                        styles={{ input: { border: 'none', backgroundColor: 'transparent' } }}
+                    />
+                </Group>
+                
+                <Group gap="md">
+                    <Text size="sm" fw={700} c="dimmed" style={{ minWidth: '80px' }}>Rango de Edad:</Text>
+                    <Group gap="xs">
+                        <NumberInput
+                            placeholder="Mín"
+                            min={0}
+                            max={120}
+                            value={filterAgeMin as any}
+                            onChange={setFilterAgeMin}
+                            radius="md"
+                            size="sm"
+                            style={{ width: '100px' }}
+                        />
+                        <Text size="sm" fw={700} c="dimmed">-</Text>
+                        <NumberInput
+                            placeholder="Máx"
+                            min={0}
+                            max={120}
+                            value={filterAgeMax as any}
+                            onChange={setFilterAgeMax}
+                            radius="md"
+                            size="sm"
+                            style={{ width: '100px' }}
+                        />
+                    </Group>
+                    
+                    {(search || filterDept || filterGender || filterAgeMin || filterAgeMax) && (
+                        <Button 
+                            variant="subtle" 
+                            color="gray" 
+                            size="xs" 
+                            onClick={() => {
+                                setSearch('');
+                                setFilterDept(null);
+                                setFilterGender(null);
+                                setFilterAgeMin(null);
+                                setFilterAgeMax(null);
+                            }}
+                        >
+                            Limpiar Filtros
+                        </Button>
+                    )}
+                </Group>
+            </Stack>
         </Paper>
 
         <Paper shadow="md" radius="xl" withBorder className="glass-card" style={{
@@ -297,7 +361,6 @@ export default function UsersList() {
                     <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>Servidor(a)</Table.Th>
                     <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Info Personal</Table.Th>
                     <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Contacto</Table.Th>
-                    <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Membresías</Table.Th>
                     <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
                 </Table.Tr>
                 </Table.Thead>
@@ -343,19 +406,6 @@ export default function UsersList() {
                                 </Group>
                             </Stack>
                         </Table.Td>
-                        <Table.Td>
-                            <Group gap={5}>
-                                {user.membresias?.length > 0 ? (
-                                user.membresias.map((m: any, i: number) => (
-                                    <Badge key={i} size="sm" variant="light" color="gold" radius="sm">
-                                    {m.departamento?.nombre}
-                                    </Badge>
-                                ))
-                                ) : (
-                                <Text size="xs" c="dimmed" fs="italic">Sin asignación</Text>
-                                )}
-                            </Group>
-                        </Table.Td>
                         <Table.Td style={{ paddingRight: '24px' }}>
                             <Group justify="flex-end" gap="xs">
                                 <Button variant="light" size="xs" radius="md" leftSection={<IconEdit size={14} />} onClick={() => handleEdit(user)} disabled={!permissions.canManageUsers}>
@@ -385,11 +435,13 @@ export default function UsersList() {
                     ))
                 ) : (
                     <Table.Tr>
-                    <Table.Td colSpan={5}>
+                    <Table.Td colSpan={4}>
                         <Center py="xl">
                             <Stack align="center" gap="xs" opacity={0.6}>
                                 <IconUsers size={48} />
-                                <Text ta="center" fw={600}>No se encontraron servidores en esta búsqueda.</Text>
+                                <Text ta="center" fw={600}>
+                                    {usersLoading ? "Cargando servidores..." : "No se encontraron servidores en esta búsqueda."}
+                                </Text>
                             </Stack>
                         </Center>
                     </Table.Td>
