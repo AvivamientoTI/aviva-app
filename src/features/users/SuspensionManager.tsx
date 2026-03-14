@@ -21,7 +21,8 @@ import {
     Avatar,
     Loader,
     Alert,
-    Box
+    Box,
+    ActionIcon
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { 
@@ -38,7 +39,7 @@ import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
-export const SuspensionManager = () => {
+export default function SuspensionManager() {
     const { isServidoresAdmin } = useUser();
     const isAuthorized = isServidoresAdmin();
 

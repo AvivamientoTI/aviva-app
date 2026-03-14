@@ -40,7 +40,7 @@ export interface Department {
     prioridad: number;
 }
 
-export function DepartmentsList() {
+export default function DepartmentsList() {
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
     const [opened, { open, close }] = useDisclosure(false);

@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 
 dayjs.extend(weekOfYear);
-import type { StatsData } from '../types';
+import type { StatsData, MonthlyStat } from '../types';
 import type { Database } from '../types/database.types';
 
 type AttendanceWithRelations = Database['public']['Tables']['asistencias']['Row'] & {

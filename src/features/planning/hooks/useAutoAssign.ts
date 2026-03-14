@@ -146,7 +146,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
 
                 // Filter out suspended users for this date
                 const suspendedUserIds = allSuspensions
-                    .filter(s => s.fecha_inicio <= dateStr && s.fecha_fin >= dateStr)
+                    .filter(s => s.fecha_inicio <= dateStr && (!s.fecha_fin || s.fecha_fin >= dateStr))
                     .map(s => String(s.usuario_id));
 
                 if (suspendedUserIds.length > 0) {

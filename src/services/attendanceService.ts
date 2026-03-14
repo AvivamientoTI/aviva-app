@@ -123,27 +123,7 @@ export const attendanceService = {
         // Y el upsert necesita el usuario_id y configuracion_dia_id para el conflicto.
         
         // Vamos a mejorar el manejador para que sea robusto.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const toUpsert = records.map(r => {
-            const isTemp = String(r.id).startsWith('temp-');
-            const data: any = {
-                estado: r.estado,
-                justificacion: r.justificacion
-            };
-            
-            if (!isTemp) {
-                data.id = r.id;
-            }
-            
-            // Para upsert correcto necesitamos los campos de la constraint si no hay ID
-            // El componente AttendanceManager mantiene el record completo en el state
-            // así que podemos extraer usuario_id y configuracion_dia_id si los pasamos.
-            
-            // Re-evaluando: es mejor que AttendanceManager pase los objetos de asistencia completos
-            // o que nosotros busquemos los datos faltantes.
-            
-            return r; // Por ahora devolvemos r, pero necesitamos asegurar que tenga usuario_id y config_id
-        });
+
 
         // La implementación anterior de saveAttendance usaba AttendanceInsert[]
         // Vamos a mantener el nombre updateAttendanceRecords pero con la lógica de upsert

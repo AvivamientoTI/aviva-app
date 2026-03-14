@@ -44,7 +44,7 @@ async function getUsersNotAssignedOnDate(_date: string, members: any[], _headerI
   return members; 
 }
 
-export function ScheduleView() {
+export default function ScheduleView() {
     const permissions = usePermissions();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);

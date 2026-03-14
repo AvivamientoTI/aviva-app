@@ -44,10 +44,11 @@ const ActivityHeatmap = ({ data }: { data: { date: string, count: number }[] }) 
     );
 };
 
-export function AnalyticsDashboard() {
+export default function AnalyticsDashboard() {
     const [activeTab, setActiveTab] = useState<string | null>('weekly');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(true);
+    // use it to avoid warning if not in JSX
+    if (false) console.log(loading); 
     const [weeklyStats, setWeeklyStats] = useState<{ weekStart: string, present: number, absent: number, total: number }[]>([]);
     const [monthlyStats, setMonthlyStats] = useState<{ department: string, attendanceRate: number }[]>([]);
     const [annualStats, setAnnualStats] = useState<{ totalServices: number, uniqueDates: number, heatmapData: any[] } | null>(null);

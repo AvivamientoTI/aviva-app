@@ -20,7 +20,7 @@ import { AbsencesManager } from './AbsencesManager';
 import { calculateAge } from '../../utils/ageCalculator';
 import { usePermissions } from '../../hooks/usePermissions';
 
-export function UsersList() {
+export default function UsersList() {
   const permissions = usePermissions();
   const [users, setUsers] = useState<any[]>([]);
   const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
@@ -49,7 +49,7 @@ export function UsersList() {
   }, []);
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('usuarios')
       .select('*, membresias(rol_jerarquico, departamento:departamentos(id, nombre))')
       .order('nombre');

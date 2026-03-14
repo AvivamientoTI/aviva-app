@@ -28,7 +28,7 @@ import { PlanningStepDeptMonth } from './components/PlanningStepDeptMonth';
 import { PlanningStepServiceDates } from './components/PlanningStepServiceDates';
 import { PlanningStepReview } from './components/PlanningStepReview';
 
-export function PlanningWizard() {
+export default function PlanningWizard() {
   return (
     <PlanningProvider>
       <PlanningWizardContent />

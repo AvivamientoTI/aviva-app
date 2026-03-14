@@ -37,7 +37,7 @@ import { supabase } from '../../services/supabaseClient';
 import dayjs from 'dayjs';
 import { ATTENDANCE_STATES } from '../../constants/attendance';
 
-export function AttendanceManager() {
+export default function AttendanceManager() {
     const { attendanceManagedDepartments } = useUser();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -233,13 +233,7 @@ export function AttendanceManager() {
                             label="Fecha del Servicio"
                             placeholder="Seleccionar fecha"
                             value={selectedDate}
-                            onChange={(val) => {
-                                if (val instanceof Date || val === null) {
-                                    setSelectedDate(val);
-                                } else if (typeof val === 'string') {
-                                    setSelectedDate(new Date(val));
-                                }
-                            }}
+                            onChange={(val) => setSelectedDate(val as Date | null)}
                             radius="md"
                             size="md"
                             leftSection={<IconCalendarEvent size={18} color="var(--mantine-color-gold-6)" />}

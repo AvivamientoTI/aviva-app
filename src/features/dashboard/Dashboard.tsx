@@ -48,7 +48,7 @@ import { PersonalRoleTemplate } from '../reports/PersonalRoleTemplate';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getSingle = (val: any) => Array.isArray(val) ? val[0] : val;
 
-export function Dashboard() {
+export default function Dashboard() {
     const { userProfile, attendanceManagedDepartments } = useUser();
     const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
 

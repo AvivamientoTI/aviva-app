@@ -36,7 +36,7 @@ export const recommendationService = {
         const allSuspensions = await suspensionService.getAllSuspensions();
         const suspendedUserIds = new Set(
             allSuspensions
-                .filter(s => s.fecha_inicio <= date && s.fecha_fin >= date)
+                .filter(s => s.fecha_inicio <= date && (!s.fecha_fin || s.fecha_fin >= date))
                 .map(s => s.usuario_id)
         );
 
