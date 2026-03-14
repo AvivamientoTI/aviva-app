@@ -80,7 +80,7 @@ export function Login() {
             }}>
               <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.6)' }} />
             </div>
-            <Title order={2} ta="center" mt="sm" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.4rem', letterSpacing: '-0.02em', color: '#854d0e' }}>
+            <Title order={2} ta="center" mt="sm" style={{ fontFamily: 'Inter, sans-serif', fontSize: '2.4rem', letterSpacing: '-0.02em', color: '#854d0e' }}>
               Aviva <Text span c="yellow.7" inherit>App</Text>
             </Title>
             <Text size="md" ta="center" c="stone.5" fw={600}>

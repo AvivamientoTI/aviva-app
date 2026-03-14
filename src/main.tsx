@@ -11,7 +11,10 @@ import './index.css';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { theme } from './theme';
+import { inject } from '@vercel/analytics';
 
+
+inject();
 dayjs.locale('es');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

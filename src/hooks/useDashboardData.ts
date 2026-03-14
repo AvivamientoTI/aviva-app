@@ -57,6 +57,7 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         queryFn: () => analyticsService.fetchUpcomingServices(userId!),
         enabled: !!userId,
         staleTime: 1000 * 60 * 5, // 5 minutes
+        select: (data) => data as UpcomingService[]
     });
 
     const {
@@ -80,12 +81,13 @@ export const useDashboardData = (selectedDeptId: number | null) => {
             : analyticsService.fetchUserAttendanceStats(userId!, selectedDeptId!, 'YTD'),
         enabled: !!selectedDeptId && !!userId,
         staleTime: 1000 * 60 * 10, // 10 minutes
+        select: (data) => data as StatsData
     });
 
     return {
-        upcoming: upcoming as UpcomingService[],
+        upcoming,
         upcomingCount,
-        stats: stats as StatsData | null,
+        stats,
         shouldShowDeptStats,
         loading: loadingUpcoming || loadingUpcomingCount || (!!selectedDeptId && loadingStats),
         error: errorUpcoming || errorStats

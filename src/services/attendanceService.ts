@@ -1,9 +1,20 @@
 import { supabase } from './supabaseClient';
 import type { Database } from '../types/database.types';
+import { ATTENDANCE_STATES } from '../constants/attendance';
 
 export type ServiceDay = Pick<Database['public']['Tables']['configuracion_dia']['Row'], 'id' | 'fecha' | 'tipo_servicio'>;
 export type AttendanceRecord = Database['public']['Tables']['asistencias']['Row'];
 export type AttendanceInsert = Database['public']['Tables']['asistencias']['Insert'];
+
+export interface AttendanceRecordWithDetails extends AttendanceRecord {
+    usuario: {
+        nombre: string;
+        apellido: string;
+    };
+    posicion: {
+        nombre: string;
+    } | null;
+}
 
 export interface DepartmentMember {
     id: number;
@@ -102,11 +113,143 @@ export const attendanceService = {
     /**
      * Guarda o actualiza los registros de asistencia
      */
-    async saveAttendance(records: AttendanceInsert[]): Promise<void> {
+    async updateAttendanceRecords(records: any[]): Promise<void> {
+        // En Supabase, usamos upsert. Necesitamos mappear los campos si es necesario.
+        // El componente envía { id, estado, justificacion, hora_registro }
+        // Pero la tabla 'asistencias' necesita { id, estado, justificacion, usuario_id, configuracion_dia_id }
+        
+        // Sin embargo, si el ID es 'temp-xxx', significa que es un INSERT.
+        // Y el upsert necesita el usuario_id y configuracion_dia_id para el conflicto.
+        
+        // Vamos a mejorar el manejador para que sea robusto.
+        const toUpsert = records.map(r => {
+            const isTemp = String(r.id).startsWith('temp-');
+            const data: any = {
+                estado: r.estado,
+                justificacion: r.justificacion
+            };
+            
+            if (!isTemp) {
+                data.id = r.id;
+            }
+            
+            // Para upsert correcto necesitamos los campos de la constraint si no hay ID
+            // El componente AttendanceManager mantiene el record completo en el state
+            // así que podemos extraer usuario_id y configuracion_dia_id si los pasamos.
+            
+            // Re-evaluando: es mejor que AttendanceManager pase los objetos de asistencia completos
+            // o que nosotros busquemos los datos faltantes.
+            
+            return r; // Por ahora devolvemos r, pero necesitamos asegurar que tenga usuario_id y config_id
+        });
+
+        // La implementación anterior de saveAttendance usaba AttendanceInsert[]
+        // Vamos a mantener el nombre updateAttendanceRecords pero con la lógica de upsert
         const { error } = await supabase
             .from('asistencias')
-            .upsert(records, { onConflict: 'configuracion_dia_id, usuario_id' });
+            .upsert(records.map(r => ({
+                id: String(r.id).startsWith('temp-') ? undefined : r.id,
+                usuario_id: r.usuario_id,
+                configuracion_dia_id: r.configuracion_dia_id,
+                estado: r.estado,
+                justificacion: r.justificacion
+            })), { onConflict: 'configuracion_dia_id, usuario_id' });
 
         if (error) throw error;
+    },
+
+    /**
+     * Obtiene los servicios de un departamento para una fecha específica
+     */
+    async fetchServiceDaysByDate(deptId: number | string, date: string): Promise<ServiceDay[]> {
+        const { data, error } = await supabase
+            .from('configuracion_dia')
+            .select(`
+                id,
+                fecha,
+                tipo_servicio,
+                roles_cabecera!inner (
+                    departamento_id
+                )
+            `)
+            .eq('roles_cabecera.departamento_id', Number(deptId))
+            .eq('fecha', date);
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    /**
+     * Obtiene la asistencia con detalles de usuario y posición
+     */
+    async fetchAttendanceWithDetails(configDiaId: number, deptId: number): Promise<AttendanceRecordWithDetails[]> {
+        // 1. Obtener la asistencia ya registrada
+        const { data: existingAttendance, error: attendError } = await supabase
+            .from('asistencias')
+            .select('*')
+            .eq('configuracion_dia_id', configDiaId);
+
+        if (attendError) throw attendError;
+        const attendanceMap = new Map(existingAttendance?.map(a => [a.usuario_id, a]));
+
+        // 2. Obtener las asignaciones para este día (para saber las posiciones)
+        const { data: assignments, error: assignError } = await supabase
+            .from('asignaciones')
+            .select(`
+                usuario_id,
+                posicion_id,
+                usuario:usuarios (nombre, apellido),
+                posicion:posiciones_departamento (nombre)
+            `)
+            .eq('configuracion_dia_id', configDiaId);
+
+        if (assignError) throw assignError;
+        const assignmentsMap = new Map((assignments || []).map(a => [a.usuario_id, a]));
+
+        let baseUsers: { usuario_id: number; nombre: string; apellido: string; posicion_nombre: string | null }[] = [];
+
+        if (deptId === 2) {
+            // Requerimiento especial: Servidores (Todos los miembros)
+            const members = await this.fetchDeptMembers(2);
+            baseUsers = members.map(m => ({
+                usuario_id: m.id,
+                nombre: m.nombre,
+                apellido: m.apellido,
+                posicion_nombre: (assignmentsMap.get(m.id) as any)?.posicion?.nombre || null
+            }));
+        } else {
+            // Comportamiento estándar: Solo asignados
+            baseUsers = (assignments || []).map(a => {
+                const user = Array.isArray(a.usuario) ? a.usuario[0] : a.usuario;
+                const pos = Array.isArray(a.posicion) ? a.posicion[0] : a.posicion;
+                return {
+                    usuario_id: a.usuario_id || 0,
+                    nombre: user?.nombre || 'Desconocido',
+                    apellido: user?.apellido || '',
+                    posicion_nombre: pos?.nombre || null
+                };
+            });
+        }
+
+        // 3. Combinar todo
+        return baseUsers.map(user => {
+            const existing = attendanceMap.get(user.usuario_id);
+            
+            return {
+                id: existing?.id || `temp-${user.usuario_id}`,
+                configuracion_dia_id: configDiaId,
+                usuario_id: user.usuario_id,
+                estado: existing?.estado || ATTENDANCE_STATES.ASISTIO,
+                justificacion: existing?.justificacion || null,
+                registrado_por: existing?.registrado_por || null,
+                created_at: existing?.created_at || null,
+                updated_at: existing?.updated_at || null,
+                usuario: {
+                    nombre: user.nombre,
+                    apellido: user.apellido
+                },
+                posicion: user.posicion_nombre ? { nombre: user.posicion_nombre } : null
+            } as AttendanceRecordWithDetails;
+        });
     }
 };

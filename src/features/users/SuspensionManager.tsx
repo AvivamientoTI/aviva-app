@@ -5,7 +5,6 @@ import { useUser } from '../../contexts/UserContext';
 import {
     Container,
     Title,
-    Card,
     Group,
     Stack,
     Select,
@@ -16,12 +15,28 @@ import {
     ActionIcon,
     LoadingOverlay,
     TextInput,
-    Box,
     ThemeIcon,
-    SimpleGrid
+    SimpleGrid,
+    Paper,
+    Textarea,
+    Center,
+    Avatar,
+    Loader,
+    Alert,
+    Box
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconBan, IconCalendar, IconUser, IconTrash, IconAlertCircle, IconCheck } from '@tabler/icons-react';
+import { 
+    IconTrash,
+    IconScale,
+    IconHistory,
+    IconUserPlus,
+    IconCheck,
+    IconAlertCircle,
+    IconUser,
+    IconCalendar,
+    IconBan
+} from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -31,15 +46,16 @@ export const SuspensionManager = () => {
     const isAuthorized = isServidoresAdmin();
 
     const [suspensions, setSuspensions] = useState<Suspension[]>([]);
-    const [users, setUsers] = useState<any[]>([]);
+    const [users, setUsers] = useState<{ value: string; label: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
     const [formData, setFormData] = useState({
         usuario_id: '',
-        motivo: ''
+        motivo: '',
+        fecha_inicio: null as Date | null,
+        fecha_fin: null as Date | null
     });
-    const [dates, setDates] = useState<[Date | null, Date | null]>([null, null]);
 
     useEffect(() => {
         if (isAuthorized) {
@@ -57,7 +73,10 @@ export const SuspensionManager = () => {
 
             setSuspensions(suspData);
             if (usersData.data) {
-                setUsers(usersData.data);
+                setUsers(usersData.data.map(u => ({
+                    value: String(u.id),
+                    label: `${u.apellido}, ${u.nombre}`
+                })));
             }
         } catch (err) {
             console.error(err);
@@ -74,7 +93,7 @@ export const SuspensionManager = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.usuario_id || !dates[0] || !dates[1] || !formData.motivo) {
+        if (!formData.usuario_id || !formData.fecha_inicio || !formData.motivo) {
             notifications.show({
                 title: 'Campos incompletos',
                 message: 'Por favor completa todos los campos requeridos',
@@ -87,240 +106,238 @@ export const SuspensionManager = () => {
         try {
             await suspensionService.create({
                 usuario_id: Number(formData.usuario_id),
-                fecha_inicio: dayjs(dates[0]).format('YYYY-MM-DD'),
-                fecha_fin: dayjs(dates[1]).format('YYYY-MM-DD'),
+                fecha_inicio: dayjs(formData.fecha_inicio).format('YYYY-MM-DD'),
+                fecha_fin: formData.fecha_fin ? dayjs(formData.fecha_fin).format('YYYY-MM-DD') : null,
                 motivo: formData.motivo
             });
 
             notifications.show({
-                title: 'Éxito',
+                title: '¡Éxito!',
                 message: 'Suspensión registrada correctamente',
                 color: 'green',
                 icon: <IconCheck size={18} />
             });
 
-            // Reset form and reload
-            setFormData({ usuario_id: '', motivo: '' });
-            setDates([null, null]);
+            setFormData({ usuario_id: '', motivo: '', fecha_inicio: null, fecha_fin: null });
             await loadData();
         } catch (err) {
             console.error(err);
-            notifications.show({
-                title: 'Error',
-                message: 'No se pudo crear la suspensión',
-                color: 'red'
-            });
+            notifications.show({ title: 'Error', message: 'No se pudo registrar la suspensión', color: 'red' });
         } finally {
             setSubmitting(false);
         }
     };
 
-    const handleEndSuspension = async (id: number) => {
-        if (!confirm('¿Estás seguro de finalizar esta suspensión prematuramente?')) return;
+    const handleDelete = async (id: number) => {
+        if (!confirm('¿Estás seguro de eliminar esta suspensión?')) return;
         try {
-            await suspensionService.endSuspension(id);
-            notifications.show({
-                title: 'Actualizado',
-                message: 'Suspensión finalizada correctamente',
-                color: 'blue'
-            });
+            await suspensionService.deleteSuspension(id);
+            notifications.show({ title: 'Eliminado', message: 'Registro borrado', color: 'blue' });
             await loadData();
         } catch (err) {
-            console.error(err);
-            notifications.show({
-                title: 'Error',
-                message: 'Error al finalizar la suspensión',
-                color: 'red'
-            });
+            notifications.show({ title: 'Error', message: 'No se pudo eliminar', color: 'red' });
         }
     };
 
     if (!isAuthorized) {
         return (
             <Container p="xl">
-                <Text c="red" ta="center" size="lg" fw={700}>
-                    <IconAlertCircle style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
-                    No tienes permisos para ver esta sección.
-                </Text>
+                <Alert color="red" icon={<IconAlertCircle size={16} />} title="Acceso Denegado">
+                    No tienes permisos para esta sección.
+                </Alert>
             </Container>
         );
     }
 
-    const userOptions = users.map(u => ({
-        value: String(u.id),
-        label: `${u.apellido}, ${u.nombre}`
-    }));
-
     return (
-        <Container size="xl" py="lg" className="animate-fade-in">
+        <Container size="xl" py="xl">
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-end">
-                    <div>
-                        <Title order={2} style={{
-                            fontFamily: 'Outfit, sans-serif',
-                            fontWeight: 800,
-                            letterSpacing: '-0.03em'
+                    <Stack gap={0}>
+                        <Title order={1} style={{ 
+                            fontFamily: 'Inter, sans-serif', 
+                            fontSize: '2.4rem',
+                            letterSpacing: '-0.02em',
+                            color: 'var(--mantine-color-text)'
                         }}>
-                            Gestión de <Text span c="red.7" inherit>Suspensiones</Text>
+                            Gestión de Suspensiones ⚖️
                         </Title>
-                        <Text c="dimmed" size="sm" mt={4}>
-                            Administra las restricciones temporales de servicio para los miembros.
-                        </Text>
-                    </div>
+                        <Text c="dimmed" fw={500} size="md">Administración de sanciones y periodos de inactividad</Text>
+                    </Stack>
                 </Group>
 
-                <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="lg">
-                    {/* Formulario de Creación */}
-                    <Card withBorder radius="md" p="xl" style={{
-                        height: 'fit-content',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        borderColor: 'var(--mantine-color-red-2)'
-                    }}>
-                        <LoadingOverlay visible={submitting} />
-                        <Box style={{
-                            position: 'absolute',
-                            top: -20,
-                            right: -20,
-                            opacity: 0.05,
-                            transform: 'rotate(15deg)',
-                            zIndex: 0
-                        }}>
-                            <IconBan size={180} color="var(--mantine-color-red-9)" />
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
+                    {/* Form Section */}
+                    <Stack gap="lg">
+                        <Paper p="xl" radius="xl" withBorder className="glass-card">
+                            <LoadingOverlay visible={submitting} overlayProps={{ radius: 'xl', blur: 2 }} />
+                            <Stack gap="md">
+                                <Group gap="sm">
+                                    <ThemeIcon color="red" variant="light" size="lg" radius="md">
+                                        <IconScale size={20} />
+                                    </ThemeIcon>
+                                    <Text fw={800} size="lg">Registrar Nueva Sanción</Text>
+                                </Group>
+
+                                <Stack component="form" onSubmit={handleSubmit} gap="md">
+                                    <Select
+                                        label="Servidor"
+                                        placeholder="Busca al servidor..."
+                                        data={users}
+                                        value={formData.usuario_id}
+                                        onChange={(val) => setFormData({ ...formData, usuario_id: val || '' })}
+                                        searchable
+                                        radius="md"
+                                        leftSection={<IconUser size={18} />}
+                                    />
+
+                                    <Group grow>
+                                        <DatePickerInput
+                                            label="Fecha Inicio"
+                                            placeholder="Seleccionar"
+                                            value={formData.fecha_inicio}
+                                            onChange={(val) => setFormData({ ...formData, fecha_inicio: val })}
+                                            radius="md"
+                                            leftSection={<IconCalendar size={18} />}
+                                        />
+                                        <DatePickerInput
+                                            label="Fecha Fin"
+                                            placeholder="Seleccionar"
+                                            value={formData.fecha_fin}
+                                            onChange={(val) => setFormData({ ...formData, fecha_fin: val })}
+                                            radius="md"
+                                            leftSection={<IconCalendar size={18} />}
+                                        />
+                                    </Group>
+
+                                    <Textarea
+                                        label="Motivo o Descripción"
+                                        placeholder="Escribe el motivo de la suspensión..."
+                                        minRows={3}
+                                        value={formData.motivo}
+                                        onChange={(e) => setFormData({ ...formData, motivo: e.currentTarget.value })}
+                                        radius="md"
+                                    />
+
+                                    <Button 
+                                        type="submit" 
+                                        fullWidth 
+                                        size="md" 
+                                        radius="xl" 
+                                        color="red"
+                                        leftSection={<IconBan size={18} />}
+                                        style={{ marginTop: '10px' }}
+                                    >
+                                        Aplicar Suspensión
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </Paper>
+
+                        {/* Stats / Info Card */}
+                        <Paper p="xl" radius="xl" withBorder className="shell-glass">
+                            <Group justify="space-between">
+                                <Stack gap={0}>
+                                    <Text size="xs" c="dimmed" fw={800} tt="uppercase">Impacto en el Servicio</Text>
+                                    <Text fw={800} size="xl">Resumen de Cumplimiento</Text>
+                                </Stack>
+                                <ThemeIcon size={50} radius="xl" variant="light" color="gold">
+                                    <IconHistory size={26} />
+                                </ThemeIcon>
+                            </Group>
+                            <Text size="sm" mt="md" c="dimmed" fw={500}>
+                                Las suspensiones afectan directamente la disponibilidad del personal en el calendario. 
+                                Asegúrate de registrar periodos justos y bien documentados.
+                            </Text>
+                        </Paper>
+                    </Stack>
+
+                    {/* History Section */}
+                    <Paper p={0} radius="xl" withBorder className="glass-card" style={{ overflow: 'hidden' }}>
+                        <Box p="xl" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
+                            <Group justify="space-between">
+                                <Group gap="sm">
+                                    <ThemeIcon color="gold" variant="light" size="lg" radius="md">
+                                        <IconHistory size={20} />
+                                    </ThemeIcon>
+                                    <Text fw={800} size="lg">Historial de Suspensiones</Text>
+                                </Group>
+                                <Badge variant="dot" color="red" size="lg" radius="sm">Histórico</Badge>
+                            </Group>
                         </Box>
 
-                        <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
-                            <Group gap="xs">
-                                <ThemeIcon color="red" variant="light" size="lg" radius="md">
-                                    <IconBan size={20} />
-                                </ThemeIcon>
-                                <Text fw={700} size="lg">Nueva Suspensión</Text>
-                            </Group>
-
-                            <Select
-                                label="Usuario"
-                                placeholder="Seleccionar servidor..."
-                                data={userOptions}
-                                searchable
-                                leftSection={<IconUser size={16} />}
-                                value={formData.usuario_id}
-                                onChange={(val) => setFormData({ ...formData, usuario_id: val || '' })}
-                                required
-                            />
-
-                            <DatePickerInput
-                                type="range"
-                                label="Período de Suspensión"
-                                placeholder="Selecciona fecha inicio y fin"
-                                leftSection={<IconCalendar size={16} />}
-                                value={dates}
-                                onChange={(val) => setDates(val as [Date | null, Date | null])}
-                                minDate={new Date()}
-                                required
-                            />
-
-                            <TextInput
-                                label="Motivo"
-                                placeholder="Razón de la suspensión"
-                                value={formData.motivo}
-                                onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
-                                required
-                            />
-
-                            <Button
-                                onClick={handleSubmit as any}
-                                fullWidth
-                                color="red"
-                                mt="md"
-                                leftSection={<IconBan size={18} />}
-                            >
-                                Aplicar Suspensión
-                            </Button>
-                        </Stack>
-                    </Card>
-
-                    {/* Lista de Suspensiones */}
-                    <Card withBorder radius="md" style={{ gridColumn: 'span 2' }}>
                         <Table.ScrollContainer minWidth={500}>
-                            <Table verticalSpacing="md" striped highlightOnHover>
-                                <Table.Thead>
+                            <Table verticalSpacing="md" highlightOnHover>
+                                <Table.Thead bg="var(--mantine-color-gray-0)">
                                     <Table.Tr>
-                                        <Table.Th>Usuario</Table.Th>
-                                        <Table.Th>Motivo</Table.Th>
-                                        <Table.Th>Período</Table.Th>
+                                        <Table.Th style={{ paddingLeft: '24px' }}>Servidor</Table.Th>
+                                        <Table.Th>Vigencia</Table.Th>
                                         <Table.Th>Estado</Table.Th>
-                                        <Table.Th>Acciones</Table.Th>
+                                        <Table.Th style={{ paddingRight: '24px' }}></Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {loading ? (
-                                        <Table.Tr>
-                                            <Table.Td colSpan={5} align="center" py="xl">
-                                                <Text c="dimmed">Cargando datos...</Text>
-                                            </Table.Td>
-                                        </Table.Tr>
+                                        <Table.Tr><Table.Td colSpan={4}><Center py="xl"><Loader type="dots" color="gold" /></Center></Table.Td></Table.Tr>
                                     ) : suspensions.length === 0 ? (
                                         <Table.Tr>
-                                            <Table.Td colSpan={5} align="center" py="xl">
-                                                <Stack align="center" gap="xs" opacity={0.6}>
-                                                    <IconCheck size={40} color="gray" />
-                                                    <Text>No hay suspensiones registradas</Text>
-                                                </Stack>
+                                            <Table.Td colSpan={4}>
+                                                <Center py="xl">
+                                                    <Stack align="center" gap="xs" opacity={0.5}>
+                                                        <IconCheck size={40} />
+                                                        <Text fw={600}>No hay registros vigentes</Text>
+                                                    </Stack>
+                                                </Center>
                                             </Table.Td>
                                         </Table.Tr>
                                     ) : (
                                         suspensions.map(s => {
                                             const today = dayjs().startOf('day');
-                                            const end = dayjs(s.fecha_fin);
-                                            const isActive = end.isSame(today) || end.isAfter(today);
+                                            const end = s.fecha_fin ? dayjs(s.fecha_fin).endOf('day') : null;
+                                            const isActive = !end || end.isAfter(today) || end.isSame(today);
 
                                             return (
                                                 <Table.Tr key={s.id} style={{ opacity: isActive ? 1 : 0.6 }}>
-                                                    <Table.Td>
+                                                    <Table.Td style={{ paddingLeft: '24px' }}>
                                                         <Group gap="sm">
-                                                            <ThemeIcon color="gray" variant="light" radius="xl">
-                                                                <IconUser size={14} />
-                                                            </ThemeIcon>
+                                                            <Avatar radius="lg" color="red" size="sm">
+                                                                {s.usuario?.nombre[0]}{s.usuario?.apellido[0]}
+                                                            </Avatar>
                                                             <Stack gap={0}>
-                                                                <Text size="sm" fw={500} c={isActive ? undefined : 'dimmed'}>
-                                                                    {s.usuario?.apellido}, {s.usuario?.nombre}
-                                                                </Text>
+                                                                <Text size="sm" fw={800}>{s.usuario?.apellido}, {s.usuario?.nombre}</Text>
+                                                                <Text size="xs" c="dimmed" fw={600} maw={150} truncate="end">{s.motivo}</Text>
                                                             </Stack>
                                                         </Group>
                                                     </Table.Td>
                                                     <Table.Td>
-                                                        <Text size="sm" c="dimmed">{s.motivo}</Text>
+                                                        <Stack gap={0}>
+                                                            <Text size="xs" fw={700}>
+                                                                {dayjs(s.fecha_inicio).format('DD/MM/YY')} al
+                                                            </Text>
+                                                            <Text size="xs" fw={700}>
+                                                                {s.fecha_fin ? dayjs(s.fecha_fin).format('DD/MM/YY') : 'Indefinido'}
+                                                            </Text>
+                                                        </Stack>
                                                     </Table.Td>
                                                     <Table.Td>
-                                                        <Group gap={4}>
-                                                            <Text size="sm" fw={500}>
-                                                                {dayjs(s.fecha_inicio).format('DD MMM')}
-                                                            </Text>
-                                                            <Text size="xs" c="dimmed">→</Text>
-                                                            <Text size="sm" fw={500}>
-                                                                {dayjs(s.fecha_fin).format('DD MMM YYYY')}
-                                                            </Text>
-                                                        </Group>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <Badge
-                                                            color={isActive ? 'red' : 'gray'}
-                                                            variant={isActive ? 'light' : 'outline'}
+                                                        <Badge 
+                                                            color={isActive ? 'red' : 'gray'} 
+                                                            variant={isActive ? 'filled' : 'light'}
+                                                            radius="sm"
+                                                            size="sm"
                                                         >
-                                                            {isActive ? 'Activa' : 'Finalizada'}
+                                                            {isActive ? 'Activa' : 'Expirada'}
                                                         </Badge>
                                                     </Table.Td>
-                                                    <Table.Td>
-                                                        {isActive && (
-                                                            <ActionIcon
-                                                                color="red"
-                                                                variant="subtle"
-                                                                onClick={() => handleEndSuspension(s.id)}
-                                                                title="Finalizar anticipadamente"
-                                                            >
-                                                                <IconTrash size={18} />
-                                                            </ActionIcon>
-                                                        )}
+                                                    <Table.Td style={{ paddingRight: '24px' }}>
+                                                        <ActionIcon 
+                                                            color="red" 
+                                                            variant="subtle" 
+                                                            onClick={() => handleDelete(s.id)}
+                                                            radius="md"
+                                                        >
+                                                            <IconTrash size={16} />
+                                                        </ActionIcon>
                                                     </Table.Td>
                                                 </Table.Tr>
                                             );
@@ -329,7 +346,7 @@ export const SuspensionManager = () => {
                                 </Table.Tbody>
                             </Table>
                         </Table.ScrollContainer>
-                    </Card>
+                    </Paper>
                 </SimpleGrid>
             </Stack>
         </Container>

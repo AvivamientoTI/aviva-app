@@ -29,7 +29,7 @@ export const PersonalRoleTemplate = React.forwardRef<HTMLDivElement, PersonalRol
                 color: '#1a1a1a',
                 width: '800px',
                 minHeight: '1100px',
-                fontFamily: 'Outfit, sans-serif'
+                fontFamily: 'Inter, sans-serif'
             }}
             ref={ref}
         >
@@ -126,9 +126,12 @@ export const PersonalRoleTemplate = React.forwardRef<HTMLDivElement, PersonalRol
                 <Stack align="center" mt="auto" gap={6} style={{ opacity: 0.9 }}>
                     <IconPray size={32} color="#d97706" />
                     <Text size="sm" fs="italic" ta="center" ml="xl" mr="xl" fw={500} c="#78716c">
-                        "Sirviendo con alegría en la casa del Señor"
+                        "El Señor es mi fuerza y mi canción; él me ha dado la victoria. Él es mi Dios, y lo alabaré; es el Dios de mi padre, ¡y lo exaltaré! "
                     </Text>
-                    <Text size="xs" fw={800} c="gold.8" style={{ letterSpacing: '0.05em' }}>EQUIPO DE UJIERES</Text>
+                    <   Text size="sm" fs="italic" ta="center" ml="xl" mr="xl" fw={500} c="#78716c">
+                        Éxodo 15:2
+                    </Text>
+                    <Text size="xs" fw={800} c="gold.8" style={{ letterSpacing: '0.05em' }}>SERVIDORES AYP</Text>
                 </Stack>
             </Stack>
         </div>

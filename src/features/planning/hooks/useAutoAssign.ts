@@ -171,9 +171,12 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                         // Already assigned today
                         if (assignments.some(a => a.configuracion_dia_id === config.id && String(a.usuario_id) === String(u.id))) return false;
 
-                        // Gender check
-                        if (pos.genero_requerido === 'M' && u.genero !== 'M') return false;
-                        if (pos.genero_requerido === 'F' && u.genero !== 'F') return false;
+                        // Gender check (Strict)
+                        const reqGen = String(pos.genero_requerido || 'A').toUpperCase();
+                        if (reqGen !== 'A') {
+                            const userGen = String(u.genero || '').toUpperCase();
+                            if (userGen !== reqGen) return false;
+                        }
 
                         // ENCARGADO LOGIC
                         if (isEncargadoPos) {

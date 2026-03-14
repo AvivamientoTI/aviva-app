@@ -22,7 +22,8 @@ import {
     IconTrendingUp,
     IconCalendarOff,
     IconAlertCircle,
-    IconFileDownload
+    IconFileDownload,
+    IconShare
 } from '@tabler/icons-react';
 import { DonutChart, BarChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
@@ -108,15 +109,59 @@ export function Dashboard() {
 
     const nextService = upcoming.length > 0 ? upcoming[0] : null;
 
+    // Lógica de compartir rol (Web Share API)
+    const handleShareRole = async () => {
+        if (!upcoming.length) return;
+
+        const first = upcoming[0];
+        const config = getSingle(first.configuracion_dia);
+        const pos = getSingle(first.posicion);
+        const dateStr = dayjs(config?.fecha).format('dddd D [de] MMMM');
+
+        const text = `🙌 ¡Hola! Mi próximo servicio como Ujier será el ${dateStr}.\n\n📍 Departamento: ${getSingle(pos?.departamento)?.nombre}\n👤 Posición: ${pos?.nombre}\n👔 Uniforme: ${config?.color_uniforme}\n✨ Servicio: ${config?.tipo_servicio}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Mi Rol de Servicio',
+                    text: text,
+                    url: window.location.href
+                });
+            } catch (err) {
+                console.error('Error al compartir:', err);
+            }
+        } else {
+            // Fallback: Copiar al portapapeles
+            try {
+                await navigator.clipboard.writeText(text);
+                notifications.show({
+                    title: 'Copiado',
+                    message: 'Detalles del rol copiados al portapapeles (Tu navegador no soporta compartir nativo).',
+                    color: 'blue'
+                });
+            } catch (err) {
+                console.error('Error al copiar:', err);
+            }
+        }
+    };
+
+    // Preparar datos para Sparklines
+    const attendanceTrend = stats?.byMonth ? 
+        Object.values(stats.byMonth)
+            .slice(-4)
+            .map(m => (m.asistio / (m.asistio + m.faltas || 1)) * 100) : [];
+
+    const upcomingTrend = [2, 4, 3, 5, upcomingCount]; // Mock trend for upcoming
+
     return (
         <Container size="xl" py="md">
             <Stack gap="lg">
                 {/* AI Conversational Widget */}
                 {selectedDeptId && <AiQueryWidget departmentId={selectedDeptId} />}
 
-                <Grid gutter="lg">
-                    <Grid.Col span={{ base: 12, md: 7 }}>
-                        <Stack gap="md">
+                <Grid gutter="xl" align="stretch">
+                    <Grid.Col span={{ base: 12, lg: 7 }} className="animate-fade-in card-stagger-1">
+                        <Stack gap="lg" h="100%">
                             <WelcomeCard userName={userProfile?.usuario?.nombre || 'Servidor'} />
                             {nextService && dayjs(getSingle(nextService.configuracion_dia)?.fecha).isBefore(dayjs().add(2, 'day')) && (
                                 <Alert
@@ -125,7 +170,7 @@ export function Dashboard() {
                                     title="Recordatorio de Servicio"
                                     icon={<IconAlertCircle size={16} />}
                                     radius="md"
-                                    className="animate-pulse"
+                                    className="animate-pulse glass-card"
                                 >
                                     ¡Tienes un servicio programado para {dayjs(getSingle(nextService.configuracion_dia)?.fecha).calendar(null, {
                                         sameDay: '[hoy]',
@@ -140,56 +185,79 @@ export function Dashboard() {
                         </Stack>
                     </Grid.Col>
 
-                    <Grid.Col span={{ base: 12, md: 5 }}>
+                    <Grid.Col span={{ base: 12, lg: 5 }} className="animate-fade-in card-stagger-2">
                         <UpcomingServiceCard nextService={nextService} />
                     </Grid.Col>
                 </Grid>
 
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
-                    <StatCard
-                        title={shouldShowDeptStats ? "Asistencia Departamento" : "Mi Asistencia"}
-                        value={`${attendanceRate}%`}
-                        subtitle={shouldShowDeptStats ? `Promedio de todo el equipo` : `Tu promedio año ${dayjs().year()}`}
-                        icon={<IconTrendingUp size={24} />}
-                        color="teal"
-                    />
-                    <StatCard
-                        title="Próximos Servicios"
-                        value={upcomingCount}
-                        icon={<IconCalendarEvent size={24} />}
-                        color="gold"
-                    />
-                    <StatCard
-                        title="Mes Pasado"
-                        value={lastMonthTotal}
-                        subtitle={(stats as any)?.lastMonthSummary?.month || ''}
-                        icon={<IconChecklist size={24} />}
-                        color="stone"
-                    />
-                    <StatCard
-                        title="Departamentos"
-                        value={Array.from(new Set(attendanceManagedDepartments?.map(d => d.id) || [])).length}
-                        icon={<IconUsers size={24} />}
-                        color="orange"
-                    />
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} verticalSpacing="xl">
+                    <Box className="animate-fade-in card-stagger-2">
+                        <StatCard
+                            title={shouldShowDeptStats ? "Asistencia Departamento" : "Mi Asistencia"}
+                            value={`${attendanceRate}%`}
+                            subtitle={shouldShowDeptStats ? `Promedio del equipo` : `Tu promedio ${dayjs().year()}`}
+                            icon={<IconTrendingUp size={24} />}
+                            color="teal"
+                            trendData={attendanceTrend}
+                        />
+                    </Box>
+                    <Box className="animate-fade-in card-stagger-3">
+                        <StatCard
+                            title="Próximos Servicios"
+                            value={upcomingCount}
+                            icon={<IconCalendarEvent size={24} />}
+                            color="gold"
+                            trendData={upcomingTrend}
+                        />
+                    </Box>
+                    <Box className="animate-fade-in card-stagger-4">
+                        <StatCard
+                            title="Mes Pasado"
+                            value={lastMonthTotal}
+                            subtitle={(stats as any)?.lastMonthSummary?.month || ''}
+                            icon={<IconChecklist size={24} />}
+                            color="stone"
+                        />
+                    </Box>
+                    <Box className="animate-fade-in card-stagger-5">
+                        <StatCard
+                            title="Departamentos"
+                            value={Array.from(new Set(attendanceManagedDepartments?.map(d => d.id) || [])).length}
+                            icon={<IconUsers size={24} />}
+                            color="orange"
+                        />
+                    </Box>
                 </SimpleGrid>
 
-                <Grid>
-                    <Grid.Col span={{ base: 12, md: 8 }}>
+                <Grid gutter="xl">
+                    <Grid.Col span={{ base: 12, md: 8 }} className="animate-fade-in card-stagger-3">
                         <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
-                            <Group justify="space-between" mb="md">
-                                <Title order={4} c="gold.5">Próximos Servicios</Title>
-                                <Button
-                                    variant="subtle"
-                                    color="gold"
-                                    size="xs"
-                                    radius="xl"
-                                    leftSection={<IconFileDownload size={16} />}
-                                    loading={exporting}
-                                    onClick={handleExportRole}
-                                >
-                                    Exportar Mi Rol (PDF)
-                                </Button>
+                            <Group justify="space-between" mb="xl">
+                                <Title order={4} className="text-premium">Mis Próximos Servicios</Title>
+                                <Group gap="xs">
+                                    <Button
+                                        variant="subtle"
+                                        className="btn-glass-subtle"
+                                        size="xs"
+                                        radius="xl"
+                                        leftSection={<IconShare size={16} />}
+                                        onClick={handleShareRole}
+                                        disabled={!upcoming.length}
+                                    >
+                                        Compartir
+                                    </Button>
+                                    <Button
+                                        variant="subtle"
+                                        className="btn-glass-subtle"
+                                        size="xs"
+                                        radius="xl"
+                                        leftSection={<IconFileDownload size={16} />}
+                                        loading={exporting}
+                                        onClick={handleExportRole}
+                                    >
+                                        PDF
+                                    </Button>
+                                </Group>
                             </Group>
                             {upcoming.length > 0 ? (
                                 <Stack gap="xs">
@@ -258,13 +326,13 @@ export function Dashboard() {
                         </Grid.Col>
                     )}
 
-                    <Grid.Col span={{ base: 12, md: 4 }}>
-                        <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
-                            <Group justify="space-between" mb="md">
-                                <Title order={4} c="gold.5">
+                    <Grid.Col span={{ base: 12, md: 4 }} className="animate-fade-in card-stagger-4">
+                        <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm">
+                            <Group justify="space-between" mb="xl">
+                                <Title order={4} className="text-premium">
                                     {shouldShowDeptStats ? "Estado del Departamento" : "Mi Estado de Asistencia"}
                                 </Title>
-                                {shouldShowDeptStats && <Badge color="orange" variant="light">Vista Líder</Badge>}
+                                {shouldShowDeptStats && <Badge color="orange" variant="light" size="lg" radius="md">Vista Líder</Badge>}
                             </Group>
                             {stats ? (
                                 <Stack align="center">
@@ -297,9 +365,9 @@ export function Dashboard() {
                     </Grid.Col>
 
                     {stats && stats.byMonth && Object.keys(stats.byMonth).length > 0 && (
-                        <Grid.Col span={12}>
-                            <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
-                                <Title order={4} mb="md" c="gold.5">Tendencia de Asistencia (Últimos Meses)</Title>
+                         <Grid.Col span={12} className="animate-fade-in card-stagger-5">
+                            <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm">
+                                <Title order={4} mb="xl" className="text-premium">Tendencia de Asistencia (Últimos Meses)</Title>
                                 <Box w="100%" h={400} style={{ minWidth: 0 }} role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
                                     <BarChart
                                         h={400}

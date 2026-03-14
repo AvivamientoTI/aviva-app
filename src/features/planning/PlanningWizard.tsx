@@ -1,6 +1,6 @@
 // Refreshing and ensuring TS service pickup
 import { useEffect } from 'react';
-import { Stepper, Button, Group, Title, Paper, Text, Stack, Container, Progress, Badge, Transition } from '@mantine/core';
+import { Stepper, Button, Group, Title, Paper, Text, Stack, Container, Progress, Badge, Transition, Divider } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -47,7 +47,7 @@ function PlanningWizardContent() {
     handleDateChange,
     setPositions,
     headerState, setHeaderState,
-    serviceConfigs,
+    serviceConfigs, setServiceConfigs,
     previewAssignments, setPreviewAssignments,
     loading, setLoading,
     positions,
@@ -95,6 +95,94 @@ function PlanningWizardContent() {
   }, [activeStep]);
 
   // --- Navigation Logic ---
+  const loadExistingRole = async () => {
+    if (!headerState?.id) return;
+    setLoading(true);
+    try {
+      const { data: configs, error: configError } = await supabase
+        .from('configuracion_dia')
+        .select(`
+          *,
+          asignaciones (*, usuario:usuarios(nombre, apellido))
+        `)
+        .eq('rol_cabecera_id', headerState.id)
+        .order('fecha', { ascending: true });
+
+      if (configError) throw configError;
+
+      if (!configs || configs.length === 0) {
+        notifications.show({ title: 'Aviso', message: 'El rol existe pero no tiene días configurados.', color: 'yellow' });
+        setActiveStep(1); 
+        return;
+      }
+
+      const newSelectedDates = new Set<string>();
+      const newServiceConfigs: Record<string, any[]> = {};
+      const newPreviewAssignments: any[] = [];
+
+      configs.forEach((config: any) => {
+        newSelectedDates.add(config.fecha);
+        
+        if (!newServiceConfigs[config.fecha]) {
+          newServiceConfigs[config.fecha] = [];
+        }
+
+        // Usamos el service_index de la BD para colocarlo en la posición correcta
+        const sIdx = config.service_index || 0;
+        const pseudoTargetId = `temp-${config.fecha}-${sIdx}`;
+        
+        const posQuotas: Record<string, number> = {};
+        positions.forEach(p => posQuotas[p.id] = (Number(p.cantidad_default) || 1));
+        
+        newServiceConfigs[config.fecha][sIdx] = {
+          type: config.tipo_servicio || 'Culto General',
+          uniform: config.color_uniforme || '',
+          encargado_id: config.encargado_id,
+          encargado_2_id: config.encargado_2_id,
+          positionQuotas: posQuotas
+        };
+
+        if (config.asignaciones) {
+          config.asignaciones.forEach((a: any) => {
+             newPreviewAssignments.push({
+               id: `draft-${Date.now()}-${Math.random()}`,
+               usuario_id: a.usuario_id,
+               posicion_id: a.posicion_id,
+               fecha: config.fecha,
+               configuracion_dia_id: pseudoTargetId,
+               posicion: positions.find(p => String(p.id) === String(a.posicion_id)),
+               usuario: a.usuario
+             });
+          });
+        }
+      });
+
+      // Rellenar huecos si por alguna razón el service_index no es consecutivo
+      Object.keys(newServiceConfigs).forEach(date => {
+        const arr = newServiceConfigs[date];
+        for (let i = 0; i < arr.length; i++) {
+          if (!arr[i]) arr[i] = { type: 'Culto General', uniform: '', positionQuotas: {} };
+        }
+      });
+
+      handleDateChange(Array.from(newSelectedDates).sort());
+      setServiceConfigs(newServiceConfigs as any);
+      setPreviewAssignments(newPreviewAssignments as any);
+      setActiveStep(2);
+
+      notifications.show({
+        title: 'Rol Cargado',
+        message: 'Se cargaron exitosamente los datos guardados anteriormente.',
+        color: 'teal'
+      });
+    } catch (err: any) {
+      console.error('Error loading role:', err);
+      notifications.show({ title: 'Error', message: 'No se pudo cargar el rol existente.', color: 'red' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNext = async () => {
     if (activeStep === 0) {
       if (!selectedDeptId || !selectedMonth) {
@@ -232,15 +320,10 @@ function PlanningWizardContent() {
       return;
     }
 
-    if (activeStep === 2) {
-      await handleFinish();
-      return;
-    }
-
     if (activeStep < 2) setActiveStep(activeStep + 1);
   };
 
-  const handleFinish = async () => {
+  const handleFinish = async (isDefinitive: boolean = false) => {
     if (!selectedDeptId || !selectedMonth || previewAssignments.length === 0) return;
 
     setLoading(true);
@@ -250,6 +333,8 @@ function PlanningWizardContent() {
 
       // 1. Get or Create Header
       let headerId = headerState?.id;
+      const estadoDeseado = isDefinitive ? 'Confirmado' : 'Borrador';
+
       if (!headerId) {
         const { data: newHeader, error: hError } = await supabase
           .from('roles_cabecera')
@@ -257,13 +342,21 @@ function PlanningWizardContent() {
             departamento_id: Number(selectedDeptId),
             mes: monthNum,
             anio: yearNum,
-            estado: 'Borrador'
+            estado: estadoDeseado
           })
           .select()
           .single();
 
         if (hError) throw hError;
         headerId = newHeader.id;
+      } else {
+        // ACTUALIZAR el estado si ya existe
+        const { error: updateError } = await supabase
+          .from('roles_cabecera')
+          .update({ estado: estadoDeseado })
+          .eq('id', headerId);
+        
+        if (updateError) throw updateError;
       }
 
       // 2. Clear existing assignments/configs for this header (Reset approach)
@@ -305,6 +398,7 @@ function PlanningWizardContent() {
           configsToInsert.push({
             rol_cabecera_id: headerId,
             fecha: dateStr,
+            service_index: idx,
             tipo_servicio: config.type,
             color_uniforme: config.uniform,
             encargado_id: encargados[0] || null,
@@ -373,26 +467,47 @@ function PlanningWizardContent() {
 
   return (
     <Container size="xl" py="xl">
-      <Paper shadow="sm" p="xl" radius="lg" withBorder className="animate-fade-in" style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
-        <Group justify="space-between" mb="md">
+      <Stack gap="xl">
+        <Group justify="space-between" align="flex-end">
           <Stack gap={0}>
-            <Title order={2} style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--mantine-color-text)', letterSpacing: '-0.02em' }}>Planificador de Roles</Title>
-            <Text c="dimmed" size="sm" fw={500}>Configura, asigna y aprueba el rol mensual de tu departamento</Text>
+            <Title order={1} style={{ 
+              fontFamily: 'Inter, sans-serif', 
+              fontSize: '2.5rem',
+              color: 'var(--mantine-color-text)', 
+              letterSpacing: '-0.02em' 
+            }}>Planificador de Roles 📝</Title>
+            <Text c="dimmed" size="md" fw={500}>Configura, asigna y aprueba el rol mensual de tu departamento</Text>
           </Stack>
-          <Badge size="lg" variant="light" color="gold" radius="md">
-            VERSIÓN 3.0
+          <Badge size="xl" variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} radius="md" p="lg">
+            VERSIÓN 3.5 PREMIUM
           </Badge>
         </Group>
 
-        <Progress
-          value={(activeStep / 2) * 100}
-          size="sm"
-          radius="xl"
-          mb="lg"
-          color="gold"
-          striped
-          animated={loading}
-        />
+        <Paper shadow="md" p="xl" radius="xl" withBorder className="glass-card" style={{ 
+          backgroundColor: 'var(--mantine-color-body)', 
+          borderColor: 'var(--mantine-color-default-border)',
+          minHeight: 600,
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Progress Indicator */}
+          <Stack gap="xs" mb="xl">
+            <Group justify="space-between" mb={0}>
+              <Text size="xs" fw={800} tt="uppercase" c="gold.7" style={{ letterSpacing: '0.1em' }}>
+                Progreso de Configuración: {Math.round((activeStep / 2) * 100)}%
+              </Text>
+              <Text size="xs" fw={700} c="dimmed">Paso {activeStep + 1} de 3</Text>
+            </Group>
+            <Progress
+              value={(activeStep / 2) * 100}
+              size="sm"
+              radius="xl"
+              color="gold"
+              striped
+              animated={loading}
+              style={{ boxShadow: '0 2px 4px rgba(217, 119, 6, 0.1)' }}
+            />
+          </Stack>
 
         <Stepper active={activeStep} onStepClick={setActiveStep} mb="xl" size="md" iconSize={42}>
           <Stepper.Step
@@ -425,6 +540,8 @@ function PlanningWizardContent() {
                   setSelectedDept={setSelectedDeptId}
                   selectedMonth={selectedMonth}
                   setSelectedMonth={setSelectedMonth}
+                  headerState={headerState}
+                  onLoadExisting={loadExistingRole}
                 />
               </div>
             )}
@@ -455,15 +572,66 @@ function PlanningWizardContent() {
           </Transition>
         </div>
 
-        <Group justify="center" mt="xl">
-          <Button variant="default" onClick={prevStep} disabled={activeStep === 0}>
-            Atrás
+        <Divider my="xl" />
+
+        <Group justify="center" gap="xl" mt="xl">
+          <Button 
+            variant="subtle" 
+            color="gray" 
+            size="md" 
+            radius="md" 
+            onClick={prevStep} 
+            disabled={activeStep === 0}
+            leftSection={activeStep > 0 ? '←' : null}
+          >
+            Volver al paso anterior
           </Button>
-          <Button onClick={handleNext} color="gold" c="white">
-            {activeStep === 2 ? 'Finalizar' : 'Siguiente'}
-          </Button>
+
+          {activeStep < 2 ? (
+            <Button 
+              className="btn-premium" 
+              size="md" 
+              radius="md" 
+              px={40} 
+              onClick={handleNext} 
+              color="gold" 
+              c="white"
+            >
+              Continuar
+            </Button>
+          ) : (
+            <Group gap="md">
+              <Button 
+                variant="outline" 
+                color="gray" 
+                size="md" 
+                radius="md" 
+                onClick={() => handleFinish(false)}
+              >
+                Guardar como Borrador
+              </Button>
+              <Button 
+                className="btn-premium" 
+                size="md" 
+                radius="md" 
+                px={40} 
+                onClick={() => handleFinish(true)} 
+                color="teal" 
+                c="white"
+              >
+                Publicar Rol Definitivo
+              </Button>
+            </Group>
+          )}
         </Group>
       </Paper>
-    </Container>
+      
+      {/* Footer Info */}
+      <Stack align="center" mt="md" gap={4}>
+        <Text size="xs" c="dimmed" fw={600}>Estás editando la planificación del mes en curso</Text>
+        <Text size="xs" c="dimmed">Todos los cambios se guardan automáticamente como borradores</Text>
+      </Stack>
+    </Stack>
+  </Container>
   );
 }

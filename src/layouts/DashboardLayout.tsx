@@ -1,10 +1,11 @@
 import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme, ThemeIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSun, IconMoon } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
+import { PasswordChangeModal } from '../features/auth/components/PasswordChangeModal';
 
 export function DashboardLayout() {
     const [opened, { toggle }] = useDisclosure();
@@ -12,6 +13,7 @@ export function DashboardLayout() {
     const location = useLocation();
     const { userProfile, managedDepartments } = useUser();
     const { isSystemAdmin, isLiderOrSublider, isLiderOrSubliderServidores, isLiderSubliderEncargadoServidores } = usePermissions();
+    const [pwdModalOpened, { open: openPwd, close: closePwd }] = useDisclosure(false);
 
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const dark = colorScheme === 'dark';
@@ -25,20 +27,21 @@ export function DashboardLayout() {
 
 
     // Opciones visibles según rol
+    // Opciones visibles según rol con iconos
     const links = [
-        { label: 'Dashboard', path: '/' },
-        { label: 'Calendario', path: '/calendar' },
+        { label: 'Dashboard', path: '/', icon: <IconLayoutDashboard size={20} stroke={1.5} /> },
+        { label: 'Calendario', path: '/calendar', icon: <IconCalendar size={20} stroke={1.5} /> },
         ...(isSystemAdmin || isLiderOrSublider ? [
-            { label: 'Planificación', path: '/planning' },
-            { label: 'Departamentos', path: '/departments' },
-            { label: 'Estadísticas', path: '/analytics' },
+            { label: 'Planificación', path: '/planning', icon: <IconCalendarStats size={20} stroke={1.5} /> },
+            { label: 'Departamentos', path: '/departments', icon: <IconBuildingCommunity size={20} stroke={1.5} /> },
+            { label: 'Estadísticas', path: '/analytics', icon: <IconChartBar size={20} stroke={1.5} /> },
         ] : []),
         ...(isSystemAdmin || isLiderOrSubliderServidores ? [
-            { label: 'Servidores', path: '/servers' },
-            { label: 'Suspensiones', path: '/suspensions' },
+            { label: 'Servidores', path: '/servers', icon: <IconUsers size={20} stroke={1.5} /> },
+            { label: 'Suspensiones', path: '/suspensions', icon: <IconCalendarCancel size={20} stroke={1.5} /> },
         ] : []),
         ...(isSystemAdmin || isLiderSubliderEncargadoServidores ? [
-            { label: 'Asistencia', path: '/attendance' },
+            { label: 'Asistencia', path: '/attendance', icon: <IconChartBar size={20} stroke={1.5} /> },
         ] : []),
     ];
 
@@ -52,11 +55,7 @@ export function DashboardLayout() {
             navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !opened } }}
             padding="md"
         >
-            <AppShell.Header style={{
-                backgroundColor: 'var(--mantine-color-body)',
-                borderBottom: '1px solid var(--mantine-color-default-border)',
-                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)'
-            }}>
+            <AppShell.Header className="shell-glass">
                 <Group justify="space-between" h="100%" px="xl">
                     <Group>
                         <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="yellow.7" />
@@ -96,15 +95,15 @@ export function DashboardLayout() {
                         </ActionIcon>
 
                         <Stack gap={0} align="flex-end" visibleFrom="xs">
-                            <Text size="sm" fw={800} c={dark ? 'gold.2' : 'stone.7'}>{userName}</Text>
+                            <Text size="sm" fw={800} c={dark ? 'white' : 'dark'}>{userName}</Text>
                             <Text size="xs" c={dark ? 'gold.4' : 'gold.6'} fw={700} opacity={0.9} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 {isSystemAdmin ? 'ADMINISTRADOR DEL SISTEMA' : (managedDepartments.length > 0 ? managedDepartments.map(d => d.nombre).join(', ') : 'Servidor')}
                             </Text>
                         </Stack>
                         <div style={{
-                            width: 42,
-                            height: 42,
-                            borderRadius: '12px',
+                            width: 44,
+                            height: 44,
+                            borderRadius: '14px',
                             background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                             display: 'flex',
                             alignItems: 'center',
@@ -119,39 +118,31 @@ export function DashboardLayout() {
                 </Group>
             </AppShell.Header>
 
-            <AppShell.Navbar p="md" style={{
-                backgroundColor: 'var(--mantine-color-body)',
-                borderRight: '1px solid var(--mantine-color-default-border)'
-            }}>
+            <AppShell.Navbar p="md" className="sidebar-glass">
                 <Stack gap="xs" mt="md">
                     {links.map((link) => (
                         <NavLink
                             key={link.path}
                             label={link.label}
+                            leftSection={link.icon}
                             active={location.pathname === link.path}
                             onClick={() => {
                                 navigate(link.path);
                                 if (opened) toggle();
                             }}
-                            styles={() => ({
-                                root: {
-                                    borderRadius: '8px',
-                                    transition: 'all 0.2s ease',
-                                    fontWeight: 600,
-                                    margin: '2px 0',
-                                    backgroundColor: location.pathname === link.path ? (dark ? 'rgba(217, 119, 6, 0.2)' : '#fef3c7') : undefined,
-                                    color: location.pathname === link.path ? (dark ? '#fbbf24' : '#b45309') : undefined,
-                                    '&:hover': {
-                                        backgroundColor: dark ? 'rgba(255, 255, 255, 0.05)' : '#fff7ed',
-                                        transform: 'translateX(4px)'
-                                    }
-                                },
-                                label: { fontSize: '0.9rem' }
-                            })}
+                            className="nav-item-premium"
                         />
                     ))}
                 </Stack>
                 <Divider my="sm" />
+                <NavLink
+                    label="Cambiar Contraseña"
+                    leftSection={<IconShieldLock size={18} />}
+                    onClick={openPwd}
+                    styles={{
+                        root: { borderRadius: '8px', fontWeight: 600, color: dark ? 'gold.4' : 'gold.9' }
+                    }}
+                />
                 <NavLink
                     label="Cerrar Sesión"
                     color="red.7"
@@ -160,6 +151,7 @@ export function DashboardLayout() {
                         root: { borderRadius: '8px', fontWeight: 700 }
                     }}
                 />
+                <PasswordChangeModal opened={pwdModalOpened} onClose={closePwd} />
             </AppShell.Navbar>
 
             <AppShell.Main className="animate-fade-in">

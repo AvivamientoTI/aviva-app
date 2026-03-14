@@ -30,7 +30,7 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                 {/* Header */}
                 <Group justify="space-between" align="flex-start">
                     <Stack gap={0}>
-                        <Title order={1} style={{ fontFamily: 'Outfit, sans-serif', color: '#78350f', fontSize: '2.5rem', letterSpacing: '-0.02em' }}>
+                        <Title order={1} style={{ fontFamily: 'Inter, sans-serif', color: '#78350f', fontSize: '2.5rem', letterSpacing: '-0.02em' }}>
                             Reporte de Impacto
                         </Title>
                         <Text size="xl" fw={800} c="stone.8">{deptName}</Text>
@@ -49,7 +49,7 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                         <Paper withBorder p="md" radius="md" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
                             <Stack gap={2} align="center">
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asistencia Promedio</Text>
-                                <Text size="xl" fw={900} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>{stats.teamAttendanceAvg}%</Text>
+                                <Text size="xl" fw={900} style={{ fontFamily: 'Inter, sans-serif', color: '#0f172a' }}>{stats.teamAttendanceAvg}%</Text>
                             </Stack>
                         </Paper>
                     </Grid.Col>
@@ -57,7 +57,7 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                         <Paper withBorder p="md" radius="md" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
                             <Stack gap={2} align="center">
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Servicios Realizados</Text>
-                                <Text size="xl" fw={900} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>{stats.totalServices}</Text>
+                                <Text size="xl" fw={900} style={{ fontFamily: 'Inter, sans-serif', color: '#0f172a' }}>{stats.totalServices}</Text>
                             </Stack>
                         </Paper>
                     </Grid.Col>
@@ -65,7 +65,7 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                         <Paper withBorder p="md" radius="md" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
                             <Stack gap={2} align="center">
                                 <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Miembros Activos</Text>
-                                <Text size="xl" fw={900} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>{stats.activeMembers}</Text>
+                                <Text size="xl" fw={900} style={{ fontFamily: 'Inter, sans-serif', color: '#0f172a' }}>{stats.activeMembers}</Text>
                             </Stack>
                         </Paper>
                     </Grid.Col>
@@ -86,7 +86,7 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                     <Paper p="lg" radius="md" style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '6px solid #d97706' }}>
                         <Group gap="sm" mb="md">
                             <IconTrophy color="#d97706" size={24} />
-                            <Title order={4} style={{ fontFamily: 'Outfit, sans-serif', color: '#78350f' }}>Compromiso Destacado (100% Asistencia)</Title>
+                            <Title order={4} style={{ fontFamily: 'Inter, sans-serif', color: '#78350f' }}>Compromiso Destacado (100% Asistencia)</Title>
                         </Group>
                         <Group gap="xs">
                             {topPerformers.map(m => (
@@ -102,7 +102,7 @@ export const ImpactReportTemplate = React.forwardRef<HTMLDivElement, ImpactRepor
                 <Stack gap="md">
                     <Group gap="xs">
                         <IconCalendarCheck size={24} color="#d97706" />
-                        <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#44403c' }}>Desglose Mensual de Asistencia</Title>
+                        <Title order={3} style={{ fontFamily: 'Inter, sans-serif', color: '#44403c' }}>Desglose Mensual de Asistencia</Title>
                     </Group>
                     <Table verticalSpacing="md" withColumnBorders={false}>
                         <thead>

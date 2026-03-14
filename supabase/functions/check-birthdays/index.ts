@@ -174,7 +174,7 @@ Deno.serve(async (_req: Request) => {
 
 
         const info = await transporter.sendMail({
-            from: 'Ujieres App <geovanniga32@gmail.com>',
+            from: 'Aviva App <geovanniga32@gmail.com>',
             to: emails,
             subject: `🎉 Cumpleaños del día: ${birthdayNames}`,
             html: `

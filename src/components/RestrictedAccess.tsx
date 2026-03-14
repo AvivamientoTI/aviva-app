@@ -20,7 +20,7 @@ export function RestrictedAccess({ type = 'no-permissions', memberships, isMembe
                 borderTop: `4px solid ${isNoProfile ? '#f59e0b' : '#ef4444'}`
             }}>
                 <Stack align="center" gap="md">
-                    <Title order={3} ta="center" c="gray.9" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 900 }}>
+                    <Title order={3} ta="center" c="gray.9" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>
                         {isNoProfile ? 'Perfil no vinculado' : 'Acceso Denegado'}
                     </Title>
                     <Text ta="center" c="slate.8" size="md" fw={700}>

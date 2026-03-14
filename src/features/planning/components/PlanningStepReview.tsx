@@ -12,11 +12,11 @@ const normalize = (s: string) => s?.toLowerCase().normalize("NFD").replace(/[\u0
 
 // --- Helper: extraer fecha de forma robusta ---
 function getAssignmentDate(a: DraftAssignment): string {
-    if (a.fecha) return a.fecha;
+    if (a.fecha) return dayjs(a.fecha).format('YYYY-MM-DD');
     if (typeof a.configuracion_dia_id === 'string' && a.configuracion_dia_id.startsWith('temp-')) {
         const parts = a.configuracion_dia_id.split('-');
         // temp-YYYY-MM-DD-idx → parts[1]-parts[2]-parts[3]
-        if (parts.length >= 4) return `${parts[1]}-${parts[2]}-${parts[3]}`;
+        if (parts.length >= 4) return dayjs(`${parts[1]}-${parts[2]}-${parts[3]}`).format('YYYY-MM-DD');
     }
     return '';
 }
@@ -29,48 +29,60 @@ function buildCandidates(
     blockedIds: Set<string>
 ): { value: string; label: string }[] {
     const pos = editingAssignment.posicion;
-    const date = getAssignmentDate(editingAssignment);
+    const dateStr = getAssignmentDate(editingAssignment);
     const currentUserId = String(editingAssignment.usuario_id);
 
-    let candidates = [...allUsers];
+    // console.log(`[Diagnostic] Filtering for ${pos?.nombre} on ${dateStr}. Blocked globally:`, Array.from(blockedIds));
 
-    // 1. GLOBAL: Excluir bloqueados en BD (otros deptos/ausencias).
-    //    La persona actual del puesto siempre es opción válida.
-    candidates = candidates.filter(u =>
-        String(u.id) === currentUserId || !blockedIds.has(String(u.id))
-    );
+    let candidates = allUsers.filter(u => u.activo !== false);
 
-    // 2. LOCAL: Excluir quienes ya están en el borrador ese mismo día.
-    //    La persona actual puede quedar (para confirmarla sin cambio).
-    if (date) {
+    // 1. GLOBAL: Excluir bloqueados en BD.
+    // IMPORTANTE: Si un usuario está bloqueado globalmente (otro depto), NO es elegible aunque sea el actual.
+    candidates = candidates.filter(u => !blockedIds.has(String(u.id)));
+
+    // 2. LOCAL: Excluir quienes ya están en el borrador hoy (excepto el que estamos editando si NO está bloqueado arriba)
+    if (dateStr) {
         const assignedTodayInDraft = new Set(
             previewAssignments
-                .filter(a => getAssignmentDate(a) === date && a.id !== editingAssignment.id)
+                .filter(a => getAssignmentDate(a) === dateStr && a.id !== editingAssignment.id)
                 .map(a => String(a.usuario_id))
         );
-        candidates = candidates.filter(u =>
-            String(u.id) === currentUserId || !assignedTodayInDraft.has(String(u.id))
-        );
+        candidates = candidates.filter(u => !assignedTodayInDraft.has(String(u.id)));
     }
 
-    // 3. Sólo activos
-    candidates = candidates.filter(u => u.activo !== false);
-
+    // 3. Requisitos de Puesto (Estricto)
     if (pos) {
-        // 4. Género
-        if (pos.genero_requerido === 'M') candidates = candidates.filter(u => u.genero === 'M');
-        else if (pos.genero_requerido === 'F') candidates = candidates.filter(u => u.genero === 'F');
+        // Género
+        const reqGen = String(pos.genero_requerido || 'A').toUpperCase();
+        if (reqGen !== 'A') {
+            candidates = candidates.filter(u => {
+                const userGen = String(u.genero || '').toUpperCase();
+                return userGen === reqGen;
+            });
+        }
 
-        // 5. Liderazgo para posiciones Encargado
+        // Liderazgo para posiciones Encargado
         if (normalize(pos.nombre || '').includes('encargado')) {
             const leaderRoles = ['lider', 'sublider', 'encargado', 'liderazgo'];
-            candidates = candidates.filter(u => leaderRoles.includes(normalize(u.rol_jerarquico)));
+            candidates = candidates.filter(u => {
+                const uRole = normalize(u.rol_jerarquico || '');
+                return leaderRoles.some(r => uRole.includes(r));
+            });
         }
     }
 
-    return candidates.map(u => ({
+    // Asegurar que el usuario actual vuelva a la lista SI NO está bloqueado globalmente
+    // (Incluso si está bloqueado localmente por error en el draft inicial, permitimos mantenerlo si no hay conflicto global)
+    const finalIds = new Set(candidates.map(c => String(c.id)));
+    const originalUser = allUsers.find(u => String(u.id) === currentUserId);
+    
+    if (originalUser && !blockedIds.has(currentUserId) && !finalIds.has(currentUserId)) {
+        candidates.push(originalUser);
+    }
+
+    return candidates.sort((a,b) => a.nombre.localeCompare(b.nombre)).map(u => ({
         value: String(u.id),
-        label: `${u.nombre} ${u.apellido} (${u.rol_jerarquico || 'Miembro'})`
+        label: `${u.nombre} ${u.apellido}`
     }));
 }
 
@@ -79,7 +91,8 @@ export const PlanningStepReview = () => {
         previewAssignments,
         setPreviewAssignments,
         serviceConfigs,
-        selectedDeptId
+        selectedDeptId,
+        headerState
     } = usePlanning();
 
     const { data: deptUsers } = useDepartmentUsers(selectedDeptId);
@@ -116,7 +129,7 @@ export const PlanningStepReview = () => {
             // Obtener bloqueados globalmente (asignaciones en otros deptos + ausencias)
             const blockedIds = new Set<string>();
             if (dateToCheck) {
-                const available = await getUsersNotAssignedOnDate(dateToCheck, allUsers);
+                const available = await getUsersNotAssignedOnDate(dateToCheck, allUsers, headerState?.id);
                 const availableIds = new Set(available.map(u => String(u.id)));
                 allUsers.forEach(u => {
                     if (!availableIds.has(String(u.id))) blockedIds.add(String(u.id));
@@ -241,7 +254,7 @@ export const PlanningStepReview = () => {
                         />
                         <div>
                             <Text c="dimmed" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Voluntarios</Text>
-                            <Text fw={900} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--mantine-color-text)', lineHeight: 1 }}>{uniqueUsers}</Text>
+                            <Text fw={900} size="xl" style={{ fontFamily: 'Inter, sans-serif', color: 'var(--mantine-color-text)', lineHeight: 1 }}>{uniqueUsers}</Text>
                         </div>
                     </Group>
                 </Paper>
@@ -256,7 +269,7 @@ export const PlanningStepReview = () => {
                         />
                         <div>
                             <Text c="dimmed" size="xs" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asignaciones</Text>
-                            <Text fw={900} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--mantine-color-text)', lineHeight: 1 }}>{totalAssignments}</Text>
+                            <Text fw={900} size="xl" style={{ fontFamily: 'Inter, sans-serif', color: 'var(--mantine-color-text)', lineHeight: 1 }}>{totalAssignments}</Text>
                         </div>
                     </Group>
                 </Paper>

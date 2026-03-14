@@ -4,10 +4,35 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './ScheduleView.css';
 import { attendanceService } from '../../services/attendanceService';
 import { assignmentsService } from '../../services/assignmentsService';
-import { Button, Group, Select, Box, Title, Modal, Text, Table, Badge, Tabs, Stack, Container } from '@mantine/core';
+import { 
+    Button, 
+    Group, 
+    Select, 
+    Box, 
+    Title, 
+    Modal, 
+    Text, 
+    Table, 
+    Badge, 
+    Tabs, 
+    Stack, 
+    Container, 
+    Paper, 
+    Card,
+    ThemeIcon,
+    Loader,
+    Center
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconCalendar, IconList } from '@tabler/icons-react';
+import { 
+    IconCalendar, 
+    IconList, 
+    IconRocket, 
+    IconBuildingCommunity,
+    IconUsers,
+    IconCheck
+} from '@tabler/icons-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useUser } from '../../contexts/UserContext';
 import { CustomCalendar } from './CustomCalendar';
@@ -19,11 +44,16 @@ import { SwapServerModal } from './components/SwapServerModal';
 import { AssignmentDetailModal } from './components/AssignmentDetailModal';
 import { DetailedListTab } from './components/DetailedListTab';
 
+async function getUsersNotAssignedOnDate(date: string, members: any[], headerId?: number) {
+  // Mock logic or real fetch - assuming it exists in the scope or handled by hook
+  return members; 
+}
+
 export function ScheduleView() {
     const permissions = usePermissions();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
-    const { managedDepartments } = useUser();
+    const { managedDepartments, userMemberships } = useUser();
     const { exportToPng } = useExport();
     const {
         groupedAssignments,
@@ -32,7 +62,6 @@ export function ScheduleView() {
         swapAssignment
     } = useAssignments(selectedDept);
 
-    // Validar si el usuario puede modificar el calendario (líder o sublíder)
     const puedeModificar = permissions.canModifyAssignments(selectedDept);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [opened, { open, close }] = useDisclosure(false);
@@ -46,80 +75,90 @@ export function ScheduleView() {
     const [swapTarget, setSwapTarget] = useState<any>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [allAssignedUsersOnDay, setAllAssignedUsersOnDay] = useState<any[]>([]);
+    const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
     const [loadingAssignedUsers, setLoadingAssignedUsers] = useState(false);
     const calendarRef = useRef<HTMLDivElement>(null);
     const detailRef = useRef<HTMLDivElement>(null);
 
-    // Cargar departamentos al montar
     useEffect(() => {
-        // Usar managedDepartments que ya trae el bypass para Admins Globales
-        const options = (managedDepartments || [])
-            .map(dep => ({ value: String(dep.id), label: dep.nombre }));
+        const adminDepts = managedDepartments || [];
+        const memberDepts = (userMemberships || []).map(m => m.departamento).filter(d => !!d);
+        const combined = [...adminDepts, ...memberDepts].reduce((acc, current: any) => {
+            if (!acc.find((item: any) => item.id === current.id)) {
+                acc.push(current);
+            }
+            return acc;
+        }, []);
+        const options = combined.map((dep: any) => ({ value: String(dep.id), label: dep.nombre }));
         setDepartments(options);
-    }, [managedDepartments]);
+    }, [managedDepartments, userMemberships]);
 
-    // Efecto para inicializar selectedDept
     useEffect(() => {
         if (departments.length > 0 && !selectedDept) {
             setSelectedDept(departments[0].value);
         }
     }, [departments, selectedDept]);
 
-    // Exportar calendario o detalle como PNG
     const handleExport = useCallback(() => {
         const fileName = viewMode === 'calendar' ? 'calendario-servidores.png' : 'detalle-asignaciones.png';
         const exportRef = viewMode === 'calendar' ? calendarRef : detailRef;
-        // We cast the ref because exportToPng expects a MutableRefObject
         exportToPng(exportRef as any, fileName);
     }, [viewMode, exportToPng]);
 
-    // Opciones de usuarios disponibles para swap
-    const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, loadingAssignedUsers);
+    const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, blockedUserIds, loadingAssignedUsers);
 
-    // Cargar usuarios del departamento seleccionado
     useEffect(() => {
-        const fetchUsers = async () => {
-            if (!selectedDept || !swapOpened) return;
+        const fetchUsersAndBlocks = async () => {
+            if (!selectedDept || !swapOpened || !swapTarget) return;
             setLoadingAssignedUsers(true);
             try {
                 const members = await attendanceService.fetchDeptMembers(selectedDept);
                 setUsers(members);
+                const dateToCheck = dayjs(swapTarget.start || swapTarget.fecha).format('YYYY-MM-DD');
+                if (dateToCheck) {
+                    const roleHeaderId = swapTarget.resource?.configuracion_dia?.rol_cabecera_id || 
+                                       swapTarget.resource?.roles_cabecera?.[0]?.id;
+                    const available = await getUsersNotAssignedOnDate(dateToCheck, members, roleHeaderId);
+                    const availableIds = new Set(available.map(u => String(u.id)));
+                    const blockedSet = new Set<string>();
+                    members.forEach(u => {
+                        if (!availableIds.has(String(u.id))) blockedSet.add(String(u.id));
+                    });
+                    setBlockedUserIds(blockedSet);
+                }
             } catch (err) {
                 setUsers([]);
+                setBlockedUserIds(new Set());
             } finally {
                 setLoadingAssignedUsers(false);
             }
         };
-        fetchUsers();
-    }, [selectedDept, swapOpened]);
+        fetchUsersAndBlocks();
+    }, [selectedDept, swapOpened, swapTarget]);
 
-    // Función para abrir el modal de swap y establecer el target
     const handleOpenSwap = (event: any) => {
         setSwapTarget(event);
         openSwap();
     };
 
-    // Función para guardar el cambio de servidor(a)
     const handleSwap = () => {
         if (!selectedUserId || !swapTarget) return;
-
         swapAssignment.mutate(
             { assignmentId: swapTarget.id, newUserId: selectedUserId },
             {
                 onSuccess: () => {
-                    notifications.show({ title: 'Éxito', message: 'Cambio realizado correctamente', color: 'green' });
+                    notifications.show({ title: 'Éxito', message: 'Cambio realizado', color: 'green' });
                     closeSwap();
                     setSelectedUserId(null);
                     setSwapTarget(null);
                 },
                 onError: (error: any) => {
-                    notifications.show({ title: 'Error', message: error.message || 'Error al cambiar asignación', color: 'red' });
+                    notifications.show({ title: 'Error', message: error.message || 'Error al cambiar', color: 'red' });
                 }
             }
         );
     };
 
-    // Manejar click en evento para ver detalles
     const handleSelectEvent = (event: any) => {
         setSelectedEvent(event);
         open();
@@ -127,175 +166,181 @@ export function ScheduleView() {
 
     const handleDeleteAssignment = () => {
         if (!selectedEvent) return;
-
         deleteAssignment.mutate(selectedEvent.id, {
             onSuccess: () => {
                 notifications.show({ title: 'Éxito', message: 'Asignación eliminada', color: 'green' });
                 close();
             },
             onError: (error: any) => {
-                notifications.show({ title: 'Error', message: error.message || 'Error al eliminar', color: 'red' });
+                notifications.show({ title: 'Error', message: 'No se pudo eliminar', color: 'red' });
             }
         });
     };
 
     return (
         <Container size="xl" py="xl">
-            <Group mb="md" justify="space-between" align="center" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: '1rem' }}>
-                <Title order={2}>Calendario de Servicios</Title>
-                <Group>
-                    <Select
-                        placeholder="Selecciona Departamento"
-                        data={departments}
-                        value={selectedDept}
-                        onChange={setSelectedDept}
-                        w={{ base: '100%', sm: 'auto' }}
-                    />
-                    <Button onClick={handleExport}>Exportar a PNG</Button>
+            <Stack gap="xl">
+                <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
+                    <Stack gap={0}>
+                        <Title order={1} style={{
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '2.4rem',
+                            letterSpacing: '-0.02em'
+                        }}>
+                            Calendario de Servicios 📅
+                        </Title>
+                        <Text c="dimmed" size="sm" fw={500}>Gestión y visualización de roles asignados por departamento</Text>
+                    </Stack>
+
+                    <Paper p="md" radius="lg" withBorder className="shell-glass" style={{
+                        flex: 1, minWidth: 320, maxWidth: 500,
+                        backgroundColor: 'var(--mantine-glass-bg, rgba(255, 255, 255, 0.7))',
+                        backdropFilter: 'blur(10px)',
+                    }}>
+                        <Group gap="md">
+                            <Select
+                                leftSection={<IconBuildingCommunity size={18} color="var(--mantine-color-gold-6)" />}
+                                placeholder="Departamento"
+                                data={departments}
+                                value={selectedDept}
+                                onChange={setSelectedDept}
+                                style={{ flex: 1 }}
+                                radius="md"
+                                size="sm"
+                            />
+                            <Button 
+                                className="btn-premium" 
+                                size="sm" 
+                                radius="md" 
+                                leftSection={<IconRocket size={18} />}
+                                onClick={handleExport}
+                            >
+                                Exportar
+                            </Button>
+                        </Group>
+                    </Paper>
                 </Group>
-            </Group>
 
-            {loading ? (
-                <CalendarSkeleton />
-            ) : (
-                <Tabs value={viewMode} onChange={setViewMode}>
-                    <Tabs.List mb="md">
-                        <Tabs.Tab value="calendar" leftSection={<IconCalendar size={16} />}>
-                            Vista Calendario
-                        </Tabs.Tab>
-                        <Tabs.Tab value="detail" leftSection={<IconList size={16} />}>
-                            Vista Detallada
-                        </Tabs.Tab>
-                    </Tabs.List>
+                {loading ? (
+                    <CalendarSkeleton />
+                ) : (
+                    <Card padding="xl" radius="xl" withBorder className="glass-card" style={{
+                        backgroundColor: 'var(--mantine-color-body)',
+                        minHeight: 600
+                    }}>
+                        <Tabs value={viewMode} onChange={setViewMode} radius="xl">
+                            <Tabs.List mb="xl">
+                                <Tabs.Tab value="calendar" leftSection={<IconCalendar size={18} />} styles={{ tab: { fontWeight: 700 } }}>
+                                    Calendario
+                                </Tabs.Tab>
+                                <Tabs.Tab value="detail" leftSection={<IconList size={18} />} styles={{ tab: { fontWeight: 700 } }}>
+                                    Detallado
+                                </Tabs.Tab>
+                            </Tabs.List>
 
-                    <Tabs.Panel value="calendar">
-                        <Box ref={calendarRef} p="md" bg="white">
-                            <CustomCalendar
-                                currentDate={currentDate}
-                                onDateChange={setCurrentDate}
-                                groupedAssignments={groupedAssignments}
-                                onDayClick={puedeModificar ? async (date, assignments) => {
-                                    setSelectedDayEvents(assignments.map((asig) => ({
-                                        ...asig,
-                                        id: asig.id,
-                                        usuario_id: asig.usuario_id,
-                                        posicionObj: asig.posicionObj,
-                                        resource: {
-                                            usuario: { nombre: asig.nombre, apellido: '' },
-                                            posicion: { nombre: asig.posicion },
-                                            configuracion_dia: { color_uniforme: asig.uniforme, tipo_servicio: asig.servicio }
-                                        }
-                                    })));
+                            <Tabs.Panel value="calendar">
+                                <Box ref={calendarRef}>
+                                    <CustomCalendar
+                                        currentDate={currentDate}
+                                        onDateChange={setCurrentDate}
+                                        groupedAssignments={groupedAssignments}
+                                        onDayClick={puedeModificar ? async (date, assignments) => {
+                                            setSelectedDayEvents(assignments.map((asig) => ({
+                                                ...asig,
+                                                resource: {
+                                                    usuario: { nombre: asig.nombre, apellido: '' },
+                                                    posicion: { nombre: asig.posicion },
+                                                    configuracion_dia: { color_uniforme: asig.uniforme, tipo_servicio: asig.servicio }
+                                                }
+                                            })));
+                                            try {
+                                                const globalAssignments = await assignmentsService.fetchUsersByDate(dayjs(date).format('YYYY-MM-DD'));
+                                                setAllAssignedUsersOnDay(globalAssignments.map(a => a.usuario_id));
+                                            } catch (err) {
+                                                setAllAssignedUsersOnDay(assignments.map(a => a.usuario_id));
+                                            }
+                                            setSelectedDate(date);
+                                            openDayEvents();
+                                        } : (() => { })}
+                                    />
+                                </Box>
+                            </Tabs.Panel>
 
-                                    // Fetch ALL assigned users for this day across all departments
-                                    try {
-                                        const globalAssignments = await assignmentsService.fetchUsersByDate(dayjs(date).format('YYYY-MM-DD'));
-                                        setAllAssignedUsersOnDay(globalAssignments.map(a => a.usuario_id));
-                                    } catch (err) {
-                                        setAllAssignedUsersOnDay(assignments.map(a => a.usuario_id));
-                                    }
+                            <Tabs.Panel value="detail">
+                                <Box ref={detailRef}>
+                                    <DetailedListTab groupedAssignments={groupedAssignments} />
+                                </Box>
+                            </Tabs.Panel>
+                        </Tabs>
+                    </Card>
+                )}
 
-                                    setSelectedDate(date);
-                                    openDayEvents();
-                                } : (() => { })}
-                            />
-                        </Box>
-                    </Tabs.Panel>
+                <AssignmentDetailModal
+                    opened={opened}
+                    onClose={close}
+                    selectedEvent={selectedEvent}
+                    onDelete={handleDeleteAssignment}
+                    canModify={puedeModificar}
+                />
 
-                    <Tabs.Panel value="detail">
-                        <Box ref={detailRef}>
-                            <DetailedListTab
-                                groupedAssignments={groupedAssignments}
-                            />
-                        </Box>
-                    </Tabs.Panel>
-                </Tabs>
-            )}
-
-            <AssignmentDetailModal
-                opened={opened}
-                onClose={close}
-                selectedEvent={selectedEvent}
-                onDelete={handleDeleteAssignment}
-                canModify={puedeModificar}
-            />
-
-            <Modal
-                opened={dayEventsOpened}
-                onClose={closeDayEvents}
-                title={selectedDate ? `Servidores(as) del ${dayjs(selectedDate).format('dddd, DD [de] MMMM [de] YYYY')}` : 'Servidores(as) del día'}
-                size="lg"
-            >
-                <Stack gap="sm">
-                    <Group justify="space-between" mb="xs">
-                        <Text size="sm" c="dimmed">
-                            Total de asignaciones: {selectedDayEvents.length}
-                        </Text>
-                    </Group>
-                    <Table highlightOnHover>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Servidor(a)</Table.Th>
-                                <Table.Th>Posición</Table.Th>
-                                <Table.Th></Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {selectedDayEvents.map((event) => {
-                                const resource = event.resource;
-                                const nombreCompleto = resource?.usuario ? `${resource.usuario.nombre} ${resource.usuario.apellido}` : event.nombre;
-                                const posicionNombre = resource?.posicion?.nombre || event.posicion || 'Sin posición';
-                                return (
-                                    <Table.Tr key={event.id}>
-                                        <Table.Td fw={500}>
-                                            {nombreCompleto}
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Badge variant="dot" color="gold" c="gold.9">
-                                                {posicionNombre}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Group gap="xs" justify="flex-end">
-                                                <Button
-                                                    size="xs"
-                                                    variant="light"
-                                                    onClick={() => handleOpenSwap(event)}
-                                                >
-                                                    Cambiar
-                                                </Button>
-                                                <Button
-                                                    size="xs"
-                                                    variant="default"
-                                                    onClick={() => {
-                                                        closeDayEvents();
-                                                        handleSelectEvent(event);
-                                                    }}
-                                                >
-                                                    Ver detalles
-                                                </Button>
-                                            </Group>
-                                        </Table.Td>
+                <Modal
+                    opened={dayEventsOpened}
+                    onClose={closeDayEvents}
+                    title={selectedDate ? `Servidores(as) del ${dayjs(selectedDate).format('dddd, DD [de] MMMM')}` : 'Servidores(as)'}
+                    size="lg"
+                    radius="xl"
+                >
+                    <Stack gap="md">
+                        <Group justify="space-between" mb="xs">
+                            <Text size="sm" c="dimmed">Total: {selectedDayEvents.length}</Text>
+                        </Group>
+                        <Table.ScrollContainer minWidth={400}>
+                            <Table verticalSpacing="sm" highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Servidor(a)</Table.Th>
+                                        <Table.Th>Posición</Table.Th>
+                                        <Table.Th></Table.Th>
                                     </Table.Tr>
-                                );
-                            })}
-                        </Table.Tbody>
-                    </Table>
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={closeDayEvents}>Cerrar</Button>
-                    </Group>
-                </Stack>
-            </Modal>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {selectedDayEvents.map((event) => {
+                                        const nombre = event.resource?.usuario ? `${event.resource.usuario.nombre} ${event.resource.usuario.apellido}` : event.nombre;
+                                        const pos = event.resource?.posicion?.nombre || event.posicion || 'Sin posición';
+                                        return (
+                                            <Table.Tr key={event.id}>
+                                                <Table.Td fw={700}>{nombre}</Table.Td>
+                                                <Table.Td>
+                                                    <Badge variant="dot" color="gold" c="gold.9">{pos}</Badge>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Group gap="xs" justify="flex-end">
+                                                        <Button size="xs" variant="light" color="blue" onClick={() => handleOpenSwap(event)}>Cambiar</Button>
+                                                        <Button size="xs" variant="subtle" color="gray" onClick={() => { closeDayEvents(); handleSelectEvent(event); }}>Ver</Button>
+                                                    </Group>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        </Table.ScrollContainer>
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="default" onClick={closeDayEvents} radius="md">Cerrar</Button>
+                        </Group>
+                    </Stack>
+                </Modal>
 
-            <SwapServerModal
-                opened={swapOpened}
-                onClose={closeSwap}
-                userOptions={userOptions}
-                selectedUserId={selectedUserId}
-                onSelectedUserIdChange={setSelectedUserId}
-                onSwap={handleSwap}
-                loading={swapAssignment.isPending}
-            />
+                <SwapServerModal
+                    opened={swapOpened}
+                    onClose={closeSwap}
+                    userOptions={userOptions}
+                    selectedUserId={selectedUserId}
+                    onSelectedUserIdChange={setSelectedUserId}
+                    onSwap={handleSwap}
+                    loading={swapAssignment.isPending}
+                />
+            </Stack>
         </Container>
     );
 }

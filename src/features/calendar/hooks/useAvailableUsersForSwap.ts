@@ -23,6 +23,7 @@ export const useAvailableUsersForSwap = (
     users: DepartmentMember[],
     swapTarget: SwapTarget | null,
     allAssignedUsersOnDay: (string | number)[],
+    blockedUserIds: Set<string>,
     loadingAssignedUsers: boolean
 ) => {
     return useMemo(() => {
@@ -32,40 +33,31 @@ export const useAvailableUsersForSwap = (
 
         const assignedUserIdsOnDay = new Set(allAssignedUsersOnDay.map(id => String(id)));
 
-        const currentUserId = String(swapTarget?.usuario_id);
-        if (currentUserId) {
-            assignedUserIdsOnDay.delete(currentUserId);
-        }
+        // Fusionamos con los bloqueados globales
+        blockedUserIds.forEach(id => assignedUserIdsOnDay.add(id));
 
         const posNameNorm = normalize(swapTarget?.resource?.posicion?.nombre || swapTarget?.posicion);
         const isEncargadoPos = posNameNorm.includes('encargad');
 
         const filteredUsers = users.filter((u: any) => {
-            // DEBUG: Log de género requerido y género del usuario
-            /*
-            if (import.meta.env.DEV) {
-                const requiredGender = swapTarget?.posicionObj?.genero_requerido;
-                const userGender = u.genero || u.usuario?.genero;
-                console.log(
-                  `DEBUG swap: requiredGender=${requiredGender} | userGender=${userGender} | userId=${u.id} | nombre=${u.nombre || (u.usuario && u.usuario.nombre)}`,
-                  u
-                );
-            }
-            */
-            const isExcluded = assignedUserIdsOnDay.has(String(u.id));
+            const uIdStr = String(u.id);
+            
+            // 1. Availability check (Global Conflict)
+            const isExcluded = assignedUserIdsOnDay.has(uIdStr);
             if (isExcluded) return false;
 
-            // Validación estricta: solo swapTarget.posicionObj y user.genero
-            const requiredGender = swapTarget?.posicionObj?.genero_requerido || 'A';
-            const userGender = u.genero || u.usuario?.genero;
-            const genderMatch = !requiredGender || requiredGender === 'A' || userGender === requiredGender;
+            // 2. Gender check (Strict)
+            const requiredGender = String(swapTarget?.posicionObj?.genero_requerido || 'A').toUpperCase();
+            const userGen = String(u.genero || u.usuario?.genero || '').toUpperCase();
+            
+            if (requiredGender !== 'A' && userGen !== requiredGender) return false;
 
-            if (!genderMatch) return false;
-
+            // 3. Encargado Pos Logic
             if (isEncargadoPos) {
+                const leaderRoles = ['lider', 'sublider', 'encargado', 'liderazgo'];
                 return u.roles?.some((r: string) => {
                     const rNorm = normalize(r);
-                    return rNorm.includes('lider') || rNorm.includes('encargad') || rNorm.includes('sublider');
+                    return leaderRoles.some(role => rNorm.includes(role));
                 });
             }
             return true;

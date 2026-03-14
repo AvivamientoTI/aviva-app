@@ -140,7 +140,8 @@ export function UserProvider({ children }: UserProviderProps) {
                 const { data: allDepts } = await supabase.from('departamentos').select('*');
                 const filteredDepts = ((allDepts as Department[]) || []).filter(d => d.nombre !== 'Administración');
                 managed = filteredDepts;
-                attendanceManaged = filteredDepts;
+                // Asistencia es SOLO para Servidores
+                attendanceManaged = filteredDepts.filter(d => d.nombre === 'Servidores');
             } else {
                 // Departamentos para gestión general (Líder/Sublíder/Admin) y ocultar 'Administración'
                 managed = memberships
@@ -151,11 +152,11 @@ export function UserProvider({ children }: UserProviderProps) {
                     .map(m => m.departamento)
                     .filter((d): d is Department => !!d);
 
-                // Departamentos para gestión de asistencia (Líder/Sublíder/Encargado/Admin) y ocultar 'Administración'
+                // Departamentos para gestión de asistencia: SOLO Servidores y roles específicos
                 attendanceManaged = memberships
                     .filter(m => {
                         const { isLider, isSublider, isEncargado, isAdmin } = parseRoles(m.rol_jerarquico);
-                        return (isLider || isSublider || isEncargado || isAdmin) && m.departamento?.nombre !== 'Administración';
+                        return (isLider || isSublider || isEncargado || isAdmin) && m.departamento?.nombre === 'Servidores';
                     })
                     .map(m => m.departamento)
                     .filter((d): d is Department => !!d);

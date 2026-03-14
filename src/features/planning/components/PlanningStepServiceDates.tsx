@@ -79,7 +79,7 @@ export const PlanningStepServiceDates = ({
             <Grid.Col span={{ base: 12, md: 5, lg: 4 }}>
                 <Stack gap="md" style={{ position: 'sticky', top: 20 }}>
                     <Paper shadow="sm" p="md" radius="lg" withBorder style={{ backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
-                        <Text fw={800} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--mantine-color-text)' }}>Elige las fechas</Text>
+                        <Text fw={800} size="lg" mb="sm" ta="center" style={{ fontFamily: 'Inter, sans-serif', color: 'var(--mantine-color-text)' }}>Elige las fechas</Text>
                         <Group justify="center">
                             <DatePicker
                                 value={selectedDates.map(dateStr => dayjs(dateStr).hour(12).toDate())}
@@ -125,7 +125,7 @@ export const PlanningStepServiceDates = ({
             <Grid.Col span={{ base: 12, md: 7, lg: 8 }}>
                 <Paper shadow="sm" p="lg" radius="lg" withBorder h="100%" style={{ minHeight: 400, backgroundColor: 'var(--mantine-color-body)', borderColor: 'var(--mantine-color-default-border)' }}>
                     <Group justify="space-between" mb="lg">
-                        <Text fw={800} size="xl" style={{ fontFamily: 'Outfit, sans-serif', color: 'var(--mantine-color-text)', letterSpacing: '-0.01em' }}>Configuración de Servicios</Text>
+                        <Text fw={800} size="xl" style={{ fontFamily: 'Inter, sans-serif', color: 'var(--mantine-color-text)', letterSpacing: '-0.01em' }}>Configuración de Servicios</Text>
                         <Badge size="lg" variant="light" color="gold" radius="md" fw={700} c="gold.9">{selectedDates.length} Días Seleccionados</Badge>
                     </Group>
 

@@ -18,7 +18,7 @@ export function ServiceUniformRow({ servicio, uniforme }: ServiceUniformRowProps
         >
             <Group gap={8} wrap="nowrap" align="center">
                 <Box style={{ flex: 1, minWidth: 0 }}>
-                    <Text fw={900} size="lg" c="slate.9" style={{ overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
+                    <Text fw={900} size="lg" c="slate.9" style={{ overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>
                         {servicio || 'Sin servicio'}
                     </Text>
                 </Box>

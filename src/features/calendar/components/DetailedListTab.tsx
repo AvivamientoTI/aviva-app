@@ -51,7 +51,7 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                     <ActionIcon variant="light" size="lg" radius="xl" onClick={handlePrevMonth} aria-label="Mes anterior">
                         <IconChevronLeft size={20} />
                     </ActionIcon>
-                    <Title order={3} tt="capitalize" w={220} ta="center" c="slate.8" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                    <Title order={3} tt="capitalize" w={220} ta="center" c="slate.8" style={{ fontFamily: 'Inter, sans-serif' }}>
                         {currentDate.locale('es').format('MMMM YYYY')}
                     </Title>
                     <ActionIcon variant="light" size="lg" radius="xl" onClick={handleNextMonth} aria-label="Siguiente mes">
@@ -84,7 +84,7 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                                         <Text size="xs" fw={800} c="gold.6" tt="uppercase" style={{ letterSpacing: '0.05em' }}>
                                             {dayjs(date).locale('es').format('dddd')}
                                         </Text>
-                                        <Title order={3} c="slate.9" style={{ letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
+                                        <Title order={3} c="slate.9" style={{ letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>
                                             {dayjs(date).format('DD')}
                                         </Title>
                                     </Stack>

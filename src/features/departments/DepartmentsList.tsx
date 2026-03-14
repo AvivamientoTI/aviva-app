@@ -1,120 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Button, Group, Modal, TextInput, NumberInput, Title, Text, Alert, Stack, Badge } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../services/supabaseClient';
+import {
+    Container,
+    Title,
+    Group,
+    Stack,
+    Button,
+    Table,
+    Text,
+    Badge,
+    Modal,
+    TextInput,
+    NumberInput,
+    Alert,
+    Paper,
+    ThemeIcon,
+    Loader,
+    Center
+} from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { supabase } from '../../services/supabaseClient';
-import { PositionsManager } from './PositionsManager.tsx';
-import { UniformsManager } from './UniformsManager.tsx';
+import { 
+    IconPlus, 
+    IconEdit, 
+    IconTrash, 
+    IconSettings, 
+    IconShirt, 
+    IconBuildingCommunity,
+    IconSearch,
+    IconAlertCircle
+} from '@tabler/icons-react';
 import { usePermissions } from '../../hooks/usePermissions';
+import { PositionsManager } from './PositionsManager';
+import { UniformsManager } from './UniformsManager';
 import { TableSkeleton } from '../../components/TableSkeleton';
 
-interface Department {
+export interface Department {
     id: number;
     nombre: string;
-    prioridad: number | null;
+    prioridad: number;
 }
 
 export function DepartmentsList() {
-    const permissions = usePermissions();
     const [departments, setDepartments] = useState<Department[]>([]);
+    const [loading, setLoading] = useState(true);
     const [opened, { open, close }] = useDisclosure(false);
     const [editingDept, setEditingDept] = useState<Department | null>(null);
     const [formData, setFormData] = useState({ nombre: '', prioridad: 2 });
-    const [loading, setLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Positions Modal State
-    const [positionsModalOpen, { open: openPositions, close: closePositions }] = useDisclosure(false);
+    const [positionsModalOpen, setPositionsModalOpen] = useState(false);
     const [selectedDeptForPositions, setSelectedDeptForPositions] = useState<Department | null>(null);
 
-    // Uniforms Modal State
-    const [uniformsModalOpen, { open: openUniforms, close: closeUniforms }] = useDisclosure(false);
+    const [uniformsModalOpen, setUniformsModalOpen] = useState(false);
     const [selectedDeptForUniforms, setSelectedDeptForUniforms] = useState<Department | null>(null);
 
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deptToDelete, setDeptToDelete] = useState<Department | null>(null);
 
+    const permissions = usePermissions();
+
     useEffect(() => {
         fetchDepartments();
     }, []);
 
-    const fetchDepartments = async () => {
-        const { data, error } = await supabase
-            .from('departamentos')
-            .select('*')
-            .order('id');
+    async function fetchDepartments() {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('departamentos')
+                .select('*')
+                .order('prioridad', { ascending: true })
+                .order('nombre', { ascending: true });
 
-        if (error) {
-            notifications.show({ title: 'Error', message: error.message, color: 'red' });
-        } else {
+            if (error) throw error;
             setDepartments(data || []);
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-
-        let error;
-        if (editingDept) {
-            const { error: updateError } = await supabase
-                .from('departamentos')
-                .update(formData)
-                .eq('id', editingDept.id);
-            error = updateError;
-        } else {
-            const { error: insertError } = await supabase
-                .from('departamentos')
-                .insert(formData);
-            error = insertError;
-        }
-
-        if (error) {
+        } catch (error: any) {
             notifications.show({ title: 'Error', message: error.message, color: 'red' });
-        } else {
-            notifications.show({ title: 'Éxito', message: 'Departamento guardado', color: 'green' });
-            close();
-            resetForm();
-            fetchDepartments();
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-    };
+    }
 
-    const confirmDelete = async () => {
-        if (!deptToDelete) return;
-
-        setLoading(true);
-        const { error } = await supabase.from('departamentos').delete().eq('id', deptToDelete.id);
-
-        if (error) {
-            notifications.show({ title: 'Error', message: error.message, color: 'red' });
-        } else {
-            notifications.show({ title: 'Eliminado', message: 'Departamento eliminado correctamente', color: 'green' });
-            fetchDepartments();
-        }
-        setLoading(false);
-        setDeleteModalOpen(false);
-        setDeptToDelete(null);
-    };
-
-    const openDeleteModal = (dept: Department) => {
-        setDeptToDelete(dept);
-        setDeleteModalOpen(true);
-    };
+    const filteredDepartments = departments.filter(d => 
+        d.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const handleEdit = (dept: Department) => {
         setEditingDept(dept);
-        setFormData({ nombre: dept.nombre, prioridad: Number(dept.prioridad) });
+        setFormData({ nombre: dept.nombre, prioridad: dept.prioridad });
         open();
-    };
-
-    const handleManagePositions = (dept: Department) => {
-        setSelectedDeptForPositions(dept);
-        openPositions();
-    };
-
-    const handleManageUniforms = (dept: Department) => {
-        setSelectedDeptForUniforms(dept);
-        openUniforms();
     };
 
     const resetForm = () => {
@@ -122,133 +97,250 @@ export function DepartmentsList() {
         setFormData({ nombre: '', prioridad: 2 });
     };
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            if (editingDept) {
+                const { error } = await supabase
+                    .from('departamentos')
+                    .update(formData)
+                    .eq('id', editingDept.id);
+                if (error) throw error;
+                notifications.show({ title: 'Éxito', message: 'Departamento actualizado', color: 'green' });
+            } else {
+                const { error } = await supabase
+                    .from('departamentos')
+                    .insert([formData]);
+                if (error) throw error;
+                notifications.show({ title: 'Éxito', message: 'Departamento creado', color: 'green' });
+            }
+            fetchDepartments();
+            close();
+            resetForm();
+        } catch (error: any) {
+            notifications.show({ title: 'Error', message: error.message, color: 'red' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const openDeleteModal = (dept: Department) => {
+        setDeptToDelete(dept);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deptToDelete) return;
+        setLoading(true);
+        try {
+            const { error } = await supabase
+                .from('departamentos')
+                .delete()
+                .eq('id', deptToDelete.id);
+            if (error) throw error;
+            notifications.show({ title: 'Eliminado', message: 'Departamento eliminado correctamente', color: 'blue' });
+            fetchDepartments();
+            setDeleteModalOpen(false);
+        } catch (error: any) {
+            notifications.show({ title: 'Error', message: error.message, color: 'red' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleManagePositions = (dept: Department) => {
+        setSelectedDeptForPositions(dept);
+        setPositionsModalOpen(true);
+    };
+
+    const closePositions = () => {
+        setPositionsModalOpen(false);
+        setSelectedDeptForPositions(null);
+    };
+
+    const handleManageUniforms = (dept: Department) => {
+        setSelectedDeptForUniforms(dept);
+        setUniformsModalOpen(true);
+    };
+
+    const closeUniforms = () => {
+        setUniformsModalOpen(false);
+        setSelectedDeptForUniforms(null);
+    };
+
     return (
-        <div>
-            <Group justify="space-between" mb="lg">
-                <Stack gap={0}>
-                    <Title order={2} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a', letterSpacing: '-0.02em' }}>Departamentos</Title>
-                    <Text c="slate.5" size="sm" fw={500}>Gestión de equipos y prioridades del sistema</Text>
-                </Stack>
-                <Button
-                    onClick={() => { resetForm(); open(); }}
-                    disabled={!permissions.canManageAllDepartments}
-                    radius="md"
-                    size="md"
-                >
-                    Nuevo Departamento
-                </Button>
-            </Group>
+        <Container size="xl" py="xl">
+            <Stack gap="xl">
+                <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
+                    <Stack gap={0}>
+                        <Title order={1} style={{ 
+                            fontFamily: 'Inter, sans-serif', 
+                            fontSize: '2.4rem',
+                            letterSpacing: '-0.02em',
+                            color: 'var(--mantine-color-text)'
+                        }}>
+                            Gestión de Departamentos 🏗️
+                        </Title>
+                        <Text c="dimmed" fw={500} size="md">Configuración de la estructura organizacional y uniformes</Text>
+                    </Stack>
 
-            {!permissions.canManageAllDepartments && (
-                <Alert color="yellow" title="Acceso limitado" mb="md">
-                    Solo el líder de Servicio General puede crear/editar departamentos.
-                </Alert>
-            )}
+                    <Paper p="md" radius="lg" withBorder className="shell-glass" style={{
+                        backgroundColor: 'var(--mantine-glass-bg, rgba(255, 255, 255, 0.7))',
+                        backdropFilter: 'blur(10px)',
+                        display: 'flex',
+                        gap: '12px'
+                    }}>
+                        <TextInput 
+                            placeholder="Buscar departamento..." 
+                            size="md"
+                            radius="md"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                            leftSection={<IconSearch size={18} color="var(--mantine-color-gold-6)" />}
+                        />
+                        <Button 
+                            onClick={() => { resetForm(); open(); }}
+                            disabled={!permissions.canManageAllDepartments}
+                            radius="md"
+                            size="md"
+                            className="btn-premium"
+                            leftSection={<IconPlus size={18} />}
+                        >
+                            Nuevo Departamento
+                        </Button>
+                    </Paper>
+                </Group>
 
-            {departments.length === 0 && loading ? (
-                 <TableSkeleton rows={4} columns={4} />
-            ) : (
-                <Table.ScrollContainer minWidth={500}>
-                    <Table highlightOnHover style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-                        <Table.Thead style={{ backgroundColor: '#f8fafc' }}>
-                        <Table.Tr>
-                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>ID</Table.Th>
-                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Nombre</Table.Th>
-                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>Prioridad</Table.Th>
-                            <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Acciones</Table.Th>
-                        </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                        {departments.map((dept) => (
-                            <Table.Tr key={dept.id}>
-                                <Table.Td fw={700} c="slate.8">#{dept.id}</Table.Td>
-                                <Table.Td fw={700} c="slate.9">{dept.nombre}</Table.Td>
-                                <Table.Td>
-                                    {Number(dept.prioridad) === 1 ? (
-                                        <Badge color="red" variant="light" radius="sm" fw={800}>CRÍTICA (1)</Badge>
+                {!permissions.canManageAllDepartments && (
+                    <Alert color="yellow" title="Acceso limitado" variant="light" radius="md" icon={<IconAlertCircle size={16} />}>
+                        Solo el líder de Servicio General puede crear o eliminar departamentos.
+                    </Alert>
+                )}
+
+                {loading ? (
+                    <TableSkeleton rows={5} columns={4} />
+                ) : (
+                    <Paper shadow="md" radius="xl" withBorder className="glass-card" style={{
+                        backgroundColor: 'var(--mantine-color-body)',
+                        overflow: 'hidden'
+                    }}>
+                        <Table.ScrollContainer minWidth={600}>
+                            <Table verticalSpacing="md" highlightOnHover>
+                                <Table.Thead style={{ backgroundColor: 'var(--mantine-color-dark-filled)' }}>
+                                    <Table.Tr>
+                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>ID</Table.Th>
+                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Nombre del Departamento</Table.Th>
+                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prioridad</Table.Th>
+                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {filteredDepartments.length > 0 ? (
+                                        filteredDepartments.map((dept) => (
+                                            <Table.Tr key={dept.id}>
+                                                <Table.Td style={{ paddingLeft: '24px' }}>
+                                                    <Text fw={800} c="gold.6" size="sm">#{dept.id}</Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Group gap="sm">
+                                                        <ThemeIcon variant="light" color="gold" radius="md">
+                                                            <IconBuildingCommunity size={16} />
+                                                        </ThemeIcon>
+                                                        <Text fw={700} size="md">{dept.nombre}</Text>
+                                                    </Group>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    {Number(dept.prioridad) === 1 ? (
+                                                        <Badge color="red" variant="filled" radius="sm" fw={800}>CRÍTICA (1)</Badge>
+                                                    ) : (
+                                                        <Badge color="gold" variant="light" radius="sm" fw={800} c="gold.9" style={{ border: '1px solid var(--mantine-color-gold-2)' }}>NORMAL (2)</Badge>
+                                                    )}
+                                                </Table.Td>
+                                                <Table.Td style={{ paddingRight: '24px' }}>
+                                                    <Group gap="xs" justify="flex-end">
+                                                        <Button variant="subtle" color="gray" size="xs" radius="md" leftSection={<IconSettings size={14} />} onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
+                                                            Posiciones
+                                                        </Button>
+                                                        <Button variant="subtle" color="orange" size="xs" radius="md" leftSection={<IconShirt size={14} />} onClick={() => handleManageUniforms(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
+                                                            Uniformes
+                                                        </Button>
+                                                        <Button variant="light" color="blue" size="xs" radius="md" leftSection={<IconEdit size={14} />} onClick={() => handleEdit(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
+                                                            Editar
+                                                        </Button>
+                                                        <Button variant="light" color="red" size="xs" radius="md" leftSection={<IconTrash size={14} />} onClick={() => openDeleteModal(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
+                                                            Eliminar
+                                                        </Button>
+                                                    </Group>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))
                                     ) : (
-                                        <Badge color="gold" variant="light" radius="sm" fw={800} c="gold.9">NORMAL (2)</Badge>
+                                        <Table.Tr>
+                                            <Table.Td colSpan={4}>
+                                                <Center py="xl">
+                                                    <Text c="dimmed" fw={600}>No se encontraron departamentos</Text>
+                                                </Center>
+                                            </Table.Td>
+                                        </Table.Tr>
                                     )}
-                                </Table.Td>
-                                <Table.Td>
-                                    <Group gap="xs" justify="flex-end">
-                                        <Button variant="light" size="xs" radius="sm" onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
-                                            Posiciones
-                                        </Button>
-                                        <Button variant="light" color="orange" size="xs" radius="sm" onClick={() => handleManageUniforms(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
-                                            Uniformes
-                                        </Button>
-                                        <Button variant="filled" color="blue" size="xs" radius="sm" onClick={() => handleEdit(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
-                                            Editar
-                                        </Button>
-                                        <Button variant="filled" color="red" size="xs" radius="sm" onClick={() => openDeleteModal(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
-                                            Eliminar
-                                        </Button>
-                                    </Group>
-                                </Table.Td>
-                            </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                </Table>
-            </Table.ScrollContainer>
-            )}
+                                </Table.Tbody>
+                            </Table>
+                        </Table.ScrollContainer>
+                    </Paper>
+                )}
+            </Stack>
 
-            <Modal opened={opened} onClose={close} title={editingDept ? "Editar Departamento" : "Nuevo Departamento"}>
+            {/* Modals */}
+            <Modal opened={opened} onClose={close} title={editingDept ? "Editar Departamento" : "Nuevo Departamento"} radius="xl">
                 <form onSubmit={handleSubmit}>
-                    <TextInput
-                        label="Nombre"
-                        placeholder="Ej. Servidores AM"
-                        required
-                        value={formData.nombre}
-                        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    />
-
-                    <NumberInput
-                        label="Prioridad"
-                        description="1 = Servicio General (Bloquea al usuario), 2 = Otros"
-                        min={1}
-                        max={2}
-                        mt="md"
-                        value={formData.prioridad}
-                        onChange={(val) => setFormData({ ...formData, prioridad: Number(val) })}
-                    />
-
-                    <Group justify="flex-end" mt="xl">
-                        <Button variant="default" onClick={close}>Cancelar</Button>
-                        <Button type="submit" loading={loading}>Guardar</Button>
-                    </Group>
+                    <Stack gap="md">
+                        <TextInput
+                            label="Nombre"
+                            placeholder="Ej. Servidores AM"
+                            required
+                            radius="md"
+                            value={formData.nombre}
+                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                        />
+                        <NumberInput
+                            label="Prioridad"
+                            description="1 = Crítico (Bloquea choques), 2 = Normal"
+                            min={1}
+                            max={2}
+                            radius="md"
+                            value={formData.prioridad}
+                            onChange={(val) => setFormData({ ...formData, prioridad: Number(val) })}
+                        />
+                        <Group justify="flex-end" mt="xl">
+                            <Button variant="default" onClick={close} radius="md">Cancelar</Button>
+                            <Button type="submit" loading={loading} radius="md" color="gold">Guardar</Button>
+                        </Group>
+                    </Stack>
                 </form>
             </Modal>
 
-            <Modal
-                opened={positionsModalOpen}
-                onClose={closePositions}
-                title={`Posiciones: ${selectedDeptForPositions?.nombre || ''}`}
-                size="lg"
-            >
+            <Modal opened={positionsModalOpen} onClose={closePositions} title={`Posiciones: ${selectedDeptForPositions?.nombre || ''}`} size="lg" radius="xl">
                 <PositionsManager departmentId={selectedDeptForPositions?.id} />
             </Modal>
 
-            <Modal
-                opened={uniformsModalOpen}
-                onClose={closeUniforms}
-                title={`Uniformes: ${selectedDeptForUniforms?.nombre || ''}`}
-                size="md"
-            >
+            <Modal opened={uniformsModalOpen} onClose={closeUniforms} title={`Uniformes: ${selectedDeptForUniforms?.nombre || ''}`} size="md" radius="xl">
                 <UniformsManager departmentId={selectedDeptForUniforms?.id} />
             </Modal>
 
-            <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Confirmar Eliminación" centered>
-                <Text size="sm">
-                    ¿Estás seguro de que deseas eliminar el departamento <strong>{deptToDelete?.nombre}</strong>?
-                    <br /><br />
-                    <span style={{ color: 'red' }}>⚠️ Esta acción podría afectar planificaciones y miembros existentes.</span>
-                </Text>
-                <Group justify="flex-end" mt="lg">
-                    <Button variant="default" onClick={() => setDeleteModalOpen(false)}>Cancelar</Button>
-                    <Button color="red" onClick={confirmDelete} loading={loading}>Eliminar</Button>
-                </Group>
+            <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Confirmar Eliminación" centered radius="xl">
+                <Stack gap="md">
+                    <Text size="sm">
+                        ¿Estás seguro de que deseas eliminar el departamento <strong>{deptToDelete?.nombre}</strong>?
+                        <br /><br />
+                        <span style={{ color: 'red' }}>⚠️ Esta acción es irreversible y afectará a todos los miembros y roles asociados.</span>
+                    </Text>
+                    <Group justify="flex-end">
+                        <Button variant="default" onClick={() => setDeleteModalOpen(false)} radius="md">Cancelar</Button>
+                        <Button color="red" onClick={confirmDelete} loading={loading} radius="md">Eliminar</Button>
+                    </Group>
+                </Stack>
             </Modal>
-        </div>
+        </Container>
     );
 }

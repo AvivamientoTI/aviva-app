@@ -8,7 +8,7 @@ export const useAssignments = (deptId: number | string | null) => {
         queryKey: ['assignments', deptId],
         queryFn: () => assignmentsService.fetchByDepartment(deptId!),
         enabled: !!deptId,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 0, // Fuerza la actualización siempre para mostrar la versión más reciente
     });
 
     const deleteAssignment = useMutation({

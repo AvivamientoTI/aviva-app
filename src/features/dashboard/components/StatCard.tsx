@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Box, Stack, Group, Text, ThemeIcon } from '@mantine/core';
+import { Sparkline } from '@mantine/charts';
 
 interface StatCardProps {
     title: string;
@@ -7,11 +8,12 @@ interface StatCardProps {
     subtitle?: string;
     icon: React.ReactNode;
     color: string;
+    trendData?: number[];
 }
 
-export function StatCard({ title, value, subtitle, icon, color }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon, color, trendData }: StatCardProps) {
     return (
-        <Card p="xl" radius="lg" withBorder className="animate-fade-in" style={{
+        <Card p="xl" radius="lg" withBorder className="animate-fade-in hover-card" style={{
             backgroundColor: 'var(--mantine-color-body)',
             borderBottom: `4px solid var(--mantine-color-${color}-6)`,
             overflow: 'hidden',
@@ -38,16 +40,32 @@ export function StatCard({ title, value, subtitle, icon, color }: StatCardProps)
                         {icon}
                     </ThemeIcon>
                 </Group>
-                <div>
-                    <Text fw={900} size="xl" style={{ fontSize: '2.2rem', letterSpacing: '-0.02em', fontFamily: 'Outfit, sans-serif' }}>
-                        {value}
-                    </Text>
-                    {subtitle && (
-                        <Text size="xs" c="dimmed" fw={700} mt={-4}>
-                            {subtitle}
+                
+                <Group align="flex-end" justify="space-between">
+                    <div>
+                        <Text fw={800} size="xl" style={{ fontSize: '2.1rem', letterSpacing: '-0.01em' }}>
+                            {value}
                         </Text>
+                        {subtitle && (
+                            <Text size="xs" c="dimmed" fw={700} mt={-4}>
+                                {subtitle}
+                            </Text>
+                        )}
+                    </div>
+
+                    {trendData && trendData.length > 0 && (
+                        <Box w={80} mb={6}>
+                            <Sparkline
+                                data={trendData}
+                                h={32}
+                                curveType="monotone"
+                                color={`${color}.6`}
+                                fillOpacity={0.6}
+                                strokeWidth={2}
+                            />
+                        </Box>
                     )}
-                </div>
+                </Group>
             </Stack>
         </Card>
     );

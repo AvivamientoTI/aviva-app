@@ -66,10 +66,10 @@ export function UpcomingServiceCard({ nextService }: UpcomingServiceCardProps) {
                             {getSingle(getSingle(nextService.posicion)?.departamento)?.nombre}
                         </Text>
                         <Title order={3} style={{
-                            fontFamily: 'Outfit, sans-serif',
-                            fontSize: '1.8rem',
+                            fontFamily: 'Inter, sans-serif',
+                            fontSize: '1.7rem',
                             color: 'var(--mantine-color-gold-text)',
-                            letterSpacing: '-0.02em'
+                            letterSpacing: '-0.01em'
                         }}>
                             {getSingle(nextService.posicion)?.nombre || 'Servidor'}
                         </Title>
@@ -89,14 +89,13 @@ export function UpcomingServiceCard({ nextService }: UpcomingServiceCardProps) {
 
                 <Button
                     fullWidth
-                    variant="filled"
-                    color="gold"
+                    className="btn-premium"
                     mt="xl"
                     size="md"
                     rightSection={<IconArrowRight size={18} />}
                     onClick={() => navigate('/calendar')}
                 >
-                    Ver Detalles
+                    Ver Detalles de Misión
                 </Button>
             </Stack>
         </Card>

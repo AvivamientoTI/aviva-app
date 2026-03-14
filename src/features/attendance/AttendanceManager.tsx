@@ -1,8 +1,5 @@
-// Ensuring TS attendance service is used
 import { useState, useEffect } from 'react';
 import {
-    Card,
-    Box,
     Center,
     Container,
     Title,
@@ -16,60 +13,55 @@ import {
     TextInput,
     Loader,
     Alert,
-    Progress,
-    Badge
+    Badge,
+    Paper,
+    SimpleGrid,
+    ThemeIcon,
+    Avatar
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
-import { IconAlertCircle, IconCheck, IconDeviceFloppy, IconCalendar, IconUsers, IconSearch, IconFileDownload } from '@tabler/icons-react';
+import {
+    IconClipboardCheck,
+    IconCalendarEvent,
+    IconCheck,
+    IconX,
+    IconAlertCircle,
+    IconUserCheck,
+    IconUsersGroup,
+    IconChevronRight,
+    IconDeviceFloppy
+} from '@tabler/icons-react';
 import { useUser } from '../../contexts/UserContext';
 import { usePermissions } from '../../hooks/usePermissions';
-import { attendanceService, type DepartmentMember, type ServiceDay, type AttendanceRecord } from '../../services/attendanceService';
+import { attendanceService, type ServiceDay, type AttendanceRecordWithDetails } from '../../services/attendanceService';
 import { supabase } from '../../services/supabaseClient';
 import dayjs from 'dayjs';
-import { useRef } from 'react';
-import { jsPDF } from 'jspdf';
-import { toPng } from 'html-to-image';
-import { impactReportService, type MonthlyStats, type MemberImpact, type ServiceDetail } from '../../services/ImpactReportService';
-import { ImpactReportTemplate } from '../reports/ImpactReportTemplate';
 import { ATTENDANCE_STATES } from '../../constants/attendance';
-import { TableSkeleton } from '../../components/TableSkeleton';
-
-type LocalAttendanceState = Pick<AttendanceRecord, 'estado' | 'justificacion'>;
 
 export function AttendanceManager() {
     const { attendanceManagedDepartments } = useUser();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
     const [selectedService, setSelectedService] = useState<string | null>(null);
     const [serviceDays, setServiceDays] = useState<ServiceDay[]>([]);
-    const [members, setMembers] = useState<DepartmentMember[]>([]);
-    const [attendance, setAttendance] = useState<Record<string, LocalAttendanceState>>({});
+    const [attendance, setAttendance] = useState<AttendanceRecordWithDetails[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [generatingReport, setGeneratingReport] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [reportData, setReportData] = useState<{
-        stats: MonthlyStats;
-        members: MemberImpact[];
-        services: ServiceDetail[];
-    } | null>(null);
-
-    const reportRef = useRef<HTMLDivElement>(null);
 
     const permissions = usePermissions();
 
-
-
     useEffect(() => {
-        if (selectedDept) {
+        if (selectedDept && selectedDate) {
             fetchData();
         }
-    }, [selectedDept]);
+    }, [selectedDept, selectedDate]);
 
     useEffect(() => {
         if (selectedService) {
             fetchAttendanceData();
 
-            // Sincronización Realtime: Escuchar cambios en la tabla de asistencias
+            // Realtime Sync
             const channel = supabase
                 .channel(`attendance:${selectedService}`)
                 .on(
@@ -81,15 +73,9 @@ export function AttendanceManager() {
                         filter: `configuracion_dia_id=eq.${selectedService}`
                     },
                     (payload: any) => {
-                        const newRecord = payload.new as AttendanceRecord;
+                        const newRecord = payload.new as AttendanceRecordWithDetails;
                         if (newRecord) {
-                            setAttendance(prev => ({
-                                ...prev,
-                                [newRecord.usuario_id]: {
-                                    estado: newRecord.estado,
-                                    justificacion: newRecord.justificacion || ''
-                                }
-                            }));
+                            setAttendance(prev => prev.map(rec => rec.id === newRecord.id ? { ...rec, ...newRecord } : rec));
                         }
                     }
                 )
@@ -99,36 +85,23 @@ export function AttendanceManager() {
                 supabase.removeChannel(channel);
             };
         } else {
-            setAttendance({});
+            setAttendance([]);
         }
     }, [selectedService]);
 
-    function handleAttendanceChange(userId: string | number, field: keyof LocalAttendanceState, value: string) {
-        setAttendance(prev => ({
-            ...prev,
-            [userId]: {
-                ...prev[userId],
-                [field]: value
-            }
-        }));
+    function handleAttendanceChange(recordId: number, newState: string) {
+        setAttendance(prev => prev.map(rec =>
+            rec.id === recordId ? { ...rec, estado: newState } : rec
+        ));
     }
 
     async function fetchData() {
         setLoading(true);
         try {
-            if (!selectedDept) return;
-            const [days, deptMembers] = await Promise.all([
-                attendanceService.fetchServiceDays(selectedDept),
-                attendanceService.fetchDeptMembers(selectedDept)
-            ]);
+            if (!selectedDept || !selectedDate) return;
+            const formattedDate = dayjs(selectedDate).format('YYYY-MM-DD');
+            const days = await attendanceService.fetchServiceDaysByDate(selectedDept, formattedDate);
             setServiceDays(days);
-            // Sort members alphabetically by name
-            const sortedMembers = deptMembers.sort((a, b) => {
-                const nameA = `${a.nombre} ${a.apellido}`.toLowerCase();
-                const nameB = `${b.nombre} ${b.apellido}`.toLowerCase();
-                return nameA.localeCompare(nameB);
-            });
-            setMembers(sortedMembers);
             if (days.length > 0) {
                 setSelectedService(String(days[0].id));
             } else {
@@ -138,7 +111,7 @@ export function AttendanceManager() {
             console.error(error);
             notifications.show({
                 title: 'Error de Datos',
-                message: 'No se pudo sincronizar la lista de miembros o servicios.',
+                message: 'No se pudo sincronizar la lista de servicios.',
                 color: 'red',
                 icon: <IconAlertCircle size={18} />
             });
@@ -148,92 +121,65 @@ export function AttendanceManager() {
     }
 
     async function fetchAttendanceData() {
+        setLoading(true);
         try {
-            if (!selectedService) return;
-            const data = await attendanceService.fetchAttendance(selectedService);
-            const attendanceMap: Record<string, LocalAttendanceState> = {};
-            data.forEach((rec) => {
-                attendanceMap[rec.usuario_id] = {
-                    estado: rec.estado,
-                    justificacion: rec.justificacion || ''
-                };
-            });
-            setAttendance(attendanceMap);
+            if (!selectedService) {
+                setAttendance([]);
+                return;
+            }
+            const data = await attendanceService.fetchAttendanceWithDetails(Number(selectedService), Number(selectedDept));
+            setAttendance(data);
         } catch (error) {
             console.error(error);
+            notifications.show({
+                title: 'Error de Datos',
+                message: 'No se pudo cargar la asistencia.',
+                color: 'red',
+                icon: <IconAlertCircle size={18} />
+            });
+        } finally {
+            setLoading(false);
         }
     }
 
     async function handleSave() {
-        if (!selectedService || members.length === 0) {
-            notifications.show({
-                title: 'Error',
-                message: 'No hay datos suficientes para guardar la asistencia.',
-                color: 'red',
-                icon: <IconAlertCircle size={18} />
-            });
+        if (!selectedService || attendance.length === 0) {
+            notifications.show({ title: 'Error', message: 'No hay datos para guardar.', color: 'red' });
             return;
         }
         setSaving(true);
         try {
-            // Construir registros a guardar
-            const records = members.map(member => ({
-                usuario_id: member.id,
-                configuracion_dia_id: Number(selectedService),
-                estado: attendance[member.id]?.estado || '',
-                justificacion: attendance[member.id]?.justificacion || ''
+            const recordsToUpdate = attendance.map(rec => ({
+                id: rec.id,
+                usuario_id: rec.usuario_id,
+                configuracion_dia_id: rec.configuracion_dia_id,
+                estado: rec.estado,
+                justificacion: rec.justificacion || '',
+                hora_registro: rec.estado === ATTENDANCE_STATES.ASISTIO && !rec.hora_registro ? new Date().toISOString() : rec.hora_registro
             }));
-            await attendanceService.saveAttendance(records);
-            notifications.show({
-                title: '¡Éxito!',
-                message: 'Asistencia guardada correctamente.',
-                color: 'green',
-                icon: <IconCheck size={18} />
-            });
-        } catch (error: unknown) {
-            console.error(error);
-            notifications.show({
-                title: 'Error al guardar',
-                message: (error as Error).message || 'No se pudo guardar la asistencia.',
-                color: 'red',
-                icon: <IconAlertCircle size={18} />
-            });
+            await attendanceService.updateAttendanceRecords(recordsToUpdate);
+            notifications.show({ title: '¡Éxito!', message: 'Asistencia guardada.', color: 'green' });
+            fetchAttendanceData();
+        } catch (error: any) {
+            notifications.show({ title: 'Error', message: error.message, color: 'red' });
         } finally {
             setSaving(false);
         }
     }
 
-    // Filter departments to only those the user can manage attendance for (Strictly Servidores per latest rule)
     const filteredDepts = (attendanceManagedDepartments || []).filter(d => permissions.canManageAttendance(d.id));
 
     useEffect(() => {
         if (!selectedDept && filteredDepts.length > 0) {
             setSelectedDept(String(filteredDepts[0].id));
-        } else if (selectedDept && filteredDepts.length > 0 && !filteredDepts.some(d => String(d.id) === selectedDept)) {
-            // If current selected is not in allowed list, reset to first allowed
-            setSelectedDept(String(filteredDepts[0].id));
         }
     }, [filteredDepts, selectedDept]);
 
-    if (!attendanceManagedDepartments || loading) {
+    if (!attendanceManagedDepartments) {
         return (
-            <Container size="xl" py="xl">
-                <Stack gap="xl">
-                    <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
-                        <div>
-                            <Title order={1} style={{
-                                fontFamily: 'Outfit, sans-serif',
-                                fontSize: '2.5rem',
-                                letterSpacing: '-0.02em',
-                                color: '#78350f'
-                            }}>
-                                Control de Asistencia
-                            </Title>
-                        </div>
-                    </Group>
-                    <TableSkeleton rows={6} columns={3} withHeader={false} />
-                </Stack>
-            </Container>
+            <Center h={400}>
+                <Loader color="gold" size="xl" />
+            </Center>
         );
     }
 
@@ -247,275 +193,184 @@ export function AttendanceManager() {
         );
     }
 
-    const deptOptions = filteredDepts.map(d => ({
-        value: String(d.id),
-        label: d.nombre
-    }));
-
-    const serviceOptions = serviceDays.map(d => ({
-        value: String(d.id),
-        label: `${dayjs(d.fecha).format('DD/MM')} - ${d.tipo_servicio}`
-    }));
-
-    const filteredMembers = members.filter(m =>
-        `${m.nombre} ${m.apellido}`.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const presentCount = filteredMembers.filter(m => attendance[m.id]?.estado === ATTENDANCE_STATES.ASISTIO).length;
-    const totalVisible = filteredMembers.length;
-    const attendancePercentage = totalVisible > 0 ? Math.round((presentCount / totalVisible) * 100) : 0;
+    const deptOptions = filteredDepts.map(d => ({ value: String(d.id), label: d.nombre }));
+    const serviceOptions = serviceDays.map(d => ({ value: String(d.id), label: d.tipo_servicio }));
 
     return (
         <Container size="xl" py="xl">
             <Stack gap="xl">
-                <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
-                    <div>
-                        <Title order={1} style={{
-                            fontFamily: 'Outfit, sans-serif',
-                            fontSize: '2.5rem',
+                <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
+                    <Stack gap={0}>
+                        <Title order={1} style={{ 
+                            fontFamily: 'Inter, sans-serif', 
+                            fontSize: '2.4rem',
                             letterSpacing: '-0.02em',
-                            color: '#78350f' // Deep Amber
+                            color: 'var(--mantine-color-text)'
                         }}>
-                            Control de Asistencia
+                            Control de Asistencia ✅
                         </Title>
-                    </div>
-                    <Group align="flex-end" gap="sm">
+                        <Text c="dimmed" fw={500} size="md">Registro y seguimiento de puntualidad para servicios</Text>
+                    </Stack>
+                </Group>
+
+                <Paper p="xl" radius="xl" withBorder className="shell-glass" style={{
+                    backgroundColor: 'var(--mantine-color-body)',
+                    border: '1px solid var(--mantine-color-default-border)'
+                }}>
+                    <Group grow align="flex-end" gap="lg">
                         <Select
                             label="Departamento"
+                            placeholder="Selecciona departamento"
                             data={deptOptions}
                             value={selectedDept}
-                            onChange={setSelectedDept}
+                            onChange={(val) => {
+                                setSelectedDept(val);
+                                setSelectedService(null);
+                            }}
+                            radius="md"
                             size="md"
-                            radius="xl"
-                            w={200}
-                            styles={{ label: { color: '#78716c', fontWeight: 700 } }}
+                            leftSection={<IconUsersGroup size={18} color="var(--mantine-color-gold-6)" />}
+                        />
+                        <DatePickerInput
+                            label="Fecha del Servicio"
+                            placeholder="Seleccionar fecha"
+                            value={selectedDate}
+                            onChange={setSelectedDate}
+                            radius="md"
+                            size="md"
+                            leftSection={<IconCalendarEvent size={18} color="var(--mantine-color-gold-6)" />}
                         />
                         <Select
-                            label="Servicio / Fecha"
-                            placeholder="Selecciona"
+                            label="Servicio / Turno"
+                            placeholder="Selecciona servicio"
                             data={serviceOptions}
                             value={selectedService}
                             onChange={setSelectedService}
+                            disabled={!selectedDept || !selectedDate}
+                            radius="md"
                             size="md"
-                            radius="xl"
-                            w={240}
-                            leftSection={<IconCalendar size={18} />}
-                            styles={{ label: { color: '#78716c', fontWeight: 700 } }}
+                            leftSection={<IconChevronRight size={18} color="var(--mantine-color-gold-6)" />}
                         />
-                        <Button
-                            variant="light"
-                            color="gold" // Gold theme
-                            radius="xl"
-                            leftSection={<IconFileDownload size={18} />}
-                            loading={generatingReport}
-                            onClick={async () => {
-                                if (!selectedDept) return;
-                                setGeneratingReport(true);
-                                try {
-                                    const now = dayjs();
-                                    const data = await impactReportService.getMonthlyData(
-                                        Number(selectedDept),
-                                        now.month() + 1,
-                                        now.year()
-                                    );
-
-                                    if (!data.stats) {
-                                        notifications.show({
-                                            title: 'Sin Datos',
-                                            message: 'No hay servicios registrados en este mes para generar el reporte.',
-                                            color: 'orange'
-                                        });
-                                        return;
-                                    }
-
-                                    setReportData(data as {
-                                        stats: MonthlyStats;
-                                        members: MemberImpact[];
-                                        services: ServiceDetail[];
-                                    });
-
-                                    // Esperar un render para capturar
-                                    setTimeout(async () => {
-                                        if (reportRef.current) {
-                                            const dataUrl = await toPng(reportRef.current, { quality: 0.95, pixelRatio: 2 });
-                                            const pdf = new jsPDF('p', 'mm', 'a4');
-                                            const imgProps = pdf.getImageProperties(dataUrl);
-                                            const pdfWidth = pdf.internal.pageSize.getWidth();
-                                            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                                            pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                                            pdf.save(`Reporte_Impacto_${dayjs().format('MMMM_YYYY')}.pdf`);
-                                            setReportData(null);
-                                        }
-                                    }, 500);
-                                } catch (error) {
-                                    console.error('Error generating report:', error);
-                                    notifications.show({ title: 'Error', message: 'No se pudo generar el reporte', color: 'red' });
-                                } finally {
-                                    setGeneratingReport(false);
-                                }
-                            }}
-                        >
-                            Ver Reporte de Impacto (PDF)
-                        </Button>
                     </Group>
-                </Group>
+                </Paper>
 
-                {/* Report Template (Hidden) */}
-                <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-                    {reportData && (
-                        <ImpactReportTemplate
-                            ref={reportRef}
-                            stats={reportData.stats}
-                            members={reportData.members}
-                            services={reportData.services}
-                            month={dayjs().month() + 1}
-                            year={dayjs().year()}
-                            deptName={attendanceManagedDepartments?.find(d => String(d.id) === selectedDept)?.nombre || 'Departamento'}
-                        />
-                    )}
-                </div>
+                {selectedDept && selectedDate && selectedService ? (
+                    <Stack gap="xl">
+                        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
+                            <Paper p="lg" radius="xl" withBorder className="glass-card">
+                                <Group justify="space-between">
+                                    <Stack gap={0}>
+                                        <Text size="xs" c="dimmed" fw={800} tt="uppercase">Presentes</Text>
+                                        <Text fw={900} size="2.2rem" c="teal.6">
+                                            {attendance.filter(a => a.estado === ATTENDANCE_STATES.ASISTIO).length}
+                                        </Text>
+                                    </Stack>
+                                    <ThemeIcon color="teal" variant="light" size="xl" radius="lg">
+                                        <IconCheck size={26} />
+                                    </ThemeIcon>
+                                </Group>
+                            </Paper>
+                            <Paper p="lg" radius="xl" withBorder className="glass-card">
+                                <Group justify="space-between">
+                                    <Stack gap={0}>
+                                        <Text size="xs" c="dimmed" fw={800} tt="uppercase">Ausentes</Text>
+                                        <Text fw={900} size="2.2rem" c="red.6">
+                                            {attendance.filter(a => a.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION).length}
+                                        </Text>
+                                    </Stack>
+                                    <ThemeIcon color="red" variant="light" size="xl" radius="lg">
+                                        <IconX size={26} />
+                                    </ThemeIcon>
+                                </Group>
+                            </Paper>
+                            <Paper p="lg" radius="xl" withBorder className="glass-card">
+                                <Group justify="space-between">
+                                    <Stack gap={0}>
+                                        <Text size="xs" c="dimmed" fw={800} tt="uppercase">Asignados</Text>
+                                        <Text fw={900} size="2.2rem">
+                                            {attendance.length}
+                                        </Text>
+                                    </Stack>
+                                    <ThemeIcon color="gold" variant="light" size="xl" radius="lg">
+                                        <IconUserCheck size={26} />
+                                    </ThemeIcon>
+                                </Group>
+                            </Paper>
+                        </SimpleGrid>
 
-                {selectedService && !loading && members.length > 0 && (
-                    <Card p="xl" radius="lg" withBorder style={{
-                        background: 'linear-gradient(135deg, #fcfaf5 0%, #fffbeb 100%)', // Warm Cream Gradient
-                        borderColor: '#e7e5e4',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        borderLeft: '6px solid #d97706' // Amber 600
-                    }}>
-                        {/* Decorative background icon */}
-                        <Box style={{
-                            position: 'absolute',
-                            top: -20,
-                            right: -20,
-                            opacity: 0.05,
-                            transform: 'rotate(15deg)',
-                            color: '#d97706'
+                        <Paper shadow="md" radius="xl" withBorder className="glass-card" style={{
+                            backgroundColor: 'var(--mantine-color-body)',
+                            overflow: 'hidden'
                         }}>
-                            <IconUsers size={160} />
-                        </Box>
-
-                        <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
-                            <Group justify="space-between">
-                                <Stack gap={2}>
-                                    <Text fw={900} size="xs" tt="uppercase" c="gold.8" style={{ letterSpacing: '0.05em' }}>Asistencia del Equipo</Text>
-                                    <Title order={3} style={{ fontFamily: 'Outfit, sans-serif', color: '#292524' }}>Participación</Title>
-                                </Stack>
-                                <Badge color="gold" variant="filled" size="xl" radius="md" style={{ height: 40, fontSize: '1rem', fontWeight: 800 }}>
-                                    {attendancePercentage}% PRESENTE
-                                </Badge>
-                            </Group>
-
-                            <Progress
-                                value={attendancePercentage}
-                                size="lg"
-                                radius="xl"
-                                animated
-                                color="gold.5"
-                                style={{ background: '#e7e5e4' }}
-                            />
-
-                            <Group justify="space-between" mt="md">
-                                <Button
-                                    variant="light"
-                                    size="sm"
-                                    color="gold"
-                                    radius="md"
-                                    leftSection={<IconUsers size={16} />}
-                                    onClick={() => {
-                                        const newAttendance = { ...attendance };
-                                        members.forEach(m => {
-                                            newAttendance[m.id] = { estado: ATTENDANCE_STATES.ASISTIO, justificacion: '' };
-                                        });
-                                        setAttendance(newAttendance);
-                                        notifications.show({ title: '¡Listo!', message: 'Todos marcados como presente', color: 'green' });
-                                    }}
-                                >
-                                    Marcar todos como "Asistió"
-                                </Button>
-
-                                <TextInput
-                                    placeholder="Buscar por nombre..."
-                                    size="sm"
-                                    radius="md"
-                                    w={240}
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                                    leftSection={<IconSearch size={16} />}
-                                    styles={{
-                                        input: {
-                                            backgroundColor: 'var(--mantine-color-body)',
-                                            borderColor: '#e7e5e4',
-                                        }
-                                    }}
-                                />
-                            </Group>
-                        </Stack>
-                    </Card>
-                )}
-
-                {loading ? (
-                    <Stack align="center" py="xl">
-                        <Loader size="lg" color="gold" />
-                        <Text size="sm" c="dimmed">Sincronizando equipo...</Text>
-                    </Stack>
-                ) : selectedService ? (
-                    <>
-                        <Table.ScrollContainer minWidth={600}>
-                            <Table verticalSpacing="md" highlightOnHover>
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th style={{ fontFamily: 'Outfit, sans-serif', color: '#57534e' }}>Servidor</Table.Th>
-                                        <Table.Th ta="center" style={{ fontFamily: 'Outfit, sans-serif', color: '#57534e' }}>Estado de Asistencia</Table.Th>
-                                        <Table.Th style={{ fontFamily: 'Outfit, sans-serif', color: '#57534e' }}>Justificación / Notas</Table.Th>
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {filteredMembers.map((member) => (
-                                        <Table.Tr key={member.id}>
-                                            <Table.Td>
-                                                <Stack gap={0}>
-                                                    <Text fw={800} size="sm" c="stone.8">{member.nombre} {member.apellido}</Text>
-                                                    <Text size="xs" c="stone.5" fw={700}>Servidor(a)</Text>
-                                                </Stack>
-                                            </Table.Td>
-
-                                            <Table.Td>
-                                                <Center>
-                                                    <SegmentedControl
-                                                        size="xs"
-                                                        radius="xl"
-                                                        value={attendance[member.id]?.estado || ''}
-                                                        onChange={(val) => handleAttendanceChange(member.id, 'estado', val)}
-                                                        data={[
-                                                            { label: 'Asistió', value: ATTENDANCE_STATES.ASISTIO },
-                                                            { label: 'Con Justificación', value: ATTENDANCE_STATES.CON_JUSTIFICACION },
-                                                            { label: 'Sin Justificación', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
-                                                        ]}
-                                                        color={
-                                                            attendance[member.id]?.estado === ATTENDANCE_STATES.ASISTIO ? 'teal' : // Green -> Teal
-                                                                attendance[member.id]?.estado === ATTENDANCE_STATES.CON_JUSTIFICACION ? 'orange' : // Yellow -> Orange for contrast
-                                                                    attendance[member.id]?.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION ? 'red' : 'gray'
-                                                        }
-                                                    />
-                                                </Center>
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <TextInput
-                                                    placeholder="Ej: Enfermedad, viaje..."
-                                                    size="xs"
-                                                    radius="md"
-                                                    value={attendance[member.id]?.justificacion || ''}
-                                                    onChange={(e) => handleAttendanceChange(member.id, 'justificacion', e.target.value)}
-                                                    disabled={attendance[member.id]?.estado === ATTENDANCE_STATES.ASISTIO}
-                                                    styles={{ input: { borderColor: '#e7e5e4' } }}
-                                                />
-                                            </Table.Td>
+                            <Table.ScrollContainer minWidth={600}>
+                                <Table verticalSpacing="md" highlightOnHover>
+                                    <Table.Thead style={{ backgroundColor: 'var(--mantine-color-dark-filled)' }}>
+                                        <Table.Tr>
+                                            <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>Servidor / Posición</Table.Th>
+                                            <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center' }}>Control de Asistencia</Table.Th>
+                                            <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Hora</Table.Th>
                                         </Table.Tr>
-                                    ))}
-                                </Table.Tbody>
-                            </Table>
-                        </Table.ScrollContainer>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {loading ? (
+                                            <Table.Tr><Table.Td colSpan={3}><Center py="xl"><Loader color="gold" type="dots" /></Center></Table.Td></Table.Tr>
+                                        ) : attendance.length > 0 ? (
+                                            attendance.map((record) => (
+                                                <Table.Tr key={record.id}>
+                                                    <Table.Td style={{ paddingLeft: '24px' }}>
+                                                        <Group gap="sm">
+                                                            <Avatar color="gold" radius="lg" size="md">
+                                                                {record.usuario?.nombre[0]}{record.usuario?.apellido[0]}
+                                                            </Avatar>
+                                                            <Stack gap={0}>
+                                                                <Text size="sm" fw={800}>{record.usuario?.nombre} {record.usuario?.apellido}</Text>
+                                                                <Text size="xs" c="dimmed" fw={600}>{record.posicion?.nombre || 'General'}</Text>
+                                                            </Stack>
+                                                        </Group>
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Center>
+                                                            <SegmentedControl
+                                                                value={record.estado}
+                                                                onChange={(value) => handleAttendanceChange(record.id, value)}
+                                                                data={[
+                                                                    { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },
+                                                                    { label: 'Falta', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
+                                                                    { label: 'Justificada', value: ATTENDANCE_STATES.CON_JUSTIFICACION },
+                                                                ]}
+                                                                color={record.estado === ATTENDANCE_STATES.ASISTIO ? 'teal' : record.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION ? 'red' : 'blue'}
+                                                                radius="xl"
+                                                                size="sm"
+                                                                styles={{
+                                                                    root: { backgroundColor: 'var(--mantine-color-gray-1)' },
+                                                                    label: { fontWeight: 700 }
+                                                                }}
+                                                            />
+                                                        </Center>
+                                                    </Table.Td>
+                                                    <Table.Td style={{ paddingRight: '24px' }} align="right">
+                                                        <Text size="xs" fw={700} c="dimmed">
+                                                            {record.hora_registro ? dayjs(record.hora_registro).format('HH:mm') : '--:--'}
+                                                        </Text>
+                                                    </Table.Td>
+                                                </Table.Tr>
+                                            ))
+                                        ) : (
+                                            <Table.Tr>
+                                                <Table.Td colSpan={3}>
+                                                    <Center py="xl">
+                                                        <Stack align="center" gap="xs" opacity={0.6}>
+                                                            <IconAlertCircle size={40} />
+                                                            <Text fw={600}>No hay servidores asignados.</Text>
+                                                        </Stack>
+                                                    </Center>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        )}
+                                    </Table.Tbody>
+                                </Table>
+                            </Table.ScrollContainer>
+                        </Paper>
 
                         <Group justify="flex-end">
                             <Button
@@ -524,22 +379,31 @@ export function AttendanceManager() {
                                 loading={saving}
                                 size="lg"
                                 radius="xl"
-                                color="gold"
-                                disabled={!permissions.canManageAttendance(selectedDept)}
-                                style={{
-                                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                                    boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'
-                                }}
+                                className="btn-premium"
                             >
                                 Guardar Asistencia
                             </Button>
                         </Group>
-                    </>
+                    </Stack>
                 ) : (
-                    <Alert icon={<IconAlertCircle size={16} />} title="Sin Servicios" color="orange" radius="lg" variant="light">
-                        <Text fw={700} size="sm">No se encontraron días de servicio configurados para este departamento en el mes actual o pasado.</Text>
-                        <Text size="xs" mt={4} fw={600}>Por favor, asegúrate de que el rol haya sido planificado.</Text>
-                    </Alert>
+                    <Paper p="xl" radius="xl" withBorder style={{ 
+                        backgroundColor: 'var(--mantine-color-gray-0)',
+                        borderStyle: 'dashed'
+                    }}>
+                        <Center py="dxl">
+                            <Stack align="center" gap="md">
+                                <ThemeIcon size={60} radius="xl" variant="light" color="gold">
+                                    <IconClipboardCheck size={30} />
+                                </ThemeIcon>
+                                <Stack gap={4} align="center">
+                                    <Text fw={800} size="lg">Panel de Control de Asistencia</Text>
+                                    <Text c="dimmed" maw={400} ta="center" size="sm" fw={500}>
+                                        Selecciona un departamento, fecha y servicio para comenzar.
+                                    </Text>
+                                </Stack>
+                            </Stack>
+                        </Center>
+                    </Paper>
                 )}
             </Stack>
         </Container>

@@ -40,16 +40,16 @@ export const theme = createTheme({
     primaryShade: 6,
     defaultRadius: 'md',
 
-    /** Tipografía Premium */
-    fontFamily: '"Plus Jakarta Sans", Inter, -apple-system, sans-serif',
+    /** Tipografía de Alta Fidelidad */
+    fontFamily: '"Inter", sans-serif',
     headings: {
-        fontFamily: '"Outfit", sans-serif',
-        fontWeight: '800',
+        fontFamily: '"Inter", sans-serif',
+        fontWeight: '700',
         sizes: {
-            h1: { fontSize: '2.5rem', lineHeight: '1.2', letterSpacing: '-0.025em' },
-            h2: { fontSize: '2rem', lineHeight: '1.3', letterSpacing: '-0.025em' },
-            h3: { fontSize: '1.5rem', lineHeight: '1.4', letterSpacing: '-0.015em' },
-            h4: { fontSize: '1.25rem', lineHeight: '1.45' },
+            h1: { fontSize: '2.5rem', lineHeight: '1.2', letterSpacing: '-0.022em' },
+            h2: { fontSize: '2.1rem', lineHeight: '1.25', letterSpacing: '-0.02em' },
+            h3: { fontSize: '1.6rem', lineHeight: '1.3', letterSpacing: '-0.015em' },
+            h4: { fontSize: '1.25rem', lineHeight: '1.4' },
         },
     },
 
@@ -160,8 +160,8 @@ export const theme = createTheme({
                     borderBottom: '1px solid var(--mantine-color-default-border)',
                 },
                 title: {
-                    fontFamily: 'Outfit, sans-serif',
-                    fontWeight: 800,
+                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: 700,
                     fontSize: '1.4rem',
                     color: 'var(--mantine-color-text)',
                 }

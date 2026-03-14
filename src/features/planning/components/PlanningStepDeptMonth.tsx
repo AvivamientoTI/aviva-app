@@ -1,6 +1,6 @@
-import { Select, Paper, Text, Grid, ThemeIcon, Stack, Group } from '@mantine/core';
+import { Select, Paper, Text, Grid, ThemeIcon, Stack, Group, Alert, Button } from '@mantine/core';
 import { MonthPicker } from '@mantine/dates';
-import { IconBuildingCommunity, IconCalendarEvent } from '@tabler/icons-react';
+import { IconBuildingCommunity, IconCalendarEvent, IconInfoCircle } from '@tabler/icons-react';
 
 interface Props {
     departments: { value: string; label: string }[];
@@ -8,6 +8,8 @@ interface Props {
     setSelectedDept: (value: string | null) => void;
     selectedMonth: Date | null;
     setSelectedMonth: (value: Date | null) => void;
+    headerState?: { id: number; estado: string | null } | null;
+    onLoadExisting?: () => void;
 }
 
 export const PlanningStepDeptMonth = ({
@@ -15,7 +17,9 @@ export const PlanningStepDeptMonth = ({
     selectedDept,
     setSelectedDept,
     selectedMonth,
-    setSelectedMonth
+    setSelectedMonth,
+    headerState,
+    onLoadExisting
 }: Props) => {
     return (
         <Grid gutter="xl">
@@ -26,8 +30,8 @@ export const PlanningStepDeptMonth = ({
                             <IconBuildingCommunity size={34} />
                         </ThemeIcon>
                         <div style={{ textAlign: 'center' }}>
-                            <Text size="lg" fw={800} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Departamento</Text>
-                            <Text size="sm" c="slate.5" fw={500}>¿Para qué equipo estás planificando?</Text>
+                            <Text size="lg" fw={800} style={{ fontFamily: 'Inter, sans-serif', color: 'var(--mantine-color-text)' }}>Departamento</Text>
+                            <Text size="sm" c="dimmed" fw={500}>¿Para qué equipo estás planificando?</Text>
                         </div>
                         <Select
                             placeholder="Selecciona un departamento"
@@ -51,8 +55,8 @@ export const PlanningStepDeptMonth = ({
                             <IconCalendarEvent size={34} />
                         </ThemeIcon>
                         <div style={{ textAlign: 'center' }}>
-                            <Text size="lg" fw={800} style={{ fontFamily: 'Outfit, sans-serif', color: '#0f172a' }}>Mes de Trabajo</Text>
-                            <Text size="sm" c="slate.5" fw={500}>Selecciona el mes y año a planificar</Text>
+                            <Text size="lg" fw={800} style={{ fontFamily: 'Inter, sans-serif', color: 'var(--mantine-color-text)' }}>Mes de Trabajo</Text>
+                            <Text size="sm" c="dimmed" fw={500}>Selecciona el mes y año a planificar</Text>
                         </div>
                         <Group justify="center">
                             <MonthPicker
@@ -62,6 +66,17 @@ export const PlanningStepDeptMonth = ({
                                 size="md"
                             />
                         </Group>
+
+                        {headerState && (
+                            <Alert mt="lg" icon={<IconInfoCircle size={16} />} title="¡Rol Encontrado!" color="blue" variant="light" style={{ width: '100%' }}>
+                                <Text size="sm" mb="sm">
+                                    El sistema detectó que ya existe un rol en estado <b>{headerState.estado}</b> para este mes y departamento.
+                                </Text>
+                                <Button variant="filled" color="blue" fullWidth onClick={onLoadExisting}>
+                                    Cargar Rol Existente
+                                </Button>
+                            </Alert>
+                        )}
                     </Stack>
                 </Paper>
             </Grid.Col>

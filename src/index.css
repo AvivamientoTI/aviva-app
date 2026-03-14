@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
 
 html {
   scroll-behavior: smooth;
@@ -10,11 +10,10 @@ html {
 }
 
 :root {
-  font-family: "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.6;
+  font-family: "Inter", "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
   font-weight: 400;
-
-  /* color-scheme: light; -- removed to allow dark mode */
+  letter-spacing: -0.011em;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -245,4 +244,158 @@ button:focus-visible {
 
 .wizard-step {
   animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ====== Glassmorphism & Mesh Gradients ====== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+[data-mantine-color-scheme="dark"] .glass-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mesh-gradient {
+  background-color: #f59e0b;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(38, 92%, 50%, 1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(32, 95%, 44%, 1) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(45, 93%, 47%, 1) 0, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(28, 91%, 54%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(35, 92%, 40%, 1) 0, transparent 50%);
+  background-size: 200% 200%;
+  animation: meshMove 15s ease infinite;
+}
+
+@keyframes meshMove {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* ====== Premium Global Refinements ====== */
+.text-premium {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #d97706 0%, #fcd34d 50%, #b45309 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+  display: inline-block;
+}
+
+[data-mantine-color-scheme="dark"] .text-premium {
+  background: linear-gradient(135deg, #fbbf24 0%, #fff7ed 50%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 10px rgba(251, 191, 36, 0.2));
+}
+
+.btn-premium {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+  color: white !important;
+  border: none !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2) !important;
+}
+
+.btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.4) !important;
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+}
+
+.btn-glass-subtle {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--mantine-color-orange-7) !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-mantine-color-scheme="dark"] .btn-glass-subtle {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--mantine-color-yellow-4) !important;
+}
+
+.btn-glass-subtle:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.card-stagger-1 { animation-delay: 0.1s; }
+.card-stagger-2 { animation-delay: 0.2s; }
+.card-stagger-3 { animation-delay: 0.3s; }
+.card-stagger-4 { animation-delay: 0.4s; }
+.card-stagger-5 { animation-delay: 0.5s; }
+
+/* ====== Shell & Identity Premium ====== */
+.shell-glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-mantine-color-scheme="dark"] .shell-glass {
+  background: rgba(13, 13, 13, 0.7) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.sidebar-glass {
+  background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-mantine-color-scheme="dark"] .sidebar-glass {
+  background: rgba(13, 13, 13, 0.4) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.nav-item-premium {
+  border-radius: 12px !important;
+  margin: 4px 0 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 600 !important;
+  padding: 10px 16px !important;
+}
+
+.nav-item-premium[data-active="true"] {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%) !important;
+  color: var(--mantine-color-orange-8) !important;
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.2) !important;
+}
+
+[data-mantine-color-scheme="dark"] .nav-item-premium[data-active="true"] {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.05) 100%) !important;
+  color: var(--mantine-color-yellow-4) !important;
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.2) !important;
+}
+
+.nav-item-premium:hover:not([data-active="true"]) {
+  background: rgba(0, 0, 0, 0.03) !important;
+  transform: translateX(4px);
+}
+
+[data-mantine-color-scheme="dark"] .nav-item-premium:hover:not([data-active="true"]) {
+  background: rgba(255, 255, 255, 0.03) !important;
 }
