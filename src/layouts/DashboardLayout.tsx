@@ -1,6 +1,6 @@
 import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme, ThemeIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel, IconTrendingUp } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
@@ -35,6 +35,9 @@ export function DashboardLayout() {
             { label: 'Planificación', path: '/planning', icon: <IconCalendarStats size={20} stroke={1.5} /> },
             { label: 'Departamentos', path: '/departments', icon: <IconBuildingCommunity size={20} stroke={1.5} /> },
             { label: 'Estadísticas', path: '/analytics', icon: <IconChartBar size={20} stroke={1.5} /> },
+        ] : []),
+        ...(isSystemAdmin ? [
+            { label: 'Analítica Global', path: '/admin/analytics', icon: <IconTrendingUp size={20} stroke={1.5} /> },
         ] : []),
         ...(isSystemAdmin || isLiderOrSubliderServidores ? [
             { label: 'Servidores', path: '/servers', icon: <IconUsers size={20} stroke={1.5} /> },

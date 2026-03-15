@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
     Container, 
     Title, 
@@ -11,20 +11,30 @@ import {
     Tabs, 
     Box, 
     Card,
-    Badge
+    Badge,
+    Progress,
+    Center
 } from '@mantine/core';
-import { AreaChart, BarChart } from '@mantine/charts';
+import { AreaChart, BarChart, DonutChart } from '@mantine/charts';
 import { 
     IconChartBar, 
     IconCalendarStats, 
     IconTrendingUp, 
     IconCalendar, 
     IconActivity,
-    IconArrowUpRight
+    IconArrowUpRight,
+    IconAlertTriangle,
+    IconUsers,
+    IconClock,
+    IconInfoCircle
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
+import { analyticsService } from '../../services/analyticsService';
+import { useQuery } from '@tanstack/react-query';
+import type { ChurnRiskUser } from '../../types';
 
-// Re-using the logic for activity heatmap if needed, or keeping it simple for now
+
+// Re-using the logic for activity heatmap
 const ActivityHeatmap = ({ data }: { data: { date: string, count: number }[] }) => {
     return (
         <Group gap={4} wrap="wrap">
@@ -44,53 +54,37 @@ const ActivityHeatmap = ({ data }: { data: { date: string, count: number }[] }) 
     );
 };
 
-export default function AnalyticsDashboard() {
+export default function AnalyticsDashboard({ deptId = 2 }: { deptId?: number }) {
     const [activeTab, setActiveTab] = useState<string | null>('weekly');
-    const [loading, setLoading] = useState(true);
-    // use it to avoid warning if not in JSX
-    if (false) console.log(loading); 
-    const [weeklyStats, setWeeklyStats] = useState<{ weekStart: string, present: number, absent: number, total: number }[]>([]);
-    const [monthlyStats, setMonthlyStats] = useState<{ department: string, attendanceRate: number }[]>([]);
-    const [annualStats, setAnnualStats] = useState<{ totalServices: number, uniqueDates: number, heatmapData: any[] } | null>(null);
+    
+    // Using React Query for data fetching
+    const { data: weeklyStatsData } = useQuery({
+        queryKey: ['analytics', 'weekly', deptId],
+        queryFn: () => analyticsService.fetchWeeklyStats(deptId)
+    });
 
-    useEffect(() => {
-        fetchAnalytics();
-    }, []);
+    const { data: annualStatsData } = useQuery({
+        queryKey: ['analytics', 'annual', deptId],
+        queryFn: () => analyticsService.fetchAnnualStats(deptId)
+    });
 
-    async function fetchAnalytics() {
-        setLoading(true);
-        try {
-            // Fetch mockup or real data from view/rpc
-            // For now using mockup data to ensure the UI looks premium as requested
-            setWeeklyStats([
-                { weekStart: 'Sem 1', present: 45, absent: 5, total: 50 },
-                { weekStart: 'Sem 2', present: 42, absent: 8, total: 50 },
-                { weekStart: 'Sem 3', present: 48, absent: 2, total: 50 },
-                { weekStart: 'Sem 4', present: 44, absent: 6, total: 50 },
-            ]);
+    const { data: churnRiskData } = useQuery({
+        queryKey: ['analytics', 'churn', deptId],
+        queryFn: () => analyticsService.fetchChurnRisk(deptId)
+    });
 
-            setMonthlyStats([
-                { department: 'Servidores AM', attendanceRate: 92 },
-                { department: 'Ujieres PM', attendanceRate: 88 },
-                { department: 'Seguridad', attendanceRate: 95 },
-                { department: 'Multimedia', attendanceRate: 84 },
-            ]);
+    const { data: demographicData } = useQuery({
+        queryKey: ['analytics', 'demographics', deptId],
+        queryFn: () => analyticsService.fetchDemographicDist(deptId)
+    });
 
-            setAnnualStats({
-                totalServices: 1240,
-                uniqueDates: 156,
-                heatmapData: Array.from({ length: 50 }, (_, i) => ({ 
-                    date: dayjs().subtract(i, 'day').format('YYYY-MM-DD'), 
-                    count: Math.floor(Math.random() * 5) 
-                }))
-            });
+    const { data: punctualityData } = useQuery({
+        queryKey: ['analytics', 'punctuality', deptId],
+        queryFn: () => analyticsService.fetchPunctualityTrends(deptId)
+    });
 
-        } catch (error) {
-            console.error('Error fetching analytics:', error);
-        } finally {
-            setLoading(false);
-        }
-    }
+    const weeklyStats = weeklyStatsData || [];
+    const annualStats = annualStatsData || null;
 
     const renderWeekly = () => (
         <Stack gap="xl" className="animate-fade-in">
@@ -181,14 +175,8 @@ export default function AnalyticsDashboard() {
         <Stack gap="xl" className="animate-fade-in">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
                 <Paper p="xl" radius="xl" withBorder className="glass-card">
-                    <Title order={4} mb="md">Rendimiento por Departamento</Title>
-                    <BarChart
-                        h={300}
-                        data={monthlyStats}
-                        dataKey="department"
-                        series={[{ name: 'attendanceRate', color: 'gold.6', label: 'Tasa %' }]}
-                        gridAxis="y"
-                    />
+                    <Title order={4} mb="md">Rendimiento Mensual</Title>
+                    <Text size="sm" c="dimmed">Datos mensuales agregados se están cargando...</Text>
                 </Paper>
                 
                 <Stack gap="md">
@@ -213,6 +201,113 @@ export default function AnalyticsDashboard() {
             </SimpleGrid>
         </Stack>
     );
+
+    const renderInsights = () => (
+        <Stack gap="xl" className="animate-fade-in">
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
+                <Paper p="xl" radius="xl" withBorder className="glass-card">
+                    <Group justify="space-between" mb="lg">
+                        <Stack gap={0}>
+                            <Title order={4}>Riesgo de Deserción (Churn)</Title>
+                            <Text size="xs" c="dimmed" fw={600}>Servidores con tendencia negativa en las últimas 4 semanas</Text>
+                        </Stack>
+                        <ThemeIcon color="orange" variant="light" radius="xl">
+                            <IconAlertTriangle size={20} />
+                        </ThemeIcon>
+                    </Group>
+                    
+                    {churnRiskData && churnRiskData.length > 0 ? (
+                        <Stack gap="md">
+                            {churnRiskData.map((u: ChurnRiskUser) => (
+                                <Box key={u.id}>
+
+                                    <Group justify="space-between" mb={4}>
+                                        <Text size="sm" fw={700}>{u.nombre} {u.apellido}</Text>
+                                        <Badge color={u.riskScore > 75 ? 'red' : 'orange'} variant="light">
+                                            Riesgo {u.riskScore}%
+                                        </Badge>
+                                    </Group>
+                                    <Progress value={u.riskScore} color={u.riskScore > 75 ? 'red' : 'orange'} size="sm" radius="xl" />
+                                    <Text size="10px" c="dimmed" mt={4}>
+                                        {u.faltas} faltas de {u.asistencias + u.faltas} servicios previstos recientemente
+                                    </Text>
+                                </Box>
+                            ))}
+                        </Stack>
+                    ) : (
+                        <Text size="sm" c="dimmed" ta="center" py="xl">No se detectan servidores en riesgo crítico actualmente. ✨</Text>
+                    )}
+                </Paper>
+
+                <Stack gap="md">
+                    <Paper p="xl" radius="xl" withBorder className="shell-glass">
+                        <Group gap="xs" mb="sm">
+                            <IconClock size={18} color="var(--mantine-color-gold-6)" />
+                            <Text fw={800} size="lg">Hábito de Puntualidad</Text>
+                        </Group>
+                        <Text size="sm" c="dimmed" mb="md">La mayoría del equipo llega entre **5-10 minutos** antes de iniciar el servicio.</Text>
+                        <BarChart
+                            h={120}
+                            data={punctualityData || []}
+                            dataKey="label"
+                            orientation="vertical"
+                            series={[{ name: 'count', color: 'teal.6', label: 'Personas' }]}
+                            withYAxis={false}
+                        />
+                    </Paper>
+                    <Paper p="xl" radius="xl" withBorder className="glass-card">
+                        <Group gap="xs" mb="sm">
+                            <IconInfoCircle size={18} color="var(--mantine-color-blue-6)" />
+                            <Text fw={800} size="lg">Recomendación Estratégica</Text>
+                        </Group>
+                        <Text size="sm" fw={600}>
+                            {churnRiskData && churnRiskData.length > 0 
+                                ? "Se recomienda un abordaje personal para los servidores en riesgo para entender su situación actual."
+                                : "El compromiso es alto. Es un buen momento para iniciar capacitaciones avanzadas o nuevas responsabilidades."}
+                        </Text>
+                    </Paper>
+                </Stack>
+            </SimpleGrid>
+        </Stack>
+    );
+
+    const renderDemographics = () => {
+        const demo = demographicData || { gender: { male: 0, female: 0 }, ageRanges: {} };
+        const ageData = Object.entries(demo.ageRanges).map(([name, value]) => ({ name, value }));
+        
+        return (
+            <Stack gap="xl" className="animate-fade-in">
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
+                    <Paper p="xl" radius="xl" withBorder className="glass-card">
+                        <Title order={4} mb="xl">Distribución por Género</Title>
+                        <Center h={200}>
+                            <DonutChart 
+                                data={[
+                                    { name: 'Hombres', value: demo.gender.male, color: 'blue.6' },
+                                    { name: 'Mujeres', value: demo.gender.female, color: 'pink.6' }
+                                ]}
+                                withLabelsLine
+                                withLabels
+                                size={180}
+                                thickness={25}
+                            />
+                        </Center>
+                    </Paper>
+
+                    <Paper p="xl" radius="xl" withBorder className="glass-card">
+                        <Title order={4} mb="xl">Rangos de Edad</Title>
+                        <BarChart
+                            h={250}
+                            data={ageData}
+                            dataKey="name"
+                            series={[{ name: 'value', color: 'indigo.6', label: 'Cantidad' }]}
+                            gridAxis="y"
+                        />
+                    </Paper>
+                </SimpleGrid>
+            </Stack>
+        );
+    };
 
     const renderAnnual = () => (
         <Stack gap="xl" className="animate-fade-in">
@@ -285,6 +380,12 @@ export default function AnalyticsDashboard() {
                         <Tabs.Tab value="annual" leftSection={<IconCalendarStats size={18} />} styles={{ tab: { fontWeight: 700 } }}>
                             Anual
                         </Tabs.Tab>
+                        <Tabs.Tab value="demographics" leftSection={<IconUsers size={18} />} styles={{ tab: { fontWeight: 700 } }}>
+                            Demografía
+                        </Tabs.Tab>
+                        <Tabs.Tab value="insights" leftSection={<IconActivity size={18} />} styles={{ tab: { fontWeight: 700 } }}>
+                            Insights
+                        </Tabs.Tab>
                     </Tabs.List>
 
                     <Box mt="xl">
@@ -296,6 +397,12 @@ export default function AnalyticsDashboard() {
                         </Tabs.Panel>
                         <Tabs.Panel value="annual">
                             {renderAnnual()}
+                        </Tabs.Panel>
+                        <Tabs.Panel value="demographics">
+                            {renderDemographics()}
+                        </Tabs.Panel>
+                        <Tabs.Panel value="insights">
+                            {renderInsights()}
                         </Tabs.Panel>
                     </Box>
                 </Tabs>

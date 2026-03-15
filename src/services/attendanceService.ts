@@ -14,7 +14,7 @@ export interface AttendanceRecordWithDetails extends AttendanceRecord {
     posicion: {
         nombre: string;
     } | null;
-    hora_registro?: string | null;
+    hora_registro: string | null;
 }
 
 export interface DepartmentMember {
@@ -134,7 +134,8 @@ export const attendanceService = {
                 usuario_id: r.usuario_id,
                 configuracion_dia_id: r.configuracion_dia_id,
                 estado: r.estado,
-                justificacion: r.justificacion
+                justificacion: r.justificacion,
+                hora_registro: r.hora_registro
             })), { onConflict: 'configuracion_dia_id, usuario_id' });
 
         if (error) throw error;
@@ -223,6 +224,7 @@ export const attendanceService = {
                 usuario_id: user.usuario_id,
                 estado: existing?.estado || ATTENDANCE_STATES.ASISTIO,
                 justificacion: existing?.justificacion || null,
+                hora_registro: existing?.hora_registro || null,
                 registrado_por: existing?.registrado_por || null,
                 created_at: existing?.created_at || null,
                 updated_at: existing?.updated_at || null,

@@ -62,6 +62,7 @@ export type Database = {
           configuracion_dia_id: number
           created_at: string | null
           estado: string
+          hora_registro: string | null
           id: string
           justificacion: string | null
           registrado_por: number | null
@@ -72,6 +73,7 @@ export type Database = {
           configuracion_dia_id: number
           created_at?: string | null
           estado: string
+          hora_registro?: string | null
           id?: string
           justificacion?: string | null
           registrado_por?: number | null
@@ -82,6 +84,7 @@ export type Database = {
           configuracion_dia_id?: number
           created_at?: string | null
           estado?: string
+          hora_registro?: string | null
           id?: string
           justificacion?: string | null
           registrado_por?: number | null

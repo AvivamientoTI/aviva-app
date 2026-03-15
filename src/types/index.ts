@@ -76,3 +76,30 @@ export interface StatsData {
     byMonth: Record<string, MonthlyStat>;
 }
 
+export interface ChurnRiskUser {
+    id: number;
+    nombre: string;
+    apellido: string;
+    asistencias: number;
+    faltas: number;
+    riskScore: number; // 0-100
+}
+
+export interface GlobalDeptHealth {
+    id: number;
+    nombre: string;
+    totalServers: number;
+    attendanceRate: number;
+    color: string;
+}
+
+export interface DemographicData {
+    gender: { male: number; female: number };
+    ageRanges: Record<string, number>;
+}
+
+export interface PunctualityStat {
+    label: string;
+    count: number;
+}
+

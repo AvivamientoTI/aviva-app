@@ -22,6 +22,8 @@ const PlanningWizard = lazy(() => import('./features/planning/PlanningWizard'));
 const UsersList = lazy(() => import('./features/users/UsersList'));
 const SuspensionManager = lazy(() => import('./features/users/SuspensionManager'));
 const AnalyticsDashboard = lazy(() => import('./features/analytics/AnalyticsDashboard'));
+const AdminAnalytics = lazy(() => import('./features/analytics/AdminAnalytics'));
+
 
 function AppContent() {
     const location = useLocation();
@@ -83,6 +85,8 @@ function AppContent() {
                     <Route path="servers" element={perms.isSystemAdmin || isLiderOrSubliderServidores ? <UsersList /> : <RestrictedAccess />} />
                     <Route path="suspensions" element={perms.isSystemAdmin || isLiderOrSubliderServidores ? <SuspensionManager /> : <RestrictedAccess />} />
                     <Route path="analytics" element={perms.isSystemAdmin || isLiderOrSublider ? <AnalyticsDashboard /> : <RestrictedAccess />} />
+                    <Route path="admin/analytics" element={perms.isSystemAdmin ? <AdminAnalytics /> : <RestrictedAccess />} />
+
                     <Route path="*" element={<Navigate to="/" />} />
                 </Route>
             </Routes>
