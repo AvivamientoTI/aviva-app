@@ -24,8 +24,22 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        // También puedes registrar el error en un servicio de reporte de errores
         console.error("Uncaught error:", error, errorInfo);
+        
+        // Auto-fix para White Screen / Chunk Error en Vercel
+        const isChunkError = error.name === 'ChunkLoadError' || 
+                             error.message.includes('fetch') || 
+                             error.message.includes('dynamically imported module');
+                             
+        if (isChunkError) {
+            const hasReloaded = sessionStorage.getItem('chunk_reload');
+            if (!hasReloaded) {
+                sessionStorage.setItem('chunk_reload', 'true');
+                window.location.reload();
+                return;
+            }
+        }
+        
         this.setState({ errorInfo });
     }
 

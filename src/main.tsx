@@ -28,11 +28,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </React.StrictMode>,
 );
 
-// Register Service Worker for PWA
+// Desregistrar Service Worker problemático (resuelve el problema de pantalla blanca)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(err => {
-            console.error('Service Worker registration failed:', err);
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (const registration of registrations) {
+                registration.unregister();
+                console.log('Service Worker unregistered successfully');
+            }
         });
     });
 }
