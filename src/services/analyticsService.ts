@@ -186,44 +186,24 @@ export const analyticsService = {
    * Obtiene estadísticas semanales (últimas 12 semanas) para gráficos de tendencia
    */
   async fetchWeeklyStats(deptId: number): Promise<any[]> {
-    const startDate = dayjs().subtract(12, 'weeks').startOf('week').format('YYYY-MM-DD');
+    const { data: trendData, error } = await supabase
+      .rpc('get_weekly_attendance_trend', { p_dept_id: deptId, p_weeks: 12 });
 
-    // 1. Obtener todas las asistencias en el rango
-    const { data } = await supabase
-      .from('asistencias')
-      .select(`
-            estado,
-            configuracion_dia!inner (
-                fecha,
-                roles_cabecera!inner ( departamento_id )
-            )
-        `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startDate)
-      .order('configuracion_dia(fecha)', { ascending: true });
+    if (error) throw error;
+    if (!trendData) return [];
 
-    if (!data) return [];
-
-    // 2. Agrupar por semana
-    const weeklyData: Record<string, { weekStart: string, present: number, absent: number, total: number }> = {};
-
-    (data as unknown as AttendanceWithRelations[]).forEach((r) => {
-      const date = dayjs(r.configuracion_dia.fecha);
-      const weekLabel = `Semana ${date.week()} (${date.format('DD/MM')})`;
-
-      if (!weeklyData[weekLabel]) {
-        weeklyData[weekLabel] = { weekStart: weekLabel, present: 0, absent: 0, total: 0 };
-      }
-
-      weeklyData[weekLabel].total++;
-      if (r.estado === 'Asistió') weeklyData[weekLabel].present++;
-      else weeklyData[weekLabel].absent++;
+    return trendData.map((w: any) => {
+      const present = Number(w.present);
+      const total = Number(w.total);
+      const date = dayjs(w.week_start_date);
+      return {
+        weekStart: `Semana ${date.week()} (${date.format('DD/MM')})`,
+        present,
+        absent: Number(w.absent),
+        total,
+        rate: total > 0 ? Math.round((present / total) * 100) : 0
+      };
     });
-
-    return Object.values(weeklyData).map(w => ({
-      ...w,
-      rate: w.total > 0 ? Math.round((w.present / w.total) * 100) : 0
-    }));
   },
   /**
    * Obtiene estadísticas anuales para el heatmap
@@ -231,34 +211,29 @@ export const analyticsService = {
   async fetchAnnualStats(deptId: number): Promise<any> {
     const startOfYear = dayjs().startOf('year').format('YYYY-MM-DD');
 
-    const { data: attendance } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        configuracion_dia!inner(fecha, roles_cabecera!inner(departamento_id))
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startOfYear);
+    const { data: heatmapData, error } = await supabase
+      .rpc('get_annual_attendance_heatmap', { 
+        p_dept_id: deptId, 
+        p_start_date: startOfYear 
+      });
 
-    const heatmap: Record<string, number> = {};
+    if (error) throw error;
+
     let totalServices = 0;
-
-    attendance?.forEach((r: any) => {
-      const date = r.configuracion_dia.fecha;
-      if (!heatmap[date]) heatmap[date] = 0;
-      if (r.estado === 'Asistió') {
-        heatmap[date]++;
-        totalServices++;
-      }
+    const formattedHeatmap = (heatmapData || []).map((r: any) => {
+      const count = Number(r.asistencias);
+      totalServices += count;
+      return {
+        date: r.fecha,
+        count
+      };
     });
-
-    const heatmapData = Object.entries(heatmap).map(([date, count]) => ({ date, count }));
 
     return {
       year: dayjs().year(),
       totalServices,
-      uniqueDates: Object.keys(heatmap).length,
-      heatmapData
+      uniqueDates: heatmapData?.length || 0,
+      heatmapData: formattedHeatmap
     };
   },
 
@@ -266,44 +241,29 @@ export const analyticsService = {
    * Detecta servidores con riesgo de baja (consecutivas faltas en las últimas semanas)
    */
   async fetchChurnRisk(deptId: number): Promise<ChurnRiskUser[]> {
-    const fourWeeksAgo = dayjs().subtract(4, 'weeks').format('YYYY-MM-DD');
-
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        usuario_id,
-        estado,
-        usuario:usuarios(id, nombre, apellido),
-        configuracion_dia!inner(fecha, roles_cabecera!inner(departamento_id))
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', fourWeeksAgo);
+    const { data: riskData, error } = await supabase
+      .rpc('get_churn_risk', { p_dept_id: deptId, p_weeks: 4 });
 
     if (error) throw error;
+    if (!riskData) return [];
 
-    const userStats: Record<number, { nombre: string, apellido: string, asistencias: number, faltas: number }> = {};
-    
-    (data as any[]).forEach(r => {
-      const uid = r.usuario.id;
-      if (!userStats[uid]) {
-        userStats[uid] = { nombre: r.usuario.nombre, apellido: r.usuario.apellido, asistencias: 0, faltas: 0 };
-      }
-      if (r.estado === 'Asistió') userStats[uid].asistencias++;
-      else userStats[uid].faltas++;
-    });
-
-    return Object.entries(userStats)
-      .map(([id, stats]) => {
-        const total = stats.asistencias + stats.faltas;
-        const riskScore = total > 0 ? (stats.faltas / total) * 100 : 0;
-        return {
-          id: Number(id),
-          ...stats,
-          riskScore: Math.round(riskScore)
-        };
-      })
-      .filter(u => u.riskScore >= 50 && (u.asistencias + u.faltas) >= 2)
-      .sort((a, b) => b.riskScore - a.riskScore);
+    return riskData.map((u: any) => {
+      const asistencias = Number(u.asistencias);
+      const faltas = Number(u.faltas);
+      const total = asistencias + faltas;
+      const riskScore = total > 0 ? (faltas / total) * 100 : 0;
+      
+      return {
+        id: Number(u.id),
+        nombre: u.nombre,
+        apellido: u.apellido,
+        asistencias,
+        faltas,
+        riskScore: Math.round(riskScore)
+      };
+    })
+    .filter((u: any) => u.riskScore >= 50 && (u.asistencias + u.faltas) >= 2)
+    .sort((a: any, b: any) => b.riskScore - a.riskScore);
   },
 
   /**
@@ -313,35 +273,28 @@ export const analyticsService = {
     const last3Months = dayjs().subtract(3, 'months').format('YYYY-MM-DD');
 
     const { data: depts } = await supabase.from('departamentos').select('id, nombre, color_hex');
-    const { data: attendance } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        configuracion_dia!inner(roles_cabecera!inner(departamento_id))
-      `)
-      .gte('configuracion_dia.fecha', last3Months);
+    const { data: statsMap, error } = await supabase
+        .rpc('get_global_attendance_health', { p_start_date: last3Months });
 
     if (!depts) return [];
+    if (error) throw error;
 
-    const statsMap: Record<number, { total: number, present: number, activeServers: Set<number> }> = {};
-    attendance?.forEach((r: any) => {
-      const dId = r.configuracion_dia.roles_cabecera.departamento_id;
-      const uId = r.usuario_id;
-      if (!statsMap[dId]) statsMap[dId] = { total: 0, present: 0, activeServers: new Set() };
-      statsMap[dId].total++;
-      if (r.estado === 'Asistió') statsMap[dId].present++;
-      if (uId) statsMap[dId].activeServers.add(uId);
-    });
+    const statsByDept = new Map((statsMap as any[])?.map(s => [s.departamento_id, s]));
 
-    return depts.map(d => ({
-      id: d.id,
-      nombre: d.nombre,
-      totalServers: statsMap[d.id]?.activeServers.size || 0,
-      attendanceRate: statsMap[d.id]?.total > 0 
-        ? Math.round((statsMap[d.id].present / statsMap[d.id].total) * 100) 
-        : 0,
-      color: d.color_hex || '#3b82f6'
-    })).sort((a, b) => b.attendanceRate - a.attendanceRate);
+    return depts.map(d => {
+      const stats = statsByDept.get(d.id) || { total: 0, present: 0, active_servers: 0 };
+      const total = Number(stats.total) || 0;
+      const present = Number(stats.present) || 0;
+      return {
+        id: d.id,
+        nombre: d.nombre,
+        totalServers: Number(stats.active_servers) || 0,
+        attendanceRate: total > 0 
+          ? Math.round((present / total) * 100) 
+          : 0,
+        color: d.color_hex || '#3b82f6'
+      };
+    }).sort((a, b) => b.attendanceRate - a.attendanceRate);
   },
 
   /**

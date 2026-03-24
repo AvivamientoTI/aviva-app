@@ -251,46 +251,16 @@ export const conversationalService = {
     },
 
     async getSpecificUserStats(nameFragment: string, deptId: number): Promise<AiResponse | null> {
-        // Simple fuzzy search in Supabase using ilike
-        // This is safe because we are searching a name, not executing logic code
-        const { data: users } = await supabase
-            .from('membresias')
-            .select(`
-                usuario:usuarios(id, nombre, apellido)
-            `)
-            .eq('departamento_id', deptId);
+        // Use the new postgres RPC with pg_trgm for fuzzy searching
+        const { data: users, error } = await supabase
+            .rpc('search_users_fuzzy', {
+                p_dept_id: deptId,
+                p_search_query: nameFragment
+            });
 
-        if (!users) return null;
-
-        // Find best match locally to avoid complex DB fuzzy search
-        let bestMatch: { id: any; nombre: any; apellido: any; } | null = null;
-        let minScore = 3;
-
-        for (const m of users) {
-            const user = m.usuario as any; // Cast potential array/object to any to access props safely
-            if (!user) continue;
-
-            // Handle case where it might be array vs object
-            const u = Array.isArray(user) ? user[0] : user;
-            if (!u) continue;
-
-            const fullName = `${u.nombre} ${u.apellido}`.toLowerCase();
-            const search = nameFragment.toLowerCase();
-
-            if (fullName.includes(search)) {
-                bestMatch = u;
-                break; // Direct match
-            }
-
-            // Fuzzy Attempt
-            const dist = levenshtein(fullName, search);
-            if (dist < minScore && dist < search.length * 0.4) {
-                minScore = dist;
-                bestMatch = u;
-            }
-        }
-
-        if (!bestMatch) return null;
+        if (error || !users || users.length === 0) return null;
+        
+        const bestMatch = users[0];
 
         // Get stats for this user
         // Total stats query

@@ -35,23 +35,15 @@ Deno.serve(async (_req: Request) => {
 
         console.log(`Checking birthdays for: ${currentMonth}-${currentDay} (UTC)`);
 
-        // 2. Fetch all users
-        const { data: users, error: usersError } = await supabase
-            .from("usuarios")
-            .select("id, nombre, apellido, fecha_nacimiento, genero")
+        // 2. Fetch all users from DB directly filtering by today's date using RPC
+        const { data: birthdayPeople, error: usersError } = await supabase
+            .rpc("get_birthdays_today", {
+                p_month: currentMonth,
+                p_day: currentDay
+            })
             .returns<User[]>();
 
         if (usersError) throw usersError;
-
-        // Filter for today's birthday
-        const birthdayPeople = users.filter((user: User) => {
-            if (!user.fecha_nacimiento) return false;
-            const bdate = new Date(user.fecha_nacimiento);
-            return (
-                bdate.getUTCMonth() + 1 === currentMonth &&
-                bdate.getUTCDate() === currentDay
-            );
-        });
 
         if (birthdayPeople.length === 0) {
             console.log("No birthdays today.");

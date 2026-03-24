@@ -166,74 +166,29 @@ export const attendanceService = {
      * Obtiene la asistencia con detalles de usuario y posición
      */
     async fetchAttendanceWithDetails(configDiaId: number, deptId: number): Promise<AttendanceRecordWithDetails[]> {
-        // 1. Obtener la asistencia ya registrada
-        const { data: existingAttendance, error: attendError } = await supabase
-            .from('asistencias')
-            .select('*')
-            .eq('configuracion_dia_id', configDiaId);
-
-        if (attendError) throw attendError;
-        const attendanceMap = new Map(existingAttendance?.map(a => [a.usuario_id, a]));
-
-        // 2. Obtener las asignaciones para este día (para saber las posiciones)
-        const { data: assignments, error: assignError } = await supabase
-            .from('asignaciones')
-            .select(`
-                usuario_id,
-                posicion_id,
-                usuario:usuarios (nombre, apellido),
-                posicion:posiciones_departamento (nombre)
-            `)
-            .eq('configuracion_dia_id', configDiaId);
-
-        if (assignError) throw assignError;
-        const assignmentsMap = new Map((assignments || []).map(a => [a.usuario_id, a]));
-
-        let baseUsers: { usuario_id: number; nombre: string; apellido: string; posicion_nombre: string | null }[] = [];
-
-        if (deptId === 2) {
-            // Requerimiento especial: Servidores (Todos los miembros)
-            const members = await this.fetchDeptMembers(2);
-            baseUsers = members.map(m => ({
-                usuario_id: m.id,
-                nombre: m.nombre,
-                apellido: m.apellido,
-                posicion_nombre: (assignmentsMap.get(m.id) as any)?.posicion?.nombre || null
-            }));
-        } else {
-            // Comportamiento estándar: Solo asignados
-            baseUsers = (assignments || []).map(a => {
-                const user = Array.isArray(a.usuario) ? a.usuario[0] : a.usuario;
-                const pos = Array.isArray(a.posicion) ? a.posicion[0] : a.posicion;
-                return {
-                    usuario_id: a.usuario_id || 0,
-                    nombre: user?.nombre || 'Desconocido',
-                    apellido: user?.apellido || '',
-                    posicion_nombre: pos?.nombre || null
-                };
+        const { data, error } = await supabase
+            .rpc('get_attendance_detailed', {
+                p_config_dia_id: configDiaId,
+                p_dept_id: deptId
             });
-        }
 
-        // 3. Combinar todo
-        return baseUsers.map(user => {
-            const existing = attendanceMap.get(user.usuario_id);
-            
-            return {
-                id: existing?.id || `temp-${user.usuario_id}`,
-                configuracion_dia_id: configDiaId,
-                usuario_id: user.usuario_id,
-                estado: existing?.estado || ATTENDANCE_STATES.ASISTIO,
-                justificacion: existing?.justificacion || null,
-                hora_registro: existing?.hora_registro || null,
-                registrado_por: existing?.registrado_por || null,
-                created_at: existing?.created_at || null,
-                updated_at: existing?.updated_at || null,
-                usuario: {
-                    nombre: user.nombre,
-                    apellido: user.apellido
-                },
-                posicion: user.posicion_nombre ? { nombre: user.posicion_nombre } : null
-            } as AttendanceRecordWithDetails;
-        });
+        if (error) throw error;
+
+        return (data || []).map((r: any) => ({
+            id: r.asistencia_id || `temp-${r.usuario_id}`,
+            configuracion_dia_id: configDiaId,
+            usuario_id: r.usuario_id,
+            estado: r.estado || ATTENDANCE_STATES.ASISTIO,
+            justificacion: r.justificacion || null,
+            hora_registro: r.hora_registro || null,
+            registrado_por: r.registrado_por || null,
+            created_at: null,
+            updated_at: null,
+            usuario: {
+                nombre: r.nombre,
+                apellido: r.apellido
+            },
+            posicion: r.posicion_nombre ? { nombre: r.posicion_nombre } : null
+        })) as AttendanceRecordWithDetails[];
     }
 };

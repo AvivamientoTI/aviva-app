@@ -97,8 +97,8 @@ function AppContent() {
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 1000 * 30, // Default 30s freshness
-            gcTime: 1000 * 60 * 5, // Keep in cache 5m
+            staleTime: 1000 * 60 * 5, // Default 5m freshness
+            gcTime: 1000 * 60 * 60, // Keep in cache 1 hour
             refetchOnWindowFocus: true,
             retry: 1
         }
