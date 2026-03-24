@@ -68,89 +68,8 @@ Deno.serve(async (_req: Request) => {
 
         console.log(`Found birthdays: ${birthdayNames}`);
 
-        // 4. Fetch Leader of "Servidores" department SPECIFICALLY
-        // Step A: Find the department ID for "Servidores"
-        const { data: deptData, error: deptError } = await supabase
-            .from("departamentos")
-            .select("id")
-            .ilike("nombre", "%Servidores%")
-            // Also allowing 'Ujieres' if Servidores is different, but user said "Servidores".
-            // We will stick to Servidores.
-            .limit(1);
-
-        if (deptError) {
-            console.error("Error fetching department:", deptError);
-            throw deptError;
-        }
-
-        const servidoresDeptId = deptData && deptData.length > 0 ? deptData[0].id : null;
-
-        if (!servidoresDeptId) {
-            console.error("Department 'Servidores' not found (searching ilike '%Servidores%')");
-            return new Response(JSON.stringify({ error: "Department 'Servidores' not found" }), {
-                status: 404,
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        // Step B: Fetch membership for that specific department with role 'Lider'
-        const { data: leadersData, error: leadersError } = await supabase
-            .from("membresias")
-            .select("usuario_id")
-            .eq("departamento_id", servidoresDeptId)
-            .eq("rol_jerarquico", "Líder");
-
-        if (leadersError) throw leadersError;
-
-        // Get unique leader IDs (These are Integers from 'usuarios' table)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const memberIds = [...new Set(leadersData.map((l: any) => l.usuario_id))];
-
-        if (memberIds.length === 0) {
-            console.log(`No 'Lider' found for Department ID ${servidoresDeptId} (Servidores).`);
-            return new Response(JSON.stringify({ message: "No leader found for Servidores" }), {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        // Fetch Auth UUIDs from user_profiles table
-        const { data: profilesData, error: profilesError } = await supabase
-            .from("user_profiles")
-            .select("id")
-            .in("usuario_id", memberIds);
-
-        if (profilesError) {
-            console.error("Error fetching user profiles:", profilesError);
-            throw profilesError;
-        }
-
-        const authIds = profilesData.map((p: any) => p.id);
-
-        if (authIds.length === 0) {
-            console.log("No linked user_profiles found for these leaders.");
-            return new Response(JSON.stringify({ message: "No linked user profiles found" }), {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        // Fetch emails using Admin Auth API
-        const emails: string[] = [];
-        for (const uid of authIds) {
-            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(uid);
-            if (!userError && userData.user && userData.user.email) {
-                emails.push(userData.user.email);
-            }
-        }
-
-        if (emails.length === 0) {
-            console.log("No leader emails found.");
-            return new Response(JSON.stringify({ message: "No leader emails found" }), {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-            });
-        }
+        // Force recipient to the specified email instead of querying app users
+        const emails: string[] = ["holiberhall@gmail.com"];
 
         // 5. Send Email
         // Construct HTML
@@ -158,7 +77,7 @@ Deno.serve(async (_req: Request) => {
             .map((u: User) => `<li><b>${u.nombre} ${u.apellido}</b> (${u.fecha_nacimiento})</li>`)
             .join("");
 
-        console.log(`Sending email to ${emails.length} leaders: ${emails.join(", ")}`);
+        console.log(`Sending email to ${emails.length} receivers: ${emails.join(", ")}`);
 
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
