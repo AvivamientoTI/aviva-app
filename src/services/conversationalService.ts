@@ -73,19 +73,26 @@ const parseDateContext = (query: string): string => {
 
 export const conversationalService = {
     async processQuery(query: string, departmentId: number): Promise<AiResponse> {
-        const intents = {
-            attendance_summary: ['asistencia', 'resumen', 'comportamiento', 'rendimiento'],
-            top_servers: ['top', 'mejor', 'ranking', 'mas sirven', 'destacados'],
-            absentees: ['falta', 'ausencia', 'faltaron', 'inasistencia', 'fallando'],
-            upcoming_events: ['proximo', 'evento', 'agenda', 'futuro', 'servicio'],
-            specific_user: ['como va', 'informe de', 'datos de', 'status de', 'perfil de'],
-            discipline_alerts: ['alerta', 'disciplina', 'faltan mucho', 'amonestar', 'problema']
-        };
+        // Enviar query a la Edge Function
+        const { data, error } = await supabase.functions.invoke('chat-ai', {
+            body: { query }
+        });
 
-        const intent = findBestIntent(query, intents);
-        const startDate = parseDateContext(query);
+        if (error || !data || !data.data) {
+            console.error("Error AI Edge:", error);
+            // Fallback si no hay API_KEY o falla el Edge Function
+            return {
+                type: 'text',
+                message: 'El Servidor de Inteligencia Artificial (LLM) no respondió correctamente. Asegúrate de tener configurada la llave secreta OPENAI_API_KEY en Supabase o haber redesplegado la función "chat-ai".'
+            };
+        }
 
-        console.log(`🧠 AI Intent: ${intent} | DateContext: ${startDate}`);
+        const aiResponse = data.data;
+        const intent = aiResponse.intent;
+        const startDate = aiResponse.startDate || parseDateContext(query);
+        const nameFragment = aiResponse.nameFragment;
+
+        console.log(`🧠 AI Intent: ${intent} | DateContext: ${startDate} | Name: ${nameFragment}`);
 
         if (intent === 'attendance_summary') return await this.getAttendanceSummary(departmentId, startDate);
         if (intent === 'top_servers') return await this.getTopServers(departmentId, startDate);
@@ -93,19 +100,9 @@ export const conversationalService = {
         if (intent === 'upcoming_events') return await this.getUpcomingEvents(departmentId);
         if (intent === 'discipline_alerts') return await this.getDisciplineAlerts(departmentId);
 
-        // Special Handling for Specific User Query
-        // Try to extract a name if the intent matches OR if we see capitalized words that look like names
-        if (intent === 'specific_user' || !intent) {
-            // Naive NER (Named Entity Recognition): Look for capitalized words not at start of sentence?
-            // Or just check if any remaining words match a user in DB.
-            const potentialName = query.split(' ')
-                .filter(w => w.length > 3 && !['como', 'resumen', 'dame', 'lista', 'para'].includes(w.toLowerCase()))
-                .join(' ');
-
-            if (potentialName.length > 2) {
-                const userResponse = await this.getSpecificUserStats(potentialName, departmentId);
-                if (userResponse) return userResponse;
-            }
+        if (intent === 'specific_user' && nameFragment) {
+            const userResponse = await this.getSpecificUserStats(nameFragment, departmentId);
+            if (userResponse) return userResponse;
         }
 
         return {
