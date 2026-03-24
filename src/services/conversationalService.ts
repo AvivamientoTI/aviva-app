@@ -13,50 +13,6 @@ export interface AiResponse {
     chartData?: { name: string; value: number; color: string }[];
 }
 
-// Simple Levenshtein implementation for local fuzzy matching
-const levenshtein = (a: string, b: string): number => {
-    const matrix = [];
-    for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
-    for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
-    for (let i = 1; i <= b.length; i++) {
-        for (let j = 1; j <= a.length; j++) {
-            if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                matrix[i][j] = matrix[i - 1][j - 1];
-            } else {
-                matrix[i][j] = Math.min(
-                    matrix[i - 1][j - 1] + 1,
-                    matrix[i][j - 1] + 1,
-                    matrix[i - 1][j] + 1
-                );
-            }
-        }
-    }
-    return matrix[b.length][a.length];
-};
-
-const findBestIntent = (query: string, intents: Record<string, string[]>): string | null => {
-    const words = query.toLowerCase().split(' ');
-    let bestIntent = null;
-    let minDist = 3; // Tolerance threshold
-
-    for (const [intent, keywords] of Object.entries(intents)) {
-        for (const keyword of keywords) {
-            // Check direct inclusion first (fast path)
-            if (query.toLowerCase().includes(keyword)) return intent;
-
-            // Check fuzzy
-            for (const word of words) {
-                if (word.length < 4) continue; // Skip short words
-                const dist = levenshtein(word, keyword);
-                if (dist < minDist && dist <= keyword.length / 2) { // Ensure relative closeness
-                    bestIntent = intent;
-                    minDist = dist;
-                }
-            }
-        }
-    }
-    return bestIntent;
-};
 
 const parseDateContext = (query: string): string => {
     const q = query.toLowerCase();
