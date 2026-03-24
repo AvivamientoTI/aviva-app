@@ -69,8 +69,18 @@ Deno.serve(async (req: Request) => {
 
         console.log(`Found birthdays: ${birthdayNames}`);
 
-        // Force recipient to the specified email instead of querying app users
-        const emails: string[] = ["holiberhall@gmail.com"];
+        // 4. Fetch recipients from the database (Strictly for Holiber Hall)
+        const { data: user, error: userError } = await supabase
+            .from('usuarios')
+            .select('email_personal')
+            .eq('username', 'holiber.hall')
+            .single();
+
+        if (userError) {
+            console.warn("Could not fetch Holiber Hall's email from DB, using fallback:", userError.message);
+        }
+
+        const emails: string[] = [user?.email_personal || "holiberhall@gmail.com"];
 
         // 5. Send Email
         // Construct HTML
