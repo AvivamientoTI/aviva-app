@@ -17,8 +17,17 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-Deno.serve(async (_req: Request) => {
+Deno.serve(async (req: Request) => {
     try {
+        const authHeader = req.headers.get("Authorization");
+        if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+            console.error("No valid Authorization header provided.");
+            return new Response(JSON.stringify({ error: "Unauthorized access" }), {
+                status: 401,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
         if (!GMAIL_APP_PASSWORD) {
             console.error("Missing GMAIL_APP_PASSWORD");
             return new Response(JSON.stringify({ error: "Configuration Error: Missing GMAIL_APP_PASSWORD" }), {
