@@ -194,7 +194,7 @@ export const PlanningStepServiceDates = ({
                                                                 <Autocomplete
                                                                     label="Tipo de Servicio"
                                                                     placeholder="Selecciona o escribe"
-                                                                    data={['Culto General', 'Escuela Sabática', 'Culto Joven', 'Culto Matutino', 'Culto Vespertino']}
+                                                                    data={['Culto General', 'Culto de Mujeres', 'Culto de Varones', 'Culto de Jovenes', 'Culto de Niños', 'Culto de Matrimonios', 'Culto Empresarial',]}
                                                                     value={config.type}
                                                                     onChange={(value) => updateServiceConfig(dateStr, idx, 'type', value)}
                                                                     size="sm"
