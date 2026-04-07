@@ -173,13 +173,13 @@ export default function ScheduleView() {
     };
 
     return (
-        <Container size="xl" py="xl">
+        <Container size="xl" py={{ base: 'md', sm: 'xl' }} px={{ base: 'xs', sm: 'md' }}>
             <Stack gap="xl">
                 <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
-                    <Stack gap={0}>
+                    <Stack gap={0} style={{ flex: '1 1 auto', minWidth: '280px' }}>
                         <Title order={1} style={{
                             fontFamily: 'Inter, sans-serif',
-                            fontSize: '2.4rem',
+                            fontSize: 'clamp(1.8rem, 5vw, 2.4rem)',
                             letterSpacing: '-0.02em'
                         }}>
                             Calendario de Servicios 📅
@@ -188,11 +188,11 @@ export default function ScheduleView() {
                     </Stack>
 
                     <Paper p="md" radius="lg" withBorder className="shell-glass" style={{
-                        flex: 1, minWidth: 320, maxWidth: 500,
+                        flex: '1 1 auto', minWidth: '280px', maxWidth: 500,
                         backgroundColor: 'var(--mantine-glass-bg, rgba(255, 255, 255, 0.7))',
                         backdropFilter: 'blur(10px)',
                     }}>
-                        <Group gap="md">
+                        <Group gap="md" wrap="nowrap">
                             <Select
                                 leftSection={<IconBuildingCommunity size={18} color="var(--mantine-color-gold-6)" />}
                                 placeholder="Departamento"

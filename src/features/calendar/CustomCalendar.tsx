@@ -45,25 +45,28 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
     return (
         <Box>
             {/* Header con navegación */}
-            <Group justify="space-between" mb="lg" align="center">
-                <Title order={3}>
+            <Group justify="space-between" mb="lg" align="center" wrap="wrap" gap="md">
+                <Title order={3} style={{ flex: '1 1 auto', minWidth: '200px' }}>
                     {dayjs(currentDate).format('MMMM [de] YYYY')}
                 </Title>
-                <Group>
+                <Group gap="xs" style={{ flex: '1 1 auto', justifyContent: 'flex-end' }}>
                     <Button
                         variant="default"
+                        size="xs"
                         onClick={() => onDateChange(dayjs(currentDate).subtract(1, 'month').toDate())}
                     >
                         Anterior
                     </Button>
                     <Button
                         variant="default"
+                        size="xs"
                         onClick={() => onDateChange(new Date())}
                     >
                         Hoy
                     </Button>
                     <Button
                         variant="default"
+                        size="xs"
                         onClick={() => onDateChange(dayjs(currentDate).add(1, 'month').toDate())}
                     >
                         Siguiente
@@ -84,7 +87,7 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
             ) : (
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                     gap: '16px',
                     width: '100%'
                 }}>

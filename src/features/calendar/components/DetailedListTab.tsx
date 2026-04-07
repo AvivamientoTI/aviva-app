@@ -43,15 +43,15 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
     }, [groupedAssignments, currentDate]);
 
     return (
-        <Box p="md" style={{ background: 'linear-gradient(90deg, #f8fafc 0%, #f1f3f5 100%)', borderRadius: 12 }}>
+        <Box p={{ base: 'xs', sm: 'md' }} style={{ background: 'linear-gradient(90deg, #f8fafc 0%, #f1f3f5 100%)', borderRadius: 12 }}>
             <Stack gap="md">
 
                 {/* Navigation Header */}
-                <Group justify="center" mb="lg">
+                <Group justify="center" mb="lg" gap="xs">
                     <ActionIcon variant="light" size="lg" radius="xl" onClick={handlePrevMonth} aria-label="Mes anterior">
                         <IconChevronLeft size={20} />
                     </ActionIcon>
-                    <Title order={3} tt="capitalize" w={220} ta="center" c="slate.8" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    <Title order={3} tt="capitalize" w={{ base: 160, sm: 220 }} ta="center" c="slate.8" style={{ fontFamily: 'Inter, sans-serif', fontSize: 'clamp(1rem, 4vw, 1.3rem)' }}>
                         {currentDate.locale('es').format('MMMM YYYY')}
                     </Title>
                     <ActionIcon variant="light" size="lg" radius="xl" onClick={handleNextMonth} aria-label="Siguiente mes">
@@ -78,73 +78,79 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                 ) : (
                     <Stack gap="lg">
                         {currentMonthAssignments.map(({ date, data: dayData }) => (
-                            <Paper key={date} p="xl" radius="lg" shadow="sm" withBorder style={{ background: '#fff', borderColor: '#e2e8f0' }}>
-                                <Group justify="space-between" mb="lg">
-                                    <Stack gap={4}>
+                            <Paper key={date} p={{ base: 'md', sm: 'xl' }} radius="lg" shadow="sm" withBorder style={{ background: '#fff', borderColor: '#e2e8f0' }}>
+                                <Group justify="space-between" mb="lg" align="flex-start" wrap="wrap">
+                                    <Stack gap={0}>
                                         <Text size="xs" fw={800} c="gold.6" tt="uppercase" style={{ letterSpacing: '0.05em' }}>
                                             {dayjs(date).locale('es').format('dddd')}
                                         </Text>
-                                        <Title order={3} c="slate.9" style={{ letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif' }}>
+                                        <Title order={2} c="slate.9" style={{ letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif', fontSize: '2rem' }}>
                                             {dayjs(date).format('DD')}
                                         </Title>
                                     </Stack>
-                                    <Group gap="sm">
+                                    <Stack align="flex-end" gap="xs" style={{ flex: '1 1 auto', minWidth: '150px' }}>
                                         <Badge
                                             color={getUniformeColor(dayData.assignments[0]?.uniforme)}
                                             variant="filled"
                                             size="lg"
                                             radius="md"
                                             style={{
-                                                height: 40,
-                                                padding: '0 20px',
+                                                height: 'auto',
+                                                minHeight: 32,
+                                                padding: '4px 12px',
                                                 fontWeight: 800,
                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                                textTransform: 'uppercase'
+                                                textTransform: 'uppercase',
+                                                width: '100%',
+                                                textAlign: 'center'
                                             }}
                                         >
                                             Uniforme: {dayData.assignments[0]?.uniforme || 'N/A'}
                                         </Badge>
-                                        <Badge size="xl" color="gold" variant="light" radius="md" p="md" fw={700} c="gold.9">
+                                        <Badge size="lg" color="gold" variant="light" radius="md" p="md" fw={700} c="gold.9" style={{ width: '100%', textAlign: 'center' }}>
                                             {dayData.servicio || 'Servicio General'}
                                         </Badge>
-                                    </Group>
+                                    </Stack>
                                 </Group>
 
 
-                                <Table verticalSpacing="sm" horizontalSpacing="md" style={{ border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
-                                    <Table.Thead style={{ height: 44, background: '#f8fafc' }}>
-                                        <Table.Tr>
-                                            <Table.Th style={{ color: '#64748b', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Servidor(a)</Table.Th>
-                                            <Table.Th style={{ color: '#64748b', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Posición</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        {dayData.assignments.map((asig) => (
-                                            <Table.Tr key={asig.id}>
-                                                <Table.Td fw={700} style={{ fontSize: '15px', color: '#1e293b' }}>{asig.nombre}</Table.Td>
-                                                <Table.Td>
-                                                    <Group justify="center">
-                                                        <Badge
-                                                            variant="filled"
-                                                            bg="#ffedd5"
-                                                            c="#9a3412"
-                                                            size="md"
-                                                            radius="sm"
-                                                            style={{
-                                                                border: '1px solid #fed7aa',
-                                                                fontWeight: 700,
-                                                                width: '140px',
-                                                                textAlign: 'center'
-                                                            }}
-                                                        >
-                                                            {asig.posicion}
-                                                        </Badge>
-                                                    </Group>
-                                                </Table.Td>
+                                <Table.ScrollContainer minWidth={300}>
+                                    <Table verticalSpacing="sm" horizontalSpacing="md" style={{ border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
+                                        <Table.Thead style={{ height: 44, background: '#f8fafc' }}>
+                                            <Table.Tr>
+                                                <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Servidor(a)</Table.Th>
+                                                <Table.Th style={{ color: '#64748b', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Posición</Table.Th>
                                             </Table.Tr>
-                                        ))}
-                                    </Table.Tbody>
-                                </Table>
+                                        </Table.Thead>
+                                        <Table.Tbody>
+                                            {dayData.assignments.map((asig) => (
+                                                <Table.Tr key={asig.id}>
+                                                    <Table.Td fw={700} style={{ fontSize: '14px', color: '#1e293b' }}>{asig.nombre}</Table.Td>
+                                                    <Table.Td>
+                                                        <Group justify="center">
+                                                            <Badge
+                                                                variant="filled"
+                                                                bg="#ffedd5"
+                                                                c="#9a3412"
+                                                                size="sm"
+                                                                radius="sm"
+                                                                style={{
+                                                                    border: '1px solid #fed7aa',
+                                                                    fontWeight: 700,
+                                                                    width: '100%',
+                                                                    maxWidth: '120px',
+                                                                    textAlign: 'center'
+                                                                }}
+                                                            >
+                                                                {asig.posicion}
+                                                            </Badge>
+                                                        </Group>
+                                                    </Table.Td>
+                                                </Table.Tr>
+                                            ))}
+                                        </Table.Tbody>
+                                    </Table>
+                                </Table.ScrollContainer>
                             </Paper>
                         ))}
                     </Stack>
