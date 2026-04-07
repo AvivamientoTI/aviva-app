@@ -26,7 +26,7 @@ export function useExport() {
             title: options?.title || 'Programación de Servicios',
             subtitle: options?.subtitle,
             departmentName: options?.departmentName,
-            pixelRatio: 3
+            pixelRatio: 2.5 // Balance perfecto entre nitidez (Retina) y memoria móvil
         });
     }, []);
 

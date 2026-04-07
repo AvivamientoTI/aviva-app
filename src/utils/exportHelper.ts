@@ -1,4 +1,4 @@
-import { toJpeg } from 'html-to-image';
+import { toCanvas } from 'html-to-image';
 import dayjs from 'dayjs';
 import { notify } from './notificationsHelper';
 
@@ -11,158 +11,167 @@ interface ExportOptions {
 }
 
 /**
- * Utilidad centralizada para exportar elementos del DOM con un marco premium
- * y alta resolución, garantizando consistencia en móviles y escritorio.
+ * ESTRATEGIA DEFINITIVA PARA MÓVILES (ROBUSTA Y DE ALTA CALIDAD)
+ * 1. Evita clones inestables (causa de imágenes en blanco).
+ * 2. Usa Blobs en lugar de DataURLs (soluciona error de tamaño en Mayo).
+ * 3. Renderiza en una capa "viva" para asegurar herencia de estilos de Mantine.
  */
 export const exportHelper = {
-    /**
-     * Captura un elemento y lo descarga como PNG con un diseño mejorado.
-     */
     captureAndDownload: async (element: HTMLElement, options: ExportOptions) => {
         const { 
             fileName: originalFileName, 
             title, 
             subtitle, 
             departmentName, 
-            pixelRatio = 1.5 // Reducido para evitar el límite de memoria en móviles
+            pixelRatio = 2 
         } = options;
 
         const fileName = originalFileName.replace('.png', '.jpg');
 
         try {
-            notify.info('Optimizando imagen para alta resolución...', 'Generando Exportación');
+            notify.info('Iniciando exportación de alta calidad...', 'Procesando Reporte');
 
-            // 1. Preparar el Contenedor de Captura (Off-screen)
+            // 1. Crear el Marco Premium (Fondo y Contenedor)
             const wrapper = document.createElement('div');
+            wrapper.id = 'export-capture-wrapper';
+            // Estilos de Posicionamiento (Capa Viva)
             wrapper.style.position = 'fixed';
-            wrapper.style.left = '0'; 
+            wrapper.style.left = '0';
             wrapper.style.top = '0';
             wrapper.style.width = '1200px'; 
-            wrapper.style.backgroundColor = '#ffffff';
-            wrapper.style.padding = '30px';
-            wrapper.style.fontFamily = "sans-serif"; // Usar fuentes del sistema para máxima compatibilidad
             wrapper.style.zIndex = '-9999';
-            wrapper.style.opacity = '0.01'; // Casi invisible pero en el DOM "visible"
+            wrapper.style.opacity = '0.01';
             wrapper.style.pointerEvents = 'none';
-            wrapper.style.color = '#000000';
+            
+            // Estilos Visuales Premium
+            wrapper.style.backgroundColor = '#ffffff';
+            wrapper.style.padding = '40px';
+            wrapper.style.display = 'flex';
+            wrapper.style.flexDirection = 'column';
+            wrapper.style.gap = '20px';
+            wrapper.style.borderRadius = '0';
 
-            // 2. Crear Encabezado Premium
+            // 2. Encabezado Premium con Borde Dorado
             const header = document.createElement('div');
+            header.style.padding = '25px';
+            header.style.backgroundColor = '#fff';
+            header.style.borderRadius = '16px';
+            header.style.border = '1px solid #e2e8f0';
+            header.style.borderLeft = '8px solid #d97706'; // Borde dorado distintivo
+            header.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
             header.style.display = 'flex';
             header.style.justifyContent = 'space-between';
             header.style.alignItems = 'center';
-            header.style.marginBottom = '30px';
-            header.style.padding = '20px';
-            header.style.backgroundColor = 'white';
-            header.style.borderRadius = '16px';
-            header.style.boxShadow = '0 4px 6px -1px rgb(0 0 0 / 0.1)';
-            header.style.borderLeft = '6px solid #d97706';
 
-            const headerInfo = document.createElement('div');
-            
-            const mainTitle = document.createElement('h1');
-            mainTitle.innerText = title;
-            mainTitle.style.margin = '0';
-            mainTitle.style.fontSize = '28px';
-            mainTitle.style.fontWeight = '800';
-            mainTitle.style.color = '#1e293b';
+            const info = document.createElement('div');
+            const t = document.createElement('h1');
+            t.innerText = title.toUpperCase();
+            t.style.margin = '0';
+            t.style.fontSize = '24px';
+            t.style.fontWeight = '900';
+            t.style.color = '#0f172a';
+            t.style.letterSpacing = '-0.02em';
 
-            const subtext = document.createElement('div');
-            subtext.style.marginTop = '4px';
-            subtext.style.fontSize = '16px';
-            subtext.style.color = '#64748b';
-            subtext.innerText = `${departmentName ? departmentName + ' • ' : ''}${subtitle || dayjs().format('MMMM YYYY')}`;
+            const s = document.createElement('div');
+            s.innerText = `${departmentName ? departmentName + ' | ' : ''}${subtitle || dayjs().format('MMMM YYYY')}`;
+            s.style.fontSize = '14px';
+            s.style.fontWeight = '700';
+            s.style.color = '#64748b';
+            s.style.textTransform = 'uppercase';
+            s.style.marginTop = '4px';
 
-            headerInfo.appendChild(mainTitle);
-            headerInfo.appendChild(subtext);
+            info.appendChild(t);
+            info.appendChild(s);
 
-            // Logo Placeholder (Using CSS since we can't easily import Logo.tsx component here as a string)
-            const logoContainer = document.createElement('div');
-            logoContainer.style.display = 'flex';
-            logoContainer.style.flexDirection = 'column';
-            logoContainer.style.alignItems = 'flex-end';
-            
             const brand = document.createElement('div');
             brand.innerText = 'UJIERES APP';
             brand.style.fontWeight = '900';
-            brand.style.fontSize = '20px';
-            brand.style.background = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
-            brand.style.webkitBackgroundClip = 'text';
-            brand.style.webkitTextFillColor = 'transparent';
-            
-            logoContainer.appendChild(brand);
-            
-            header.appendChild(headerInfo);
-            header.appendChild(logoContainer);
+            brand.style.fontSize = '18px';
+            brand.style.color = '#d97706';
+            brand.style.letterSpacing = '0.1em';
 
-            // 3. Clonar y Estilizar el Contenido
+            header.appendChild(info);
+            header.appendChild(brand);
+
+            // 3. Contenedor del Contenido (Evitar recortes)
+            const contentContainer = document.createElement('div');
+            contentContainer.style.backgroundColor = 'white';
+            contentContainer.style.borderRadius = '16px';
+            contentContainer.style.overflow = 'hidden';
+
+            // CLONAR CON PRECAUCIÓN
             const clone = element.cloneNode(true) as HTMLElement;
             clone.style.width = '100%';
-            clone.style.backgroundColor = 'transparent';
-            clone.style.boxShadow = 'none';
+            clone.style.transform = 'none';
+            clone.style.position = 'static';
             clone.style.visibility = 'visible';
+            clone.style.display = 'block';
 
-            // 4. Pie de página
+            contentContainer.appendChild(clone);
+
+            // 4. Pie de Página Elegante
             const footer = document.createElement('div');
-            footer.style.marginTop = '30px';
             footer.style.textAlign = 'center';
-            footer.style.fontSize = '12px';
+            footer.style.padding = '20px';
+            footer.style.fontSize = '11px';
             footer.style.color = '#94a3b8';
-            footer.innerText = `Generado el ${dayjs().format('DD/MM/YYYY HH:mm')} • © Ujieres App`;
+            footer.style.fontWeight = '600';
+            footer.innerText = `REPORTE OFICIAL • GENERADO EL ${dayjs().format('DD/MM/YYYY HH:MM')} • © UJIERES APP SYSTEM`;
 
-            // Ensamblar todo
+            // Ensamblar en el DOM real para heredar estilos globales
             wrapper.appendChild(header);
-            wrapper.appendChild(clone);
+            wrapper.appendChild(contentContainer);
             wrapper.appendChild(footer);
             
-            // BUSCAR UN CONTENEDOR DENTRO DEL TEMA MANTINE
-            // Si el elemento original tiene un padre, lo ponemos ahí para heredar variables CSS
-            const parent = element.parentElement || document.body;
-            parent.appendChild(wrapper);
+            // Inyectar cerca del elemento original para asegurar contexto CSS
+            element.parentElement?.appendChild(wrapper);
 
-            // 5. Esperar a que las fuentes y estilos se asienten (más tiempo en móviles)
-            await document.fonts.ready;
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // 5. Esperar Renderizado (Esencial para móviles)
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-            // 6. Captura como JPEG (Archivos mucho más pequeños, ideal para móviles)
-            const dataUrl = await toJpeg(wrapper, {
-                quality: 0.8,
+            // 6. Captura vía Canvas + Blob (Máxima compatibilidad)
+            const canvas = await toCanvas(wrapper, {
                 pixelRatio,
                 backgroundColor: '#ffffff',
-                cacheBust: true,
-                skipFonts: true, // EVITA IMÁGENES EN BLANCO: Las fuentes personalizadas a veces bloquean la captura en móviles
+                skipFonts: false, // Intentar con fuentes primero, el timeout ayuda
             });
 
-            if (!dataUrl || dataUrl.length < 100) throw new Error('Generation failed');
+            // Limpiar el wrapper inmediatamente después de pasar a canvas
+            if (wrapper.parentNode) {
+                wrapper.parentNode.removeChild(wrapper);
+            }
 
-            // 7. Descargar
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = dataUrl;
-            
-            // Simular clic
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // Limpiar
-            setTimeout(() => {
-                if (wrapper.parentNode) {
-                    wrapper.parentNode.removeChild(wrapper);
+            // 7. Conversión a BLOB JPEG (Soluciona error de tamaño en Mayo)
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    notify.error('Error al procesar la imagen final.');
+                    return;
                 }
-            }, 500);
 
-            notify.success('Exportación completada');
-            
-            return dataUrl;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+
+                // Cleanup
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
+
+                notify.success('Reporte generado con nitidez premium', '¡Éxito!');
+            }, 'image/jpeg', 0.9);
+
+            return true;
         } catch (error: any) {
-            console.error('Export Error Detail:', error);
-            // Mostrar mensaje de error más descriptivo
-            const errorMsg = error.message?.includes('SecurityError') 
-                ? 'Error de seguridad al acceder a recursos externos (CORS).' 
-                : 'Error al procesar la imagen. El contenido podría ser demasiado grande.';
-            
-            notify.error(`${errorMsg} Por favor, intenta de nuevo desde otro navegador.`, 'Error de Exportación');
+            console.error('CRITICAL EXPORT ERROR:', error);
+            notify.error('Error de memoria en el dispositivo. Intenta cerrar otras pestañas.', 'Error de Captura');
+            // Cleanup si falló antes de remover
+            const w = document.getElementById('export-capture-wrapper');
+            if (w) w.remove();
             throw error;
         }
     }
