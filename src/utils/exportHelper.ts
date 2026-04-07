@@ -1,4 +1,4 @@
-import { toBlob } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import dayjs from 'dayjs';
 import { notify } from './notificationsHelper';
 
@@ -20,30 +20,31 @@ export const exportHelper = {
      */
     captureAndDownload: async (element: HTMLElement, options: ExportOptions) => {
         const { 
-            fileName, 
+            fileName: originalFileName, 
             title, 
             subtitle, 
             departmentName, 
-            pixelRatio = 2 // Reducido a 2 para mayor estabilidad en móviles (sigue siendo alta res)
+            pixelRatio = 1.5 // Reducido para evitar el límite de memoria en móviles
         } = options;
+
+        const fileName = originalFileName.replace('.png', '.jpg');
 
         try {
             notify.info('Optimizando imagen para alta resolución...', 'Generando Exportación');
 
             // 1. Preparar el Contenedor de Captura (Off-screen)
             const wrapper = document.createElement('div');
-            wrapper.style.position = 'absolute';
-            wrapper.style.left = '-10000px'; 
+            wrapper.style.position = 'fixed';
+            wrapper.style.left = '0'; 
             wrapper.style.top = '0';
-            wrapper.style.width = '1400px'; // Un poco más estrecho para evitar desbordamientos
-            wrapper.style.backgroundColor = '#f8fafc';
-            wrapper.style.padding = '40px';
-            wrapper.style.fontFamily = "'Inter', sans-serif";
+            wrapper.style.width = '1200px'; 
+            wrapper.style.backgroundColor = '#ffffff';
+            wrapper.style.padding = '30px';
+            wrapper.style.fontFamily = "sans-serif"; // Usar fuentes del sistema para máxima compatibilidad
             wrapper.style.zIndex = '-9999';
+            wrapper.style.opacity = '0.01'; // Casi invisible pero en el DOM "visible"
             wrapper.style.pointerEvents = 'none';
-            // Importante: Forzar estilos que se pierden al clonar
-            wrapper.style.color = '#1e293b';
-            wrapper.style.lineHeight = '1.5';
+            wrapper.style.color = '#000000';
 
             // 2. Crear Encabezado Premium
             const header = document.createElement('div');
@@ -123,24 +124,21 @@ export const exportHelper = {
             await document.fonts.ready;
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // 6. Captura como BLOB (mucho más fiable en móviles que DataURL)
-            const blob = await toBlob(wrapper, {
-                quality: 1.0,
+            // 6. Captura como JPEG (Archivos mucho más pequeños, ideal para móviles)
+            const dataUrl = await toJpeg(wrapper, {
+                quality: 0.8,
                 pixelRatio,
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#ffffff',
                 cacheBust: true,
-                style: {
-                    borderRadius: '0'
-                }
+                skipFonts: true, // EVITA IMÁGENES EN BLANCO: Las fuentes personalizadas a veces bloquean la captura en móviles
             });
 
-            if (!blob) throw new Error('Blob generation failed');
+            if (!dataUrl || dataUrl.length < 100) throw new Error('Generation failed');
 
-            // 7. Descargar usando URL de objeto
-            const blobUrl = URL.createObjectURL(blob);
+            // 7. Descargar
             const link = document.createElement('a');
             link.download = fileName;
-            link.href = blobUrl;
+            link.href = dataUrl;
             
             // Simular clic
             document.body.appendChild(link);
@@ -149,15 +147,14 @@ export const exportHelper = {
 
             // Limpiar
             setTimeout(() => {
-                URL.revokeObjectURL(blobUrl);
                 if (wrapper.parentNode) {
                     wrapper.parentNode.removeChild(wrapper);
                 }
             }, 500);
 
-            notify.success('Exportación completada con éxito');
+            notify.success('Exportación completada');
             
-            return blobUrl;
+            return dataUrl;
         } catch (error: any) {
             console.error('Export Error Detail:', error);
             // Mostrar mensaje de error más descriptivo

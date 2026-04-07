@@ -90,8 +90,8 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
             ) : (
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: '16px',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                    gap: '20px',
                     width: '100%'
                 }}>
                     {daysWithAssignments.map((cell) => (
