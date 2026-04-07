@@ -1,4 +1,4 @@
-import { toPng } from 'html-to-image';
+import { toBlob } from 'html-to-image';
 import dayjs from 'dayjs';
 import { notify } from './notificationsHelper';
 
@@ -24,7 +24,7 @@ export const exportHelper = {
             title, 
             subtitle, 
             departmentName, 
-            pixelRatio = 3 
+            pixelRatio = 2 // Reducido a 2 para mayor estabilidad en móviles (sigue siendo alta res)
         } = options;
 
         try {
@@ -110,12 +110,12 @@ export const exportHelper = {
             wrapper.appendChild(footer);
             document.body.appendChild(wrapper);
 
-            // 5. Esperar a que las fuentes y estilos se asienten
+            // 5. Esperar a que las fuentes y estilos se asienten (más tiempo en móviles)
             await document.fonts.ready;
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-            // 6. Captura con Alta Calidad
-            const dataUrl = await toPng(wrapper, {
+            // 6. Captura como BLOB (mucho más fiable en móviles que DataURL)
+            const blob = await toBlob(wrapper, {
                 quality: 1.0,
                 pixelRatio,
                 backgroundColor: '#f8fafc',
@@ -125,17 +125,24 @@ export const exportHelper = {
                 }
             });
 
-            // 7. Descargar
+            if (!blob) throw new Error('Blob generation failed');
+
+            // 7. Descargar usando URL de objeto
+            const blobUrl = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.download = fileName;
-            link.href = dataUrl;
+            link.href = blobUrl;
             link.click();
 
             // Limpiar
-            document.body.removeChild(wrapper);
+            setTimeout(() => {
+                URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(wrapper);
+            }, 100);
+
             notify.success('Exportación completada con éxito');
             
-            return dataUrl;
+            return blobUrl;
         } catch (error) {
             console.error('Export Error:', error);
             notify.error('No se pudo generar la imagen. Verifica los permisos de tu navegador.');
