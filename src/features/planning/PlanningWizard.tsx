@@ -230,12 +230,10 @@ function PlanningWizardContent() {
           const hasQuotas = Object.values(config.positionQuotas).some(v => v > 0);
           
           if (!config.type || !config.uniform || !hasQuotas) {
-            notifications.show({
-              title: 'Configuración Incompleta',
-              message: `El servicio ${i + 1} del día ${dayjs(dateStr).format('DD/MM')} está incompleto (falta tipo, uniforme o voluntarios).`,
-              color: 'red',
-              icon: <IconAlertCircle size={18} />
-            });
+            notify.error(
+              `El servicio ${i + 1} del día ${dayjs(dateStr).format('DD/MM')} está incompleto (falta tipo, uniforme o voluntarios).`,
+              'Configuración Incompleta'
+            );
             return;
           }
         }

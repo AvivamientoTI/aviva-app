@@ -6,7 +6,6 @@ import {
     IconAlertTriangle,
     IconBell
 } from '@tabler/icons-react';
-import React from 'react';
 
 /**
  * Helper para mostrar notificaciones premium con consistencia en toda la app.
