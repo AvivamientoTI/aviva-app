@@ -13,9 +13,12 @@ import 'dayjs/locale/es';
 import { theme } from './theme';
 import { inject } from '@vercel/analytics';
 
+import { registerSW } from 'virtual:pwa-register';
 
 inject();
 dayjs.locale('es');
+
+registerSW({ immediate: true });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
@@ -27,15 +30,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </MantineProvider>
     </React.StrictMode>,
 );
-
-// Desregistrar Service Worker problemático (resuelve el problema de pantalla blanca)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-            for (const registration of registrations) {
-                registration.unregister();
-                console.log('Service Worker unregistered successfully');
-            }
-        });
-    });
-}

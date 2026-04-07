@@ -189,8 +189,8 @@ export const PlanningStepServiceDates = ({
                                                             </Group>
                                                         )}
 
-                                                        <Grid>
-                                                            <Grid.Col span={6}>
+                                                        <Grid gutter="xs">
+                                                            <Grid.Col span={{ base: 12, sm: 6 }}>
                                                                 <Autocomplete
                                                                     label="Tipo de Servicio"
                                                                     placeholder="Selecciona o escribe"
@@ -200,7 +200,7 @@ export const PlanningStepServiceDates = ({
                                                                     size="sm"
                                                                 />
                                                             </Grid.Col>
-                                                            <Grid.Col span={6}>
+                                                            <Grid.Col span={{ base: 12, sm: 6 }}>
                                                                 <Autocomplete
                                                                     label="Uniforme"
                                                                     placeholder="Selecciona o escribe"
@@ -214,20 +214,20 @@ export const PlanningStepServiceDates = ({
                                                         </Grid>
 
                                                         <Text size="xs" fw={800} mt="xs" c="dimmed" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Voluntarios necesarios</Text>
-                                                        <Group gap="sm">
+                                                        <Group gap="xs" wrap="wrap">
                                                             {positions.map(pos => {
                                                                 const quota = config.positionQuotas?.[pos.id] || 0;
                                                                 return (
-                                                                    <Paper key={pos.id} withBorder p={8} radius="md" style={{ minWidth: 90, backgroundColor: 'var(--mantine-color-gray-0)' }}>
+                                                                    <Paper key={pos.id} withBorder p={8} radius="md" style={{ flex: '1 1 80px', minWidth: 80, backgroundColor: 'var(--mantine-color-gray-0)' }}>
                                                                         <Stack align="center" gap={4}>
-                                                                            <Text size="xs" fw={700} c="stone.6" style={{ lineHeight: 1, textAlign: 'center' }}>{pos.nombre}</Text>
+                                                                            <Text size="xs" fw={700} c="stone.6" style={{ lineHeight: 1, textAlign: 'center', fontSize: '10px' }}>{pos.nombre}</Text>
                                                                             <NumberInput
                                                                                 variant="unstyled"
                                                                                 value={quota}
                                                                                 onChange={(value) => updatePositionQuota(dateStr, idx, pos.id, Number(value))}
                                                                                 min={0}
                                                                                 allowNegative={false}
-                                                                                styles={{ input: { textAlign: 'center', height: 24, fontSize: 18, fontWeight: 900, color: '#d97706' } }}
+                                                                                styles={{ input: { textAlign: 'center', height: 24, fontSize: 16, fontWeight: 900, color: '#d97706' } }}
                                                                             />
                                                                         </Stack>
                                                                     </Paper>

@@ -20,7 +20,9 @@ export function useExport() {
             const dataUrl = await toPng(ref.current, {
                 cacheBust: true,
                 backgroundColor: 'white',
-                pixelRatio: 2
+                pixelRatio: 3,
+                quality: 1.0,
+                skipFonts: false
             });
 
             const link = document.createElement('a');

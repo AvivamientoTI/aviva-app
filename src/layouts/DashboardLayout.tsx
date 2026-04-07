@@ -54,14 +54,14 @@ export function DashboardLayout() {
 
     return (
         <AppShell
-            header={{ height: 80 }}
+            header={{ height: { base: 60, sm: 80 } }}
             navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-            padding="md"
+            padding={{ base: 'xs', sm: 'md' }}
         >
-            <AppShell.Header className="shell-glass">
-                <Group justify="space-between" h="100%" px="xl">
-                    <Group>
-                        <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="yellow.7" />
+            <AppShell.Header className="shell-glass" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
+                <Group justify="space-between" h="100%" px={{ base: 'md', sm: 'xl' }}>
+                    <Group gap="xs">
+                        <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="gold.7" />
                         <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
                             <ThemeIcon size={54} radius="xl" variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6', deg: 135 }} style={{ boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)', transition: 'transform 0.2s ease' }} className="hover:scale-105">
                                 <svg

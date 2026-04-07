@@ -466,27 +466,27 @@ function PlanningWizardContent() {
   const prevStep = () => setActiveStep((current) => (current > 0 ? current - 1 : current));
 
   return (
-    <Container size="xl" py="xl">
+    <Container size="xl" py={{ base: 'md', sm: 'xl' }} px={{ base: 'xs', sm: 'md' }}>
       <Stack gap="xl">
-        <Group justify="space-between" align="flex-end">
+        <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
           <Stack gap={0}>
             <Title order={1} style={{ 
               fontFamily: 'Inter, sans-serif', 
-              fontSize: '2.5rem',
+              fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
               color: 'var(--mantine-color-text)', 
               letterSpacing: '-0.02em' 
             }}>Planificador de Roles 📝</Title>
-            <Text c="dimmed" size="md" fw={500}>Configura, asigna y aprueba el rol mensual de tu departamento</Text>
+            <Text c="dimmed" size="sm" fw={500}>Configura, asigna y aprueba el rol mensual</Text>
           </Stack>
-          <Badge size="xl" variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} radius="md" p="lg">
+          <Badge size="lg" variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} radius="md" p="md" visibleFrom="sm">
             VERSIÓN 3.5 PREMIUM
           </Badge>
         </Group>
 
-        <Paper shadow="md" p="xl" radius="xl" withBorder className="glass-card" style={{ 
+        <Paper shadow="md" p={{ base: 'md', sm: 'xl' }} radius="xl" withBorder className="glass-card" style={{ 
           backgroundColor: 'var(--mantine-color-body)', 
           borderColor: 'var(--mantine-color-default-border)',
-          minHeight: 600,
+          minHeight: 'auto',
           position: 'relative',
           overflow: 'hidden'
         }}>

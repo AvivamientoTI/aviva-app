@@ -37,7 +37,12 @@ export function useRoleExport(userProfile: any) {
             // Wait for render
             setTimeout(async () => {
                 if (reportRef.current) {
-                    const dataUrl = await toPng(reportRef.current, { quality: 0.95, pixelRatio: 2 });
+                    const dataUrl = await toPng(reportRef.current, { 
+                        quality: 1.0, 
+                        pixelRatio: 3,
+                        skipFonts: false,
+                        cacheBust: true 
+                    });
                     const pdf = new jsPDF('p', 'mm', 'a4');
                     const imgProps = pdf.getImageProperties(dataUrl);
                     const pdfWidth = pdf.internal.pageSize.getWidth();
