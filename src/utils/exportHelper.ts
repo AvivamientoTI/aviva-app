@@ -32,13 +32,18 @@ export const exportHelper = {
 
             // 1. Preparar el Contenedor de Captura (Off-screen)
             const wrapper = document.createElement('div');
-            wrapper.style.position = 'fixed';
-            wrapper.style.left = '-9999px';
-            wrapper.style.top = '-9999px';
-            wrapper.style.width = '1440px'; // Ancho estándar desktop para orden visual
-            wrapper.style.backgroundColor = '#f8fafc'; // Fondo sutil (slate 50)
+            wrapper.style.position = 'absolute';
+            wrapper.style.left = '-10000px'; 
+            wrapper.style.top = '0';
+            wrapper.style.width = '1400px'; // Un poco más estrecho para evitar desbordamientos
+            wrapper.style.backgroundColor = '#f8fafc';
             wrapper.style.padding = '40px';
             wrapper.style.fontFamily = "'Inter', sans-serif";
+            wrapper.style.zIndex = '-9999';
+            wrapper.style.pointerEvents = 'none';
+            // Importante: Forzar estilos que se pierden al clonar
+            wrapper.style.color = '#1e293b';
+            wrapper.style.lineHeight = '1.5';
 
             // 2. Crear Encabezado Premium
             const header = document.createElement('div');
@@ -108,7 +113,11 @@ export const exportHelper = {
             wrapper.appendChild(header);
             wrapper.appendChild(clone);
             wrapper.appendChild(footer);
-            document.body.appendChild(wrapper);
+            
+            // BUSCAR UN CONTENEDOR DENTRO DEL TEMA MANTINE
+            // Si el elemento original tiene un padre, lo ponemos ahí para heredar variables CSS
+            const parent = element.parentElement || document.body;
+            parent.appendChild(wrapper);
 
             // 5. Esperar a que las fuentes y estilos se asienten (más tiempo en móviles)
             await document.fonts.ready;
@@ -132,20 +141,31 @@ export const exportHelper = {
             const link = document.createElement('a');
             link.download = fileName;
             link.href = blobUrl;
+            
+            // Simular clic
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
 
             // Limpiar
             setTimeout(() => {
                 URL.revokeObjectURL(blobUrl);
-                document.body.removeChild(wrapper);
-            }, 100);
+                if (wrapper.parentNode) {
+                    wrapper.parentNode.removeChild(wrapper);
+                }
+            }, 500);
 
             notify.success('Exportación completada con éxito');
             
             return blobUrl;
-        } catch (error) {
-            console.error('Export Error:', error);
-            notify.error('No se pudo generar la imagen. Verifica los permisos de tu navegador.');
+        } catch (error: any) {
+            console.error('Export Error Detail:', error);
+            // Mostrar mensaje de error más descriptivo
+            const errorMsg = error.message?.includes('SecurityError') 
+                ? 'Error de seguridad al acceder a recursos externos (CORS).' 
+                : 'Error al procesar la imagen. El contenido podría ser demasiado grande.';
+            
+            notify.error(`${errorMsg} Por favor, intenta de nuevo desde otro navegador.`, 'Error de Exportación');
             throw error;
         }
     }
