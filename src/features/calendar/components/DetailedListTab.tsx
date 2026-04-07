@@ -47,31 +47,60 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
             <Stack gap="md">
 
                 {/* Navigation Header */}
-                <Group justify="center" mb="lg" gap="xs">
-                    <ActionIcon variant="light" size="lg" radius="xl" onClick={handlePrevMonth} aria-label="Mes anterior">
-                        <IconChevronLeft size={20} />
+                <Group justify="center" mb="lg" gap="sm" align="center">
+                    <ActionIcon 
+                        variant="filled" 
+                        color="slate" 
+                        size="md" 
+                        radius="xl" 
+                        onClick={handlePrevMonth} 
+                        aria-label="Mes anterior"
+                        style={{ boxShadow: 'var(--mantine-shadow-xs)' }}
+                    >
+                        <IconChevronLeft size={18} />
                     </ActionIcon>
-                    <Title order={3} tt="capitalize" w={{ base: 160, sm: 220 }} ta="center" c="slate.8" style={{ fontFamily: 'Inter, sans-serif', fontSize: 'clamp(1rem, 4vw, 1.3rem)' }}>
+                    <Title 
+                        order={3} 
+                        tt="capitalize" 
+                        w={{ base: 140, sm: 220 }} 
+                        ta="center" 
+                        c="slate.8" 
+                        style={{ 
+                            fontFamily: 'Inter, sans-serif', 
+                            fontSize: 'clamp(1rem, 4vw, 1.2rem)',
+                            lineHeight: 1.2
+                        }}
+                    >
                         {currentDate.locale('es').format('MMMM YYYY')}
                     </Title>
-                    <ActionIcon variant="light" size="lg" radius="xl" onClick={handleNextMonth} aria-label="Siguiente mes">
-                        <IconChevronRight size={20} />
+                    <ActionIcon 
+                        variant="filled" 
+                        color="slate" 
+                        size="md" 
+                        radius="xl" 
+                        onClick={handleNextMonth} 
+                        aria-label="Siguiente mes"
+                        style={{ boxShadow: 'var(--mantine-shadow-xs)' }}
+                    >
+                        <IconChevronRight size={18} />
                     </ActionIcon>
                 </Group>
 
-                <Divider mb="xl" color="gray.3" />
+                <Divider mb="xl" color="gray.2" />
 
                 {currentMonthAssignments.length === 0 ? (
                     <Paper p="xl" radius="lg" withBorder style={{
-                        background: '#fff',
+                        background: 'rgba(255, 255, 255, 0.5)',
                         borderColor: '#e2e8f0',
                         borderStyle: 'dashed',
                         display: 'flex',
+                        flexDirection: 'column',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        minHeight: 200
+                        minHeight: 200,
+                        backdropFilter: 'blur(4px)'
                     }}>
-                        <Text c="dimmed" size="lg" ta="center">
+                        <Text c="dimmed" size="lg" ta="center" fw={500}>
                             No hay asignaciones programadas para {currentDate.locale('es').format('MMMM YYYY')}
                         </Text>
                     </Paper>
@@ -79,16 +108,16 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                     <Stack gap="lg">
                         {currentMonthAssignments.map(({ date, data: dayData }) => (
                             <Paper key={date} p={{ base: 'md', sm: 'xl' }} radius="lg" shadow="sm" withBorder style={{ background: '#fff', borderColor: '#e2e8f0' }}>
-                                <Group justify="space-between" mb="lg" align="flex-start" wrap="wrap">
-                                    <Stack gap={0}>
+                                <Group justify="space-between" mb="lg" align="center" wrap="wrap" gap="md">
+                                    <Stack gap={2}>
                                         <Text size="xs" fw={800} c="gold.6" tt="uppercase" style={{ letterSpacing: '0.05em' }}>
                                             {dayjs(date).locale('es').format('dddd')}
                                         </Text>
-                                        <Title order={2} c="slate.9" style={{ letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif', fontSize: '2rem' }}>
+                                        <Title order={2} c="slate.9" style={{ letterSpacing: '-0.02em', fontFamily: 'Inter, sans-serif', fontSize: '1.8rem', lineHeight: 1 }}>
                                             {dayjs(date).format('DD')}
                                         </Title>
                                     </Stack>
-                                    <Stack align="flex-end" gap="xs" style={{ flex: '1 1 auto', minWidth: '150px' }}>
+                                    <Stack align="stretch" gap="xs" style={{ flex: '1 1 auto', minWidth: 'min(100%, 200px)' }}>
                                         <Badge
                                             color={getUniformeColor(dayData.assignments[0]?.uniforme)}
                                             variant="filled"
@@ -97,17 +126,16 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                                             style={{
                                                 height: 'auto',
                                                 minHeight: 32,
-                                                padding: '4px 12px',
+                                                padding: '6px 12px',
                                                 fontWeight: 800,
                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                                                 textTransform: 'uppercase',
-                                                width: '100%',
                                                 textAlign: 'center'
                                             }}
                                         >
                                             Uniforme: {dayData.assignments[0]?.uniforme || 'N/A'}
                                         </Badge>
-                                        <Badge size="lg" color="gold" variant="light" radius="md" p="md" fw={700} c="gold.9" style={{ width: '100%', textAlign: 'center' }}>
+                                        <Badge size="lg" color="gold" variant="light" radius="md" p="md" fw={700} c="gold.9" style={{ textAlign: 'center' }}>
                                             {dayData.servicio || 'Servicio General'}
                                         </Badge>
                                     </Stack>

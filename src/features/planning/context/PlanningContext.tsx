@@ -81,6 +81,32 @@ export function PlanningProvider({ children }: { children: ReactNode }) {
     const [previewAssignments, setPreviewAssignments] = useState<DraftAssignment[]>([]);
     const [loading, setLoading] = useState(false);
 
+    // -- RESET LOGIC: Clear dependent state when base selection changes --
+    const resetPlanningState = () => {
+        setSelectedDates([]);
+        setServiceConfigs({});
+        setPreviewAssignments([]);
+        setHeaderState(null);
+    };
+
+    const handleDeptChange = (id: string | null) => {
+        if (id !== selectedDeptId) {
+            setSelectedDeptId(id);
+            resetPlanningState();
+        }
+    };
+
+    const handleMonthChange = (date: Date | null) => {
+        // Compare only month and year
+        const currentM = selectedMonth ? dayjs(selectedMonth).format('YYYY-MM') : null;
+        const newM = date ? dayjs(date).format('YYYY-MM') : null;
+        
+        if (newM !== currentM) {
+            setSelectedMonth(date);
+            resetPlanningState();
+        }
+    };
+
     // -- Logic Helper: Handle Date Selection & Sync Configs --
     const handleDateChange = (dates: Date[] | string[] | Date | null) => {
         const uniqueStrings = new Set<string>();
@@ -174,8 +200,8 @@ export function PlanningProvider({ children }: { children: ReactNode }) {
     return (
         <PlanningContext.Provider value={{
             activeStep, setActiveStep,
-            selectedDeptId, setSelectedDeptId,
-            selectedMonth, setSelectedMonth,
+            selectedDeptId, setSelectedDeptId: handleDeptChange,
+            selectedMonth, setSelectedMonth: handleMonthChange,
             selectedDates, setSelectedDates,
             serviceConfigs, setServiceConfigs,
             positions, setPositions,

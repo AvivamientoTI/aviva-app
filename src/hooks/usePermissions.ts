@@ -57,6 +57,9 @@ export function usePermissions() {
         return canManageDepartment(Number(deptId));
     };
 
+    // 7. Global Visibility (Permission to view calendars from all departments)
+    const canViewAllSchedules = isSystemAdmin || (userMemberships?.some(m => userRoles(m).isAnyLeader) ?? false);
+
     return {
         isSystemAdmin,
         canManageDepartment,
@@ -65,6 +68,7 @@ export function usePermissions() {
         canModifyAssignments,
         canManageAttendance,
         canViewReports,
+        canViewAllSchedules,
         // Legacy helpers for compatibility if needed, though they should be migrated
         isLiderOrSublider: userMemberships?.some(m => userRoles(m).isAnyLeader) ?? false,
         canManageAllDepartments: isSystemAdmin,

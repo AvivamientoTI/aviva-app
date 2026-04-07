@@ -1,28 +1,51 @@
 import { useCallback, type MutableRefObject } from 'react';
 import { toPng } from 'html-to-image';
-import { notifications } from '@mantine/notifications';
+import { notify } from '../../../utils/notificationsHelper';
 
 /**
- * Hook para exportar elementos del DOM a PNG
+ * Hook para exportar elementos del DOM a PNG con alta resolución constante,
+ * inclusive en dispositivos móviles.
  */
 export function useExport() {
     const exportToPng = useCallback(async (ref: MutableRefObject<HTMLElement | null>, fileName: string) => {
         if (!ref.current) {
-            notifications.show({
-                title: 'Error',
-                message: 'No se pudo encontrar el elemento a exportar',
-                color: 'red'
-            });
+            notify.error('No se pudo encontrar el elemento a exportar');
             return;
         }
 
+        // Crear un contenedor temporal oculto para renderizado "off-screen"
+        // Esto asegura que la exportación siempre tenga un ancho de escritorio (ej: 1200px)
+        // sin importar el tamaño de la pantalla del dispositivo.
+        const originalElement = ref.current;
+        const clone = originalElement.cloneNode(true) as HTMLElement;
+        
+        // Contenedor para el clon
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+        container.style.width = '1200px'; // Ancho de escritorio fijo para el layout
+        container.style.backgroundColor = 'white';
+        container.appendChild(clone);
+        document.body.appendChild(container);
+
         try {
-            const dataUrl = await toPng(ref.current, {
+            notify.info('Preparando imagen de alta resolución...', 'Generando Exportación');
+
+            // Esperar un momento para que los estilos se apliquen al clon
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const dataUrl = await toPng(clone, {
                 cacheBust: true,
                 backgroundColor: 'white',
                 pixelRatio: 3,
                 quality: 1.0,
-                skipFonts: false
+                style: {
+                    // Asegurar que el clon sea visible y tenga dimensiones correctas para la captura
+                    visibility: 'visible',
+                    position: 'static',
+                    width: '1200px'
+                }
             });
 
             const link = document.createElement('a');
@@ -30,18 +53,13 @@ export function useExport() {
             link.href = dataUrl;
             link.click();
 
-            notifications.show({
-                title: 'Éxito',
-                message: 'Imagen exportada correctamente',
-                color: 'green'
-            });
+            notify.success('Imagen exportada correctamente');
         } catch (error) {
-            console.error(error);
-            notifications.show({
-                title: 'Error',
-                message: 'Error exportando imagen',
-                color: 'red'
-            });
+            console.error('Error exportando imagen:', error);
+            notify.error('No se pudo generar la imagen. Inténtalo de nuevo.');
+        } finally {
+            // Limpiar el DOM
+            document.body.removeChild(container);
         }
     }, []);
 

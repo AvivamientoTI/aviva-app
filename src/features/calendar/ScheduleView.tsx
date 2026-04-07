@@ -21,7 +21,7 @@ import {
     Card
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { notifications } from '@mantine/notifications';
+import { notify } from '../../utils/notificationsHelper';
 import { 
     IconCalendar, 
     IconList, 
@@ -31,6 +31,7 @@ import {
 import { usePermissions } from '../../hooks/usePermissions';
 import { useUser } from '../../contexts/UserContext';
 import { CustomCalendar } from './CustomCalendar';
+import { useDepartments } from '../../hooks/queries/useDepartments';
 import { useAssignments } from './hooks/useAssignments';
 import { useExport } from './hooks/useExport';
 import { useAvailableUsersForSwap } from './hooks/useAvailableUsersForSwap';
@@ -49,6 +50,7 @@ export default function ScheduleView() {
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
     const { managedDepartments, userMemberships } = useUser();
+    const { data: deptData } = useDepartments();
     const { exportToPng } = useExport();
     const {
         groupedAssignments,
@@ -76,6 +78,11 @@ export default function ScheduleView() {
     const detailRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (permissions.canViewAllSchedules && deptData?.options) {
+            setDepartments(deptData.options);
+            return;
+        }
+
         const adminDepts = managedDepartments || [];
         const memberDepts = (userMemberships || []).map(m => m.departamento).filter(d => !!d);
         const combined = [...adminDepts, ...memberDepts].reduce((acc, current: any) => {
@@ -86,7 +93,7 @@ export default function ScheduleView() {
         }, [] as any[]);
         const options = combined.map((dep: any) => ({ value: String(dep.id), label: dep.nombre }));
         setDepartments(options);
-    }, [managedDepartments, userMemberships]);
+    }, [managedDepartments, userMemberships, permissions.canViewAllSchedules, deptData]);
 
     useEffect(() => {
         if (departments.length > 0 && !selectedDept) {
@@ -142,13 +149,13 @@ export default function ScheduleView() {
             { assignmentId: swapTarget.id, newUserId: selectedUserId },
             {
                 onSuccess: () => {
-                    notifications.show({ title: 'Éxito', message: 'Cambio realizado', color: 'green' });
+                    notify.success('Cambo realizado con éxito');
                     closeSwap();
                     setSelectedUserId(null);
                     setSwapTarget(null);
                 },
                 onError: (error: any) => {
-                    notifications.show({ title: 'Error', message: error.message || 'Error al cambiar', color: 'red' });
+                    notify.error(error.message || 'No se pudo realizar el cambio');
                 }
             }
         );
@@ -163,11 +170,11 @@ export default function ScheduleView() {
         if (!selectedEvent) return;
         deleteAssignment.mutate(selectedEvent.id, {
             onSuccess: () => {
-                notifications.show({ title: 'Éxito', message: 'Asignación eliminada', color: 'green' });
+                notify.success('Asignación eliminada correctamente');
                 close();
             },
             onError: () => {
-                notifications.show({ title: 'Error', message: 'No se pudo eliminar', color: 'red' });
+                notify.error('No se pudo eliminar la asignación');
             }
         });
     };
@@ -175,7 +182,7 @@ export default function ScheduleView() {
     return (
         <Container size="xl" py={{ base: 'md', sm: 'xl' }} px={{ base: 'xs', sm: 'md' }}>
             <Stack gap="xl">
-                <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
+                <Group justify="space-between" align="center" wrap="wrap" gap="lg">
                     <Stack gap={0} style={{ flex: '1 1 auto', minWidth: '280px' }}>
                         <Title order={1} style={{
                             fontFamily: 'Inter, sans-serif',
@@ -187,12 +194,12 @@ export default function ScheduleView() {
                         <Text c="dimmed" size="sm" fw={500}>Gestión y visualización de roles asignados por departamento</Text>
                     </Stack>
 
-                    <Paper p="md" radius="lg" withBorder className="shell-glass" style={{
+                    <Paper p="sm" radius="lg" withBorder className="shell-glass" style={{
                         flex: '1 1 auto', minWidth: '280px', maxWidth: 500,
                         backgroundColor: 'var(--mantine-glass-bg, rgba(255, 255, 255, 0.7))',
                         backdropFilter: 'blur(10px)',
                     }}>
-                        <Group gap="md" wrap="nowrap">
+                        <Group gap="xs" wrap="nowrap" align="center">
                             <Select
                                 leftSection={<IconBuildingCommunity size={18} color="var(--mantine-color-gold-6)" />}
                                 placeholder="Departamento"
@@ -202,6 +209,7 @@ export default function ScheduleView() {
                                 style={{ flex: 1 }}
                                 radius="md"
                                 size="sm"
+                                variant="filled"
                             />
                             <Button 
                                 className="btn-premium" 
@@ -209,6 +217,7 @@ export default function ScheduleView() {
                                 radius="md" 
                                 leftSection={<IconRocket size={18} />}
                                 onClick={handleExport}
+                                style={{ height: '36px' }}
                             >
                                 Exportar
                             </Button>
@@ -239,6 +248,7 @@ export default function ScheduleView() {
                                         currentDate={currentDate}
                                         onDateChange={setCurrentDate}
                                         groupedAssignments={groupedAssignments}
+                                        puedeModificar={puedeModificar}
                                         onDayClick={puedeModificar ? async (date, assignments) => {
                                             setSelectedDayEvents(assignments.map((asig) => ({
                                                 ...asig,

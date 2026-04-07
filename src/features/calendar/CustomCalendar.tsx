@@ -15,9 +15,10 @@ interface CustomCalendarProps {
     onDateChange: (date: Date) => void;
     groupedAssignments: Record<string, any>; // TODO: typed properly
     onDayClick: (date: Date, assignments: any[]) => void;
+    puedeModificar?: boolean;
 }
 
-export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, onDayClick }: CustomCalendarProps) {
+export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, onDayClick, puedeModificar = false }: CustomCalendarProps) {
     // Filtrar solo días con asignaciones del mes actual
     const daysWithAssignments = useMemo(() => {
         const startMonth = dayjs(currentDate).startOf('month');
@@ -79,9 +80,11 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
                 <EmptyState
                     icon={IconCalendarOff}
                     title="No hay roles asignados para este mes"
-                    description="Crea un nuevo rol en el Planificador para ver las asignaciones aquí"
-                    actionLabel="Ir al Planificador"
-                    actionPath="/planning"
+                    description={puedeModificar 
+                        ? "Crea un nuevo rol en el Planificador para ver las asignaciones aquí" 
+                        : "Pronto verás tu programación aquí. Mantente atento a las actualizaciones de tu líder."}
+                    actionLabel={puedeModificar ? "Ir al Planificador" : undefined}
+                    actionPath={puedeModificar ? "/planning" : undefined}
                     onAction={() => { }}
                 />
             ) : (

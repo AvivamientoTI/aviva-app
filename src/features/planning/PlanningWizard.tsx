@@ -1,15 +1,12 @@
 // Refreshing and ensuring TS service pickup
 import { useEffect } from 'react';
 import { Stepper, Button, Group, Title, Paper, Text, Stack, Container, Progress, Badge, Transition, Divider } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
+import { notify } from '../../utils/notificationsHelper';
 import { useNavigate } from 'react-router-dom';
 import {
   IconBuilding,
   IconCalendar,
   IconChecklist,
-  IconInfoCircle,
-  IconLock,
-  IconRobot,
   IconAlertCircle
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
@@ -111,7 +108,7 @@ function PlanningWizardContent() {
       if (configError) throw configError;
 
       if (!configs || configs.length === 0) {
-        notifications.show({ title: 'Aviso', message: 'El rol existe pero no tiene días configurados.', color: 'yellow' });
+        notify.warning('El rol existe pero no tiene días configurados.', 'Aviso');
         setActiveStep(1); 
         return;
       }
@@ -170,14 +167,10 @@ function PlanningWizardContent() {
       setPreviewAssignments(newPreviewAssignments as any);
       setActiveStep(2);
 
-      notifications.show({
-        title: 'Rol Cargado',
-        message: 'Se cargaron exitosamente los datos guardados anteriormente.',
-        color: 'teal'
-      });
+      notify.success('Se cargaron exitosamente los datos guardados anteriormente.', 'Rol Cargado');
     } catch (err: any) {
       console.error('Error loading role:', err);
-      notifications.show({ title: 'Error', message: 'No se pudo cargar el rol existente.', color: 'red' });
+      notify.error('No se pudo cargar el rol existente.');
     } finally {
       setLoading(false);
     }
@@ -186,23 +179,13 @@ function PlanningWizardContent() {
   const handleNext = async () => {
     if (activeStep === 0) {
       if (!selectedDeptId || !selectedMonth) {
-        notifications.show({
-          title: 'Selección Faltante',
-          message: 'Por favor, elige un departamento y el mes de trabajo.',
-          color: 'yellow',
-          icon: <IconInfoCircle size={18} />
-        });
+        notify.warning('Por favor, elige un departamento y el mes de trabajo.', 'Selección Faltante');
         return;
       }
 
       // Permission check
       if (!permissions.canCreateSchedule(selectedDeptId)) {
-        notifications.show({
-          title: 'Acceso Denegado',
-          message: 'No tienes permiso para planificar este departamento.',
-          color: 'red',
-          icon: <IconLock size={18} />
-        });
+        notify.error('No tienes permiso para planificar este departamento.', 'Acceso Denegado');
         return;
       }
 
@@ -222,12 +205,7 @@ function PlanningWizardContent() {
             .maybeSingle();
 
           if (!servHeader) {
-            notifications.show({
-              title: 'Prioridad Requerida',
-              message: 'Debes generar primero el rol del departamento de Servidores para este mes.',
-              color: 'orange',
-              icon: <IconAlertCircle size={18} />
-            });
+            notify.warning('Debes generar primero el rol del departamento de Servidores para este mes.', 'Prioridad Requerida');
             return;
           }
         } catch (error) {
@@ -240,11 +218,7 @@ function PlanningWizardContent() {
 
     if (activeStep === 1) {
       if (!selectedDates.length) {
-        notifications.show({
-          title: 'Sin Fechas',
-          message: 'Debes seleccionar al menos un día de servicio.',
-          color: 'yellow'
-        });
+        notify.warning('Debes seleccionar al menos un día de servicio.', 'Sin Fechas');
         return;
       }
 
@@ -298,22 +272,13 @@ function PlanningWizardContent() {
 
         setPreviewAssignments(mapped);
 
-        notifications.show({
-          title: 'Generación Exitosa',
-          message: `Se asignaron ${mapped.length} puestos automáticamente using IA.`,
-          color: 'teal',
-          icon: <IconRobot size={18} />
-        });
+        notify.success(`Se asignaron ${mapped.length} puestos automáticamente using IA.`, 'Generación Exitosa');
 
         setActiveStep(activeStep + 1);
 
       } catch (error) {
         console.error(error);
-        notifications.show({
-          title: 'Error',
-          message: 'Falló la generación automática.',
-          color: 'red'
-        });
+        notify.error('Falló la generación automática.');
       } finally {
         setLoading(false);
       }
@@ -442,22 +407,13 @@ function PlanningWizardContent() {
         if (aError) throw aError;
       }
 
-      notifications.show({
-        title: '¡Éxito!',
-        message: 'El rol ha sido guardado correctamente.',
-        color: 'green',
-        icon: <IconChecklist size={18} />
-      });
+      notify.success('El rol ha sido guardado correctamente.', '¡Éxito!');
 
       navigate('/');
 
     } catch (error: any) {
       console.error('Error saving role:', error);
-      notifications.show({
-        title: 'Error al Guardar',
-        message: error.message || 'No se pudo guardar el rol.',
-        color: 'red'
-      });
+      notify.error(error.message || 'No se pudo guardar el rol.', 'Error al Guardar');
     } finally {
       setLoading(false);
     }
