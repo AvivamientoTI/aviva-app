@@ -6,8 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   IconBuilding,
   IconCalendar,
-  IconChecklist,
-  IconAlertCircle
+  IconChecklist
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { supabase } from '../../services/supabaseClient';
