@@ -104,8 +104,14 @@ export default function ScheduleView() {
     const handleExport = useCallback(() => {
         const fileName = viewMode === 'calendar' ? 'calendario-servidores.png' : 'detalle-asignaciones.png';
         const exportRef = viewMode === 'calendar' ? calendarRef : detailRef;
-        exportToPng(exportRef as any, fileName);
-    }, [viewMode, exportToPng]);
+        const deptLabel = departments.find(d => d.value === selectedDept)?.label || '';
+        
+        exportToPng(exportRef as any, fileName, {
+            title: viewMode === 'calendar' ? 'Calendario de Servidores' : 'Detalle de Asignaciones',
+            subtitle: dayjs(currentDate).format('MMMM YYYY'),
+            departmentName: deptLabel
+        });
+    }, [viewMode, exportToPng, departments, selectedDept, currentDate]);
 
     const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, blockedUserIds, loadingAssignedUsers);
 

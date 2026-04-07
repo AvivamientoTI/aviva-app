@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
 import { jsPDF } from 'jspdf';
-import { toPng } from 'html-to-image';
+import { exportHelper } from '../../../utils/exportHelper';
 import { analyticsService } from '../../../services/analyticsService';
 import { notify } from '../../../utils/notificationsHelper';
 
@@ -51,15 +51,12 @@ export function useRoleExport(userProfile: any) {
                     document.body.appendChild(container);
 
                     try {
-                        const dataUrl = await toPng(clone, { 
-                            quality: 1.0, 
-                            pixelRatio: 3,
-                            cacheBust: true,
-                            style: {
-                                visibility: 'visible',
-                                position: 'static',
-                                width: '850px'
-                            }
+                        const dataUrl = await exportHelper.captureAndDownload(clone, {
+                            fileName: `Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.png`,
+                            title: 'Mi Rol de Servicio',
+                            subtitle: dayjs().format('MMMM YYYY'),
+                            departmentName: userProfile.departamento?.nombre || 'General',
+                            pixelRatio: 3
                         });
 
                         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -72,7 +69,7 @@ export function useRoleExport(userProfile: any) {
                         
                         notify.success('Tu rol ha sido exportado exitosamente.', '¡Listo!');
                     } catch (err) {
-                        console.error('Error in toPng:', err);
+                        console.error('Error in export:', err);
                         notify.error('Error al generar la imagen del rol.');
                     } finally {
                         document.body.removeChild(container);
