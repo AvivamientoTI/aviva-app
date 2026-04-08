@@ -133,8 +133,11 @@ export const exportHelper = {
             const canvas = await toCanvas(wrapper, {
                 pixelRatio,
                 backgroundColor: '#ffffff',
-                skipFonts: false, // Intentar con fuentes primero, el timeout ayuda
+                skipFonts: false, 
             });
+
+            // Generar DataURL para retornar (compatibilidad con jsPDF)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
             // Limpiar el wrapper inmediatamente después de pasar a canvas
             if (wrapper.parentNode) {
@@ -142,30 +145,33 @@ export const exportHelper = {
             }
 
             // 7. Conversión a BLOB JPEG (Soluciona error de tamaño en Mayo)
-            canvas.toBlob(async (blob) => {
-                if (!blob) {
-                    notify.error('Error al procesar la imagen final.');
-                    return;
-                }
+            // Retornamos una promesa que se resuelve con el dataUrl para no romper el flujo
+            return new Promise<string>((resolve) => {
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        notify.error('Error al procesar la imagen final.');
+                        resolve(dataUrl);
+                        return;
+                    }
 
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = downloadUrl;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
 
-                // Cleanup
-                setTimeout(() => {
-                    URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                }, 100);
+                    // Cleanup download link
+                    setTimeout(() => {
+                        URL.revokeObjectURL(downloadUrl);
+                        document.body.removeChild(a);
+                    }, 100);
 
-                notify.success('Reporte generado con nitidez premium', '¡Éxito!');
-            }, 'image/jpeg', 0.9);
-
-            return true;
+                    notify.success('Reporte generado con nitidez premium', '¡Éxito!');
+                    resolve(dataUrl);
+                }, 'image/jpeg', 0.9);
+            });
         } catch (error: any) {
             console.error('CRITICAL EXPORT ERROR:', error);
             notify.error('Error de memoria en el dispositivo. Intenta cerrar otras pestañas.', 'Error de Captura');

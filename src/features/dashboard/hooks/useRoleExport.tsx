@@ -34,29 +34,17 @@ export function useRoleExport(userProfile: any) {
 
             setExportData(data);
 
-            // Esperar a que el componente se renderice en el DOM (en el contenedor oculto o visible)
+            // Esperar a que el componente se renderice en el DOM
             setTimeout(async () => {
                 if (reportRef.current) {
-                    const originalElement = reportRef.current;
-                    
-                    // Estrategia Off-screen para consistencia móvil
-                    const clone = originalElement.cloneNode(true) as HTMLElement;
-                    const container = document.createElement('div');
-                    container.style.position = 'fixed';
-                    container.style.left = '-9999px';
-                    container.style.top = '-9999px';
-                    container.style.width = '850px'; // Ancho estándar para reportes A4 aprox
-                    container.style.backgroundColor = 'white';
-                    container.appendChild(clone);
-                    document.body.appendChild(container);
-
                     try {
-                        const dataUrl = await exportHelper.captureAndDownload(clone, {
+                        // Usar el helper robusto directamente (él se encarga de clonar, marcos y estilos)
+                        const dataUrl = await exportHelper.captureAndDownload(reportRef.current, {
                             fileName: `Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.png`,
                             title: 'Mi Rol de Servicio',
                             subtitle: dayjs().format('MMMM YYYY'),
                             departmentName: userProfile.departamento?.nombre || 'General',
-                            pixelRatio: 3
+                            pixelRatio: 2.5
                         });
 
                         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -64,15 +52,14 @@ export function useRoleExport(userProfile: any) {
                         const pdfWidth = pdf.internal.pageSize.getWidth();
                         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
                         
-                        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                        pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
                         pdf.save(`Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.pdf`);
                         
                         notify.success('Tu rol ha sido exportado exitosamente.', '¡Listo!');
                     } catch (err) {
                         console.error('Error in export:', err);
-                        notify.error('Error al generar la imagen del rol.');
+                        notify.error('Error al generar el documento del rol.');
                     } finally {
-                        document.body.removeChild(container);
                         setExportData(null);
                     }
                 }
