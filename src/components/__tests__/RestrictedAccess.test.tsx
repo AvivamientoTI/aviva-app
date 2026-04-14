@@ -11,7 +11,7 @@ describe('RestrictedAccess', () => {
             </MantineProvider>
         );
 
-        expect(screen.getByText('Acceso restringido')).toBeInTheDocument();
-        expect(screen.getByText(/No tienes permisos para acceder/i)).toBeInTheDocument();
+        expect(screen.getByText('Acceso Denegado')).toBeInTheDocument();
+        expect(screen.getByText(/Lo sentimos, no tienes los permisos necesarios para acceder a esta sección./i)).toBeInTheDocument();
     });
 });

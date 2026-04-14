@@ -43,7 +43,8 @@ export const useAvailableUsersForSwap = (
             const uIdStr = String(u.id);
             
             // 1. Availability check (Global Conflict)
-            const isExcluded = assignedUserIdsOnDay.has(uIdStr);
+            // Incluimos al usuario que estamos intentando cambiar (swapTarget) para que aparezca en la lista
+            const isExcluded = assignedUserIdsOnDay.has(uIdStr) && uIdStr !== String(swapTarget?.usuario_id);
             if (isExcluded) return false;
 
             // 2. Gender check (Strict)
@@ -54,7 +55,7 @@ export const useAvailableUsersForSwap = (
 
             // 3. Encargado Pos Logic
             if (isEncargadoPos) {
-                const leaderRoles = ['lider', 'sublider', 'encargado', 'liderazgo'];
+                const leaderRoles = ['lider', 'sublider', 'encargad', 'liderazgo'];
                 return u.roles?.some((r: string) => {
                     const rNorm = normalize(r);
                     return leaderRoles.some(role => rNorm.includes(role));
