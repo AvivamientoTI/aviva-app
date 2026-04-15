@@ -125,7 +125,7 @@ export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Re
 
         const nombreCompleto = item.usuario ? `${item.usuario.nombre} ${item.usuario.apellido}` : 'Usuario desconocido';
 
-        const posName = typeof item.posicion === 'object' && !Array.isArray(item.posicion) ? (item.posicion as any).nombre :
+        const posName = item.posicion && typeof item.posicion === 'object' && !Array.isArray(item.posicion) ? (item.posicion as any).nombre :
             Array.isArray(item.posicion) ? item.posicion[0]?.nombre : item.posicion;
 
         acc[fecha].assignments.push({
