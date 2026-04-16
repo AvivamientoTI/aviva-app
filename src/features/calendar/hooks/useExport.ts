@@ -48,10 +48,9 @@ function generateSchedulePdf(
     const GRAY   = [100, 116, 139] as [number,number,number];
     const LIGHT  = [248, 250, 252] as [number,number,number];
     const BORDER = [226, 232, 240] as [number,number,number];
-    const WHITE  = [255, 255, 255] as [number,number,number];
+    // const WHITE  = [255, 255, 255] as [number,number,number]; // reserved
 
     let pageNum = 1;
-    const totalPages = () => pdf.getNumberOfPages();
 
     const drawPageHeader = () => {
         // Fondo header
@@ -155,7 +154,6 @@ function generateSchedulePdf(
         }
 
         // Lista de servidores en 2 columnas
-        const COL2 = Math.ceil(servers.length / 2);
         const COL_W = CW / 2 - 2;
         for (let i = 0; i < servers.length; i++) {
             const server = servers[i];
