@@ -36,10 +36,9 @@ export const conversationalService = {
 
         if (error || !data || !data.data) {
             console.error("Error AI Edge:", error);
-            // Fallback si no hay API_KEY o falla el Edge Function
             return {
                 type: 'text',
-                message: 'El Servidor de Inteligencia Artificial (LLM) no respondió correctamente. Asegúrate de tener configurada la llave secreta OPENAI_API_KEY en Supabase o haber redesplegado la función "chat-ai".'
+                message: 'El Asistente de IA no pudo procesar tu consulta. Intenta de nuevo más tarde.'
             };
         }
 

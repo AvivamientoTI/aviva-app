@@ -36,3 +36,6 @@ test-results
 
 # OS
 Thumbs.db
+
+# MCP config (contains secrets)
+.mcp.json

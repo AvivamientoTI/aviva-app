@@ -10,7 +10,8 @@ import {
     Loader,
     Box,
     Collapse,
-    Badge
+    Badge,
+    List
 } from '@mantine/core';
 import {
     IconSend,
@@ -23,6 +24,71 @@ import {
 } from '@tabler/icons-react';
 import { BarChart, DonutChart } from '@mantine/charts';
 import { conversationalService, type AiResponse } from '../../../services/conversationalService';
+
+// Renderiza texto con soporte básico de markdown: **negrita** y saltos de línea
+const MarkdownText = ({ text }: { text: string }) => {
+    const lines = text.split('\n').filter(l => l.trim() !== '');
+
+    const renderLine = (line: string, key: number) => {
+        // Detectar viñetas: líneas que empiezan con •, -, *
+        const isBullet = /^[\u2022\-\*]\s/.test(line.trim());
+        const content = isBullet ? line.trim().replace(/^[\u2022\-\*]\s/, '') : line;
+
+        // Renderizar **negrita** dentro del texto
+        const parts = content.split(/\*\*(.+?)\*\*/g);
+        const rendered = parts.map((part, i) =>
+            i % 2 === 1
+                ? <strong key={i}>{part}</strong>
+                : <span key={i}>{part}</span>
+        );
+
+        if (isBullet) {
+            return (
+                <List.Item key={key}>
+                    <Text size="sm">{rendered}</Text>
+                </List.Item>
+            );
+        }
+        return <Text key={key} size="sm">{rendered}</Text>;
+    };
+
+    const bulletLines = lines.filter(l => /^[\u2022\-\*]\s/.test(l.trim()));
+    const hasBullets = bulletLines.length > 0;
+
+    if (hasBullets) {
+        const elements: React.ReactNode[] = [];
+        let bulletBuffer: string[] = [];
+
+        lines.forEach((line, i) => {
+            const isBullet = /^[\u2022\-\*]\s/.test(line.trim());
+            if (isBullet) {
+                bulletBuffer.push(line);
+            } else {
+                if (bulletBuffer.length > 0) {
+                    elements.push(
+                        <List size="sm" spacing={4} key={`list-${i}`}>
+                            {bulletBuffer.map((bl, bi) => renderLine(bl, bi))}
+                        </List>
+                    );
+                    bulletBuffer = [];
+                }
+                elements.push(renderLine(line, i));
+            }
+        });
+
+        if (bulletBuffer.length > 0) {
+            elements.push(
+                <List size="sm" spacing={4} key="list-end">
+                    {bulletBuffer.map((bl, bi) => renderLine(bl, bi))}
+                </List>
+            );
+        }
+
+        return <Stack gap={6}>{elements}</Stack>;
+    }
+
+    return <Stack gap={4}>{lines.map((line, i) => renderLine(line, i))}</Stack>;
+};
 
 interface AiQueryWidgetProps {
     departmentId: number;
@@ -76,7 +142,9 @@ export const AiQueryWidget = ({ departmentId }: AiQueryWidgetProps) => {
                     <ThemeIcon variant="light" color="grape" size="md" radius="xl" mt={2}>
                         <IconSparkles size={14} />
                     </ThemeIcon>
-                    <Text size="sm" style={{ flex: 1 }}>{response.message}</Text>
+                    <Box style={{ flex: 1 }}>
+                        <MarkdownText text={response.message} />
+                    </Box>
                 </Group>
 
                 {response.type === 'chart' && response.chartData && (
