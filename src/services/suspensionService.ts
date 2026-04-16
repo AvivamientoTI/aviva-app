@@ -19,9 +19,10 @@ export const suspensionService = {
      * Crea una nueva suspensión
      */
     async create(suspension: Omit<Suspension, 'id' | 'created_at' | 'created_by' | 'usuario'>): Promise<void> {
+        const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase
             .from('suspensiones')
-            .insert(suspension);
+            .insert({ ...suspension, created_by: user?.id ?? null });
 
         if (error) throw error;
     },
@@ -38,7 +39,7 @@ export const suspensionService = {
                 *,
                 usuario:usuarios (nombre, apellido)
             `)
-            .gte('fecha_fin', today)
+            .or(`fecha_fin.gte.${today},fecha_fin.is.null`)
             .order('fecha_inicio', { ascending: false });
 
         if (error) throw error;
@@ -128,7 +129,7 @@ export const suspensionService = {
             .select('*', { count: 'exact', head: true })
             .eq('usuario_id', userId)
             .lte('fecha_inicio', date)
-            .gte('fecha_fin', date);
+            .or(`fecha_fin.gte.${date},fecha_fin.is.null`);
 
         if (error) throw error;
         return (count || 0) > 0;

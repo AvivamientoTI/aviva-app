@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { suspensionService, type Suspension } from '../../services/suspensionService';
 import { useUser } from '../../contexts/UserContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import {
     Container,
     Title,
@@ -41,7 +42,11 @@ import 'dayjs/locale/es';
 
 export default function SuspensionManager() {
     const { isServidoresAdmin } = useUser();
-    const isAuthorized = isServidoresAdmin();
+    const permissions = usePermissions();
+    // Acceso: administradores del sistema O líderes/sublíderes de cualquier departamento
+    const isAuthorized = isServidoresAdmin()
+        || permissions.isSystemAdmin
+        || permissions.isLiderOrSubliderServidores;
 
     const [suspensions, setSuspensions] = useState<Suspension[]>([]);
     const [users, setUsers] = useState<{ value: string; label: string }[]>([]);

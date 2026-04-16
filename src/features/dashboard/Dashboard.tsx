@@ -187,7 +187,10 @@ export default function Dashboard() {
                     </Grid.Col>
 
                     <Grid.Col span={{ base: 12, lg: 5 }} className="animate-fade-in card-stagger-2">
-                        <UpcomingServiceCard nextService={nextService} />
+                        <UpcomingServiceCard
+                            nextService={nextService}
+                            serverName={userProfile?.usuario ? `${(userProfile.usuario as any).nombre} ${(userProfile.usuario as any).apellido}` : ''}
+                        />
                     </Grid.Col>
                 </Grid>
 

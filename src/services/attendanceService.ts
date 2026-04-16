@@ -130,7 +130,6 @@ export const attendanceService = {
         const { error } = await supabase
             .from('asistencias')
             .upsert(records.map(r => ({
-                id: String(r.id).startsWith('temp-') ? undefined : r.id,
                 usuario_id: r.usuario_id,
                 configuracion_dia_id: r.configuracion_dia_id,
                 estado: r.estado,

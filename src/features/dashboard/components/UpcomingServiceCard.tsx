@@ -1,9 +1,9 @@
-
-import { Card, Box, Stack, Group, Badge, ThemeIcon, Text, Title, Button } from '@mantine/core';
-import { IconRocket, IconCalendarEvent, IconArrowRight } from '@tabler/icons-react';
+import { Card, Box, Stack, Group, Badge, ThemeIcon, Text, Title, Button, Menu } from '@mantine/core';
+import { IconRocket, IconCalendarEvent, IconArrowRight, IconCalendarPlus, IconDownload, IconBrandGoogle } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { UpcomingService } from '../../../hooks/useDashboardData';
+import { downloadICS, googleCalendarUrl, outlookCalendarUrl } from '../../../utils/calendarSync';
 
 // Helper to safely get the first item or the item itself
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,9 +11,10 @@ const getSingle = (val: any) => Array.isArray(val) ? val[0] : val;
 
 interface UpcomingServiceCardProps {
     nextService: UpcomingService | null;
+    serverName?: string;
 }
 
-export function UpcomingServiceCard({ nextService }: UpcomingServiceCardProps) {
+export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingServiceCardProps) {
     const navigate = useNavigate();
 
     if (!nextService) {
@@ -31,6 +32,20 @@ export function UpcomingServiceCard({ nextService }: UpcomingServiceCardProps) {
             </Card>
         );
     }
+
+    const config = getSingle(nextService.configuracion_dia);
+    const posicion = getSingle(nextService.posicion);
+    const fecha: string = config?.fecha ?? '';
+    const posicionNombre: string = posicion?.nombre ?? 'Servidor';
+    const tipoServicio: string = config?.tipo_servicio ?? '';
+    const uniforme: string = config?.color_uniforme ?? '';
+    const departamento: string = getSingle(posicion?.departamento)?.nombre ?? '';
+
+    const serviceEvent = { fecha, posicion: posicionNombre, departamento, tipoServicio, uniforme };
+
+    const handleICS = () => {
+        downloadICS([serviceEvent], serverName, `servicio-${fecha}.ics`);
+    };
 
     return (
         <Card padding="xl" radius="xl" withBorder className="animate-fade-in" style={{
@@ -63,7 +78,7 @@ export function UpcomingServiceCard({ nextService }: UpcomingServiceCardProps) {
 
                     <Stack gap={2}>
                         <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 1 }}>
-                            {getSingle(getSingle(nextService.posicion)?.departamento)?.nombre}
+                            {departamento}
                         </Text>
                         <Title order={3} style={{
                             fontFamily: 'Inter, sans-serif',
@@ -71,32 +86,78 @@ export function UpcomingServiceCard({ nextService }: UpcomingServiceCardProps) {
                             color: 'var(--mantine-color-gold-text)',
                             letterSpacing: '-0.01em'
                         }}>
-                            {getSingle(nextService.posicion)?.nombre || 'Servidor'}
+                            {posicionNombre}
                         </Title>
                     </Stack>
 
                     <Group gap="xs" mt={8}>
                         <IconCalendarEvent size={18} color="#d97706" />
                         <Text size="md" fw={700} c="stone.7">
-                            {dayjs(getSingle(nextService.configuracion_dia)?.fecha).format('dddd, D [de] MMMM')}
+                            {fecha ? dayjs(fecha).format('dddd, D [de] MMMM') : '—'}
                         </Text>
                     </Group>
 
                     <Badge mt="md" size="md" variant="light" color="stone" p="md">
-                        {getSingle(nextService.configuracion_dia)?.tipo_servicio}
+                        {tipoServicio}
                     </Badge>
                 </div>
 
-                <Button
-                    fullWidth
-                    className="btn-premium"
-                    mt="xl"
-                    size="md"
-                    rightSection={<IconArrowRight size={18} />}
-                    onClick={() => navigate('/calendar')}
-                >
-                    Ver Detalles de Misión
-                </Button>
+                <Stack gap="xs" mt="xl">
+                    {/* Agregar al calendario */}
+                    {fecha && (
+                        <Menu shadow="md" radius="md" position="top-start">
+                            <Menu.Target>
+                                <Button
+                                    fullWidth
+                                    variant="light"
+                                    color="blue"
+                                    size="sm"
+                                    radius="xl"
+                                    leftSection={<IconCalendarPlus size={16} />}
+                                >
+                                    Agregar al Calendario
+                                </Button>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                                <Menu.Label>Exportar a</Menu.Label>
+                                <Menu.Item
+                                    leftSection={<IconDownload size={14} />}
+                                    onClick={handleICS}
+                                >
+                                    Descargar .ics (Apple / Outlook)
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconBrandGoogle size={14} />}
+                                    component="a"
+                                    href={googleCalendarUrl(serviceEvent)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Google Calendar
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconCalendarEvent size={14} />}
+                                    component="a"
+                                    href={outlookCalendarUrl(serviceEvent)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Outlook Web
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>
+                    )}
+
+                    <Button
+                        fullWidth
+                        className="btn-premium"
+                        size="md"
+                        rightSection={<IconArrowRight size={18} />}
+                        onClick={() => navigate('/calendar')}
+                    >
+                        Ver Detalles de Misión
+                    </Button>
+                </Stack>
             </Stack>
         </Card>
     );

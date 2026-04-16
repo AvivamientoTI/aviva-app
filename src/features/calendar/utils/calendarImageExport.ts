@@ -105,6 +105,13 @@ function fit(ctx: CanvasRenderingContext2D, text: string, maxPx: number): string
     return t + '…';
 }
 
+/** Solo primer nombre + primer apellido (ej. "María González") */
+function shortName(fullName: string): string {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    return parts.length >= 2 ? `${parts[0]} ${parts[1]}` : parts[0] ?? '';
+}
+
 // ─── Rounded rect helpers ─────────────────────────────────────────────────────
 
 function fillRR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
@@ -173,7 +180,7 @@ function px(v: number, S: number) { return Math.round(v * S); }
 function rowCount(group: any): number {
     const enc = group.encargado ? 1 : 0;
     const srvs = (group.assignments || []).filter((sv: any) => !isEncargado(sv, group.encargado || '')).length;
-    return enc + srvs;
+    return enc + srvs + 1; // +1 row reservada para el uniforme al pie
 }
 
 // ─── Build week/column maps ────────────────────────────────────────────────────
@@ -295,13 +302,15 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
             fillRR(ctx, x, cellY, cellW, cellTotalH, px(L.R, S), us.cellBg);
             strokeRR(ctx, x, cellY, cellW, cellTotalH, px(L.R, S), us.accent + '70', Math.round(S * 0.8));
 
-            // Cell header
+            // ── Cell header: muestra tipo de culto (servicio) ─────────────
             fillTopRR(ctx, x, cellY, cellW, CHH, px(L.R, S), us.bg);
+            // Línea 1: tipo de culto (servicio) — más prominente
+            const servicioLabel = (group.servicio || us.label).toUpperCase();
             ctx.font = `900 ${px(9, S)}px Arial,Helvetica,sans-serif`;
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(fit(ctx, us.label, cellW - px(6, S)), x + cellW / 2, cellY + CHH / 2);
+            ctx.fillText(fit(ctx, servicioLabel, cellW - px(6, S)), x + cellW / 2, cellY + CHH / 2);
             ctx.textAlign = 'left';
 
             let cy = cellY + CHH + px(2, S);
@@ -321,14 +330,14 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
                 ctx.font = `600 ${px(8, S)}px Arial,Helvetica,sans-serif`;
                 ctx.fillStyle = '#0f172a';
                 ctx.fillText(
-                    fit(ctx, encargado, cellW - px(L.PX, S) * 2 - px(3, S) - lw),
+                    fit(ctx, shortName(encargado), cellW - px(L.PX, S) * 2 - px(3, S) - lw),
                     x + px(L.PX, S) + px(3, S) + lw,
                     midY
                 );
                 cy += px(L.ROW_H, S);
             }
 
-            // Server rows
+            // Server rows — nombre corto (primer nombre + primer apellido)
             for (let j = 0; j < servers.length; j++) {
                 const sv   = servers[j];
                 const rowY = cy + j * px(L.ROW_H, S);
@@ -346,10 +355,23 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
                 ctx.font = `400 ${px(8, S)}px Arial,Helvetica,sans-serif`;
                 ctx.fillStyle = '#1e293b';
                 ctx.fillText(
-                    fit(ctx, sv.nombre || '', cellW - px(L.PX, S) * 2 - px(L.POS_W, S)),
+                    fit(ctx, shortName(sv.nombre || ''), cellW - px(L.PX, S) * 2 - px(L.POS_W, S)),
                     x + px(L.PX, S) + px(L.POS_W, S),
                     midY
                 );
+            }
+
+            // ── Uniforme al pie de la celda ───────────────────────────────
+            if (us.label) {
+                const uY = cellY + cellTotalH - px(L.ROW_H, S);
+                ctx.fillStyle = us.accent + '28';
+                ctx.fillRect(x, uY, cellW, px(L.ROW_H, S));
+                ctx.font = `600 ${px(7, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = us.accent;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(fit(ctx, us.label, cellW - px(6, S)), x + cellW / 2, uY + px(L.ROW_H, S) / 2);
+                ctx.textAlign = 'left';
             }
         }
 
