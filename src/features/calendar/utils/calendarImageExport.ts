@@ -1,72 +1,102 @@
+/**
+ * Calendar image export — replicates the compact weekly-grid format:
+ *
+ *  ┌─────────────────── ROL DE ABRIL ────────────────────┐
+ *  │ MARTES 07  │ MIERCOLES 08 │ VIERNES 10 │ SABADO 11  │  ← mini-header per week
+ *  │ CAMISA AZUL│   VARONES    │    ...     │  UNI FORMAL │  ← cells fill full width
+ *  │ MARTES 14  │ MIERCOLES 15 │ JUEVES 16  │ VIERNES 17  │
+ *  │   ...      │     ...      │    ...     │    ...      │
+ *  └─────────────────────────────────────────────────────┘
+ *
+ * Drawn entirely with Canvas 2D API — no DOM capture, no blank-image risk.
+ */
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { notify } from '../../../utils/notificationsHelper';
 
 dayjs.locale('es');
 
-const DAY_ORDER = (d: number) => (d === 0 ? 7 : d);
-const DAY_NAMES: Record<number, string> = {
+// ─── Day helpers ──────────────────────────────────────────────────────────────
+
+const DAY_SHORT: Record<number, string> = {
     0: 'DOMINGO', 1: 'LUNES', 2: 'MARTES', 3: 'MIERCOLES',
-    4: 'JUEVES', 5: 'VIERNES', 6: 'SABADO',
+    4: 'JUEVES',  5: 'VIERNES', 6: 'SABADO',
 };
 
-interface UStyle { headerBg: string; cellBg: string; accentColor: string; label: string; }
+function getMondayOfWeek(dateStr: string): string {
+    const d = dayjs(dateStr);
+    const dow = d.day();
+    return d.subtract(dow === 0 ? 6 : dow - 1, 'day').format('YYYY-MM-DD');
+}
 
-function getUStyle(uniforme: string, servicio: string): UStyle {
+// ─── Uniform styles ───────────────────────────────────────────────────────────
+
+interface UStyle { bg: string; cellBg: string; accent: string; label: string; }
+
+function uStyle(uniforme: string, servicio: string): UStyle {
     const u = (uniforme || '').toLowerCase();
     const s = (servicio || '').toLowerCase();
     if (s.includes('niño') || s.includes('infantil') || s.includes('kids'))
-        return { headerBg: '#6d28d9', cellBg: '#ede9fe', accentColor: '#5b21b6', label: 'CULTO NIÑOS' };
+        return { bg: '#6d28d9', cellBg: '#ede9fe', accent: '#5b21b6', label: 'CULTO NIÑOS' };
     if (s.includes('matrimoni') || s.includes('boda'))
-        return { headerBg: '#0369a1', cellBg: '#e0f2fe', accentColor: '#0284c7', label: 'MATRIMONIO' };
+        return { bg: '#0369a1', cellBg: '#e0f2fe', accent: '#0284c7', label: 'MATRIMONIOS' };
     if (s.includes('formac') || s.includes('capacit'))
-        return { headerBg: '#047857', cellBg: '#d1fae5', accentColor: '#065f46', label: 'FORMACIÓN' };
+        return { bg: '#047857', cellBg: '#d1fae5', accent: '#065f46', label: 'FORMACION' };
     if (s.includes('especial') || s.includes('aniversar'))
-        return { headerBg: '#b45309', cellBg: '#fef3c7', accentColor: '#92400e', label: 'ESPECIAL' };
+        return { bg: '#b45309', cellBg: '#fef3c7', accent: '#92400e', label: 'ESPECIAL' };
     if (u.includes('azul'))
-        return { headerBg: '#1d4ed8', cellBg: '#dbeafe', accentColor: '#1e40af', label: 'CAMISA AZUL' };
+        return { bg: '#1d4ed8', cellBg: '#dbeafe', accent: '#1e40af', label: 'CAMISA AZUL' };
     if (u.includes('vino') || u.includes('rojo') || u.includes('bordo'))
-        return { headerBg: '#9f1239', cellBg: '#ffe4e6', accentColor: '#881337', label: 'CAMISA VINO' };
+        return { bg: '#9f1239', cellBg: '#ffe4e6', accent: '#881337', label: 'CAMISA VINO' };
     if (u.includes('gris'))
-        return { headerBg: '#334155', cellBg: '#f1f5f9', accentColor: '#1e293b', label: 'UNI GRIS' };
+        return { bg: '#334155', cellBg: '#f1f5f9', accent: '#1e293b', label: 'UNI FORMAL GRIS' };
     if (u.includes('beige') || u.includes('crema'))
-        return { headerBg: '#92400e', cellBg: '#fefce8', accentColor: '#78350f', label: 'CAMISA BEIGE' };
+        return { bg: '#92400e', cellBg: '#fefce8', accent: '#78350f', label: 'CAMISA BEIGE' };
     if (u.includes('blanca') || u.includes('blanco'))
-        return { headerBg: '#475569', cellBg: '#f8fafc', accentColor: '#334155', label: 'CAMISA BLANCA' };
+        return { bg: '#374151', cellBg: '#f8fafc', accent: '#334155', label: 'CAMISA BLANCA' };
     if (u.includes('negra') || u.includes('negro'))
-        return { headerBg: '#111827', cellBg: '#e5e7eb', accentColor: '#1f2937', label: 'CAMISA NEGRA' };
+        return { bg: '#111827', cellBg: '#e5e7eb', accent: '#1f2937', label: 'CAMISA NEGRA' };
     if (u.includes('formal'))
-        return { headerBg: '#b45309', cellBg: '#fef3c7', accentColor: '#92400e', label: 'UNI FORMAL' };
-    return { headerBg: '#374151', cellBg: '#f3f4f6', accentColor: '#1f2937', label: uniforme || 'SERVICIO' };
+        return { bg: '#b45309', cellBg: '#fef3c7', accent: '#92400e', label: 'UNI FORMAL' };
+    if (u.includes('varon') || u.includes('hombre'))
+        return { bg: '#1e40af', cellBg: '#dbeafe', accent: '#1d4ed8', label: 'VARONES' };
+    return { bg: '#374151', cellBg: '#f3f4f6', accent: '#1f2937', label: uniforme || 'SERVICIO' };
 }
 
-function getMondayOfWeek(d: string): string {
-    const dt = dayjs(d);
-    const dow = dt.day();
-    return dt.subtract(dow === 0 ? 6 : dow - 1, 'day').format('YYYY-MM-DD');
-}
+// ─── Position abbreviation ────────────────────────────────────────────────────
 
-function abbrevPos(pos: string): string {
+function abbrev(pos: string): string {
     if (!pos) return '';
     const p = pos.toUpperCase();
-    if (p.includes('ENCARGAD'))                      return 'ENCAR';
-    if (p.includes('CARRO') || p.includes('PARQUEO')) return 'CARRO';
-    if (p.includes('PUERTA') || p.includes('ENTRAD')) return 'PUERTA';
-    if (p.includes('ALTAR D') || p.includes('PLATAF')) return 'ALT.D';
-    if (p.includes('ALTAR IZ'))                       return 'ALT.IZ';
-    if (p.includes('ALTAR'))                          return 'ALTAR';
-    if (p.includes('BAÑO') || p.includes('BANO'))     return 'BAÑOS';
-    if (p.includes('NIÑO') || p.includes('INFANTIL')) return 'NIÑOS';
-    if (p.includes('SERVIR') || p.includes('SERVID')) return 'SERV';
-    if (p.includes('LIBRE'))                          return 'LIBRE';
-    if (p.includes('SONIDO') || p.includes('SOUND'))  return 'AUDIO';
-    if (p.includes('USHER'))                          return 'USHER';
-    if (p.includes('AYUD'))                           return 'AYUD';
-    if (p.includes('ACOMOD'))                         return 'ACOM';
-    return p.length > 7 ? p.slice(0, 6) + '.' : p;
+    if (p.includes('ENCARGAD'))                        return 'ENCAR';
+    if (p.includes('CARRO') || p.includes('PARQUEO'))  return 'CARRO';
+    if (p.includes('PUERTA') || p.includes('ENTRAD'))  return 'PUERTA';
+    if (p.includes('ALTAR D') || p.includes('PLATAF')) return 'ALTAR D';
+    if (p.includes('ALTAR IZ'))                        return 'ALTAR IZ';
+    if (p.includes('ALTAR'))                           return 'ALTAR';
+    if (p.includes('BAÑO') || p.includes('BANO'))      return 'BAÑOS';
+    if (p.includes('NIÑO') || p.includes('INFANTIL'))  return 'NIÑOS';
+    if (p.includes('SERVIR') || p.includes('SERVID'))  return 'SERV';
+    if (p.includes('LIBRE'))                           return 'LIBRE';
+    if (p.includes('SONIDO') || p.includes('SOUND'))   return 'AUDIO';
+    if (p.includes('USHER'))                           return 'USHER';
+    if (p.includes('AYUD'))                            return 'AYUD';
+    if (p.includes('ACOMOD'))                          return 'ACOM';
+    return p.length > 8 ? p.slice(0, 7) + '.' : p;
 }
 
-/** Fit text within maxPx, appending ellipsis if needed */
+/** Is this server the encargado? (filter from regular rows to avoid duplication) */
+function isEncargado(sv: any, encarName: string): boolean {
+    const pos = (sv.posicion || '').toUpperCase();
+    if (pos.includes('ENCARGAD')) return true;
+    if (!encarName) return false;
+    const a = (sv.nombre || '').toLowerCase().trim();
+    const b = encarName.toLowerCase().trim();
+    return a === b || b.includes(a) || a.includes(b);
+}
+
+// ─── Text helpers ─────────────────────────────────────────────────────────────
+
 function fit(ctx: CanvasRenderingContext2D, text: string, maxPx: number): string {
     if (!text) return '';
     if (ctx.measureText(text).width <= maxPx) return text;
@@ -75,20 +105,10 @@ function fit(ctx: CanvasRenderingContext2D, text: string, maxPx: number): string
     return t + '…';
 }
 
-/** Is this server the encargado? (skip to avoid double listing) */
-function isEncRow(sv: any, encar: string): boolean {
-    const pos = (sv.posicion || '').toUpperCase();
-    if (pos.includes('ENCARGAD')) return true;
-    if (!encar) return false;
-    const a = (sv.nombre || '').toLowerCase().trim();
-    const b = encar.toLowerCase().trim();
-    return a === b || b.includes(a) || a.includes(b);
-}
+// ─── Rounded rect helpers ─────────────────────────────────────────────────────
 
-// ─── Drawing primitives ───────────────────────────────────────────────────────
-
-function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
-            r: number, fill: string, stroke?: string, sw = 1) {
+function fillRR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
+                r: number, fill: string) {
     r = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
     ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
@@ -100,10 +120,26 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
     ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.closePath();
     ctx.fillStyle = fill; ctx.fill();
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = sw; ctx.stroke(); }
 }
 
-function topRR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number, fill: string) {
+function strokeRR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
+                  r: number, stroke: string, lw: number) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke();
+}
+
+// Top-only rounded corners
+function fillTopRR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
+                   r: number, fill: string) {
     r = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
     ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
@@ -114,260 +150,261 @@ function topRR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
     ctx.fillStyle = fill; ctx.fill();
 }
 
-// ─── Compact constants ────────────────────────────────────────────────────────
-// All "base" values are in virtual pixels at 1×.
-// At S=3 they become crisp 3× pixels.
+// ─── Layout constants (virtual px at 1×, multiply by S for actual pixels) ─────
 
-const C = {
-    PAD:      16,   // canvas outer padding
-    GAP:       4,   // gap between cells
-    CW:      182,   // cell width
-    TITLE_H:  52,   // title block height
-    DHDR_H:   22,   // day-of-week column header height
-    CHDR_H:   18,   // cell header bar height
-    ROW_H:    13,   // height of each row (encar + servers)
-    PX:        5,   // horizontal body padding
-    POS_W:    40,   // width of position label column
-    R:         5,   // border radius
+const L = {
+    PAD:        14,   // outer canvas padding
+    GAP:         3,   // gap between cells in a week row
+    WEEK_GAP:    8,   // gap between week sections
+    GRID_W:    690,   // fixed grid width (fills equally per week)
+    TITLE_H:    48,   // title block
+    WEEK_HDR_H: 18,   // per-week mini header (shows "MARTES 07")
+    CELL_HDR_H: 16,   // cell uniform/service name bar
+    ROW_H:      12,   // height of each body row (encar + server rows)
+    PX:          5,   // horizontal padding inside cell body
+    POS_W:      40,   // width of position label column
+    R:           4,   // border radius
 };
 
-function s(v: number, S: number) { return Math.round(v * S); }
+function px(v: number, S: number) { return Math.round(v * S); }
 
-// ─── Cell height ──────────────────────────────────────────────────────────────
+// ─── Cell row count ────────────────────────────────────────────────────────────
 
-function cellH(group: any, S: number): number {
-    const servers = (group.assignments || []).filter((sv: any) => !isEncRow(sv, group.encargado || ''));
-    const rows = (group.encargado ? 1 : 0) + servers.length;
-    return s(C.CHDR_H, S) + rows * s(C.ROW_H, S) + s(C.PX * 2 + 2, S);
+function rowCount(group: any): number {
+    const enc = group.encargado ? 1 : 0;
+    const srvs = (group.assignments || []).filter((sv: any) => !isEncargado(sv, group.encargado || '')).length;
+    return enc + srvs;
 }
 
-// ─── Draw one cell ────────────────────────────────────────────────────────────
+// ─── Build week/column maps ────────────────────────────────────────────────────
 
-function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number,
-                  maxH: number, group: any, S: number) {
-    const us = getUStyle(group.uniforme, group.servicio);
-    const encargado: string = group.encargado || '';
-    const servers = (group.assignments || []).filter((sv: any) => !isEncRow(sv, encargado));
-    const dayNum: number = group._dayNum;
+function buildWeekStructure(grouped: Record<string, any>) {
+    const dates = Object.keys(grouped).sort();
 
-    const CW   = s(C.CW, S);
-    const HDR  = s(C.CHDR_H, S);
-    const RR_  = s(C.R, S);
-    const PX   = s(C.PX, S);
-    const PW   = s(C.POS_W, S);
-    const RH   = s(C.ROW_H, S);
+    // Fixed column set: union of all days-of-week in the dataset, Mon→Sun order
+    const dowSet = new Set(dates.map(d => dayjs(d).day()));
+    const allDows = [...dowSet].sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
 
-    // Card shadow
-    rr(ctx, x + s(2, S), y + s(2, S), CW, maxH, RR_, '#00000014');
-    // Card bg + border
-    rr(ctx, x, y, CW, maxH, RR_, us.cellBg, us.accentColor + '60', Math.round(S));
-
-    // ── Header bar ─────────────────────────────────────────────────────────
-    topRR(ctx, x, y, CW, HDR, RR_, us.headerBg);
-
-    // Uniform label — left side
-    ctx.font = `900 ${s(9, S)}px Arial,Helvetica,sans-serif`;
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    const midH = y + HDR / 2;
-    // Reserve space for the date badge (circle on right)
-    const badgeR = s(8, S);
-    const badgeCX = x + CW - badgeR - s(5, S);
-    ctx.fillText(fit(ctx, us.label, CW - badgeR * 2 - PX * 2 - s(10, S)), x + PX, midH);
-
-    // Date badge (circle)
-    ctx.fillStyle = 'rgba(255,255,255,0.30)';
-    ctx.beginPath(); ctx.arc(badgeCX, midH, badgeR, 0, Math.PI * 2); ctx.fill();
-    ctx.font = `900 ${s(9, S)}px Arial,Helvetica,sans-serif`;
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.fillText(String(dayNum), badgeCX, midH);
-    ctx.textAlign = 'left';
-
-    let cy = y + HDR + s(C.PX, S);
-
-    // ── Encargado row ──────────────────────────────────────────────────────
-    if (encargado) {
-        const midE = cy + RH / 2;
-        // Subtle background
-        ctx.fillStyle = us.accentColor + '18';
-        ctx.fillRect(x, cy, CW, RH);
-        // Accent left bar
-        ctx.fillStyle = us.accentColor;
-        ctx.fillRect(x, cy, s(3, S), RH);
-        // Label
-        ctx.font = `700 ${s(8, S)}px Arial,Helvetica,sans-serif`;
-        ctx.fillStyle = us.accentColor;
-        ctx.textBaseline = 'middle';
-        ctx.fillText('ENCAR:', x + PX + s(4, S), midE);
-        const lw = ctx.measureText('ENCAR:').width + s(4, S);
-        // Name
-        ctx.font = `600 ${s(8.5, S)}px Arial,Helvetica,sans-serif`;
-        ctx.fillStyle = '#0f172a';
-        ctx.fillText(fit(ctx, encargado, CW - PX * 2 - s(4, S) - lw), x + PX + s(4, S) + lw, midE);
-        cy += RH;
+    // Group dates by week (monday key)
+    const weekMap = new Map<string, string[]>();
+    for (const d of dates) {
+        const m = getMondayOfWeek(d);
+        if (!weekMap.has(m)) weekMap.set(m, []);
+        weekMap.get(m)!.push(d);
     }
+    const weeks = [...weekMap.keys()].sort().map(m => weekMap.get(m)!.sort());
 
-    // ── Server rows ────────────────────────────────────────────────────────
-    for (let i = 0; i < servers.length; i++) {
-        const sv = servers[i];
-        const rowY = cy + i * RH;
-        const midY = rowY + RH / 2;
-
-        // Zebra
-        if (i % 2 !== 0) {
-            ctx.fillStyle = '#00000009';
-            ctx.fillRect(x, rowY, CW, RH);
-        }
-
-        // Position — bold accent
-        ctx.font = `700 ${s(8, S)}px Arial,Helvetica,sans-serif`;
-        ctx.fillStyle = us.accentColor;
-        ctx.textBaseline = 'middle';
-        ctx.fillText(abbrevPos(sv.posicion), x + PX, midY);
-
-        // Separator
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('·', x + PX + PW - s(6, S), midY);
-
-        // Name — regular
-        ctx.font = `400 ${s(8.5, S)}px Arial,Helvetica,sans-serif`;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillText(fit(ctx, sv.nombre || '', CW - PX * 2 - PW), x + PX + PW, midY);
-    }
+    return { allDows, weeks };
 }
 
 // ─── Full render ──────────────────────────────────────────────────────────────
 
 function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dept: string, S: number) {
-    const PAD  = s(C.PAD, S);
-    const GAP  = s(C.GAP, S);
-    const CW   = s(C.CW, S);
-    const R    = s(C.R, S);
+    const PAD    = px(L.PAD, S);
+    const GRID_W = px(L.GRID_W, S);
+    const WGAP   = px(L.WEEK_GAP, S);
+    const GAP    = px(L.GAP, S);
+    const R      = px(L.R, S);
+    const gridX  = PAD;
 
     const dates = Object.keys(grouped).sort();
-
-    const usedDow = [...new Set(dates.map(d => dayjs(d).day()))].sort((a, b) => DAY_ORDER(a) - DAY_ORDER(b));
-    const nCols = usedDow.length;
-    const GRID_W = nCols * CW + (nCols - 1) * GAP;
-
-    const weekMap = new Map<string, Set<string>>();
-    for (const d of dates) {
-        const m = getMondayOfWeek(d);
-        if (!weekMap.has(m)) weekMap.set(m, new Set());
-        weekMap.get(m)!.add(d);
-    }
-    const weeks = [...weekMap.keys()].sort();
+    const { allDows, weeks } = buildWeekStructure(grouped);
+    const N      = allDows.length;
+    // Fixed cell width — same for ALL weeks so columns align vertically
+    const cellW  = Math.floor((GRID_W - GAP * (N - 1)) / N);
 
     // ── Title ──────────────────────────────────────────────────────────────
-    const TH = s(C.TITLE_H, S);
-    const tY = PAD;
-    rr(ctx, PAD, tY, GRID_W, TH, R, '#fffbeb', '#d97706', s(2.5, S));
-    ctx.fillStyle = '#d97706';
-    ctx.fillRect(PAD, tY, s(4, S), TH);
+    const TH = px(L.TITLE_H, S);
+    let y = PAD;
 
-    ctx.font = `900 ${s(20, S)}px Arial,Helvetica,sans-serif`;
+    fillRR(ctx, gridX, y, GRID_W, TH, R, '#fffbeb');
+    strokeRR(ctx, gridX, y, GRID_W, TH, R, '#d97706', px(2.5, S));
+    ctx.fillStyle = '#d97706';
+    ctx.fillRect(gridX, y, px(4, S), TH);
+
+    const monthLabel = dayjs(dates[0]).format('MMMM YYYY').toUpperCase();
+    ctx.font = `900 ${px(21, S)}px Arial,Helvetica,sans-serif`;
     ctx.fillStyle = '#0f172a';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const monthLabel = dayjs(dates[0]).format('MMMM YYYY').toUpperCase();
-    ctx.fillText(`ROL DE ${monthLabel}`, PAD + GRID_W / 2, tY + TH * (dept ? 0.36 : 0.5));
+    ctx.fillText(`ROL DE ${monthLabel}`, gridX + GRID_W / 2, y + TH * (dept ? 0.35 : 0.5));
 
     if (dept) {
-        ctx.font = `700 ${s(10, S)}px Arial,Helvetica,sans-serif`;
+        ctx.font = `700 ${px(10, S)}px Arial,Helvetica,sans-serif`;
         ctx.fillStyle = '#d97706';
-        ctx.fillText(dept.toUpperCase(), PAD + GRID_W / 2, tY + TH * 0.70);
+        ctx.fillText(dept.toUpperCase(), gridX + GRID_W / 2, y + TH * 0.70);
     }
     ctx.textAlign = 'left';
 
-    let y = tY + TH + GAP * 2;
+    y += TH + WGAP;
 
-    // ── Day-of-week headers ────────────────────────────────────────────────
-    const DHH = s(C.DHDR_H, S);
-    for (let i = 0; i < nCols; i++) {
-        const x = PAD + i * (CW + GAP);
-        rr(ctx, x, y, CW, DHH, R, '#0f172a');
-        ctx.font = `900 ${s(10, S)}px Arial,Helvetica,sans-serif`;
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(DAY_NAMES[usedDow[i]], x + CW / 2, y + DHH / 2);
-    }
-    ctx.textAlign = 'left';
-    y += DHH + GAP;
+    // ── Week sections ──────────────────────────────────────────────────────
+    for (const days of weeks) {
+        // Build a map: dow → dateStr for this week
+        const dowToDate = new Map<number, string>();
+        for (const d of days) dowToDate.set(dayjs(d).day(), d);
 
-    // ── Weeks ──────────────────────────────────────────────────────────────
-    for (const monday of weeks) {
-        let maxH = s(30, S);
-        for (const dow of usedDow) {
-            const dt = dayjs(monday).add(dow === 0 ? 6 : dow - 1, 'day').format('YYYY-MM-DD');
-            const g = grouped[dt];
-            if (g) { const h = cellH(g, S); if (h > maxH) maxH = h; }
+        // Max rows across all columns in this week
+        const maxRows = Math.max(1, ...allDows.map(dow => {
+            const dt = dowToDate.get(dow);
+            return dt && grouped[dt] ? rowCount(grouped[dt]) : 0;
+        }));
+
+        const WHH         = px(L.WEEK_HDR_H, S);
+        const CHH         = px(L.CELL_HDR_H, S);
+        const cellBodyH   = maxRows * px(L.ROW_H, S) + px(4, S);
+        const cellTotalH  = CHH + cellBodyH;
+
+        for (let i = 0; i < N; i++) {
+            const dow     = allDows[i];
+            const dateStr = dowToDate.get(dow);
+            const x       = gridX + i * (cellW + GAP);
+            const dayNum  = dateStr ? dayjs(dateStr).date() : null;
+
+            // ── Mini day header ──────────────────────────────────────────
+            if (dayNum !== null) {
+                fillRR(ctx, x, y, cellW, WHH, px(L.R, S), '#0f172a');
+                ctx.font = `900 ${px(9, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = '#ffffff';
+            } else {
+                // Dim header for empty column
+                fillRR(ctx, x, y, cellW, WHH, px(L.R, S), '#e2e8f0');
+                ctx.font = `700 ${px(9, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = '#94a3b8';
+            }
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const label = dayNum !== null
+                ? `${DAY_SHORT[dow]} ${String(dayNum).padStart(2, '0')}`
+                : DAY_SHORT[dow];
+            ctx.fillText(label, x + cellW / 2, y + WHH / 2);
+
+            // ── Cell ────────────────────────────────────────────────────
+            if (!dateStr || !grouped[dateStr]) continue;
+
+            const group  = grouped[dateStr];
+            const cellY  = y + WHH + GAP;
+            const us     = uStyle(group.uniforme, group.servicio);
+            const encargado: string = group.encargado || '';
+            const servers = (group.assignments || []).filter((sv: any) => !isEncargado(sv, encargado));
+
+            // Shadow
+            ctx.fillStyle = '#0000001A';
+            fillRR(ctx, x + px(1, S), cellY + px(1, S), cellW, cellTotalH, px(L.R, S), '#0000001A');
+            // Body bg + border
+            fillRR(ctx, x, cellY, cellW, cellTotalH, px(L.R, S), us.cellBg);
+            strokeRR(ctx, x, cellY, cellW, cellTotalH, px(L.R, S), us.accent + '70', Math.round(S * 0.8));
+
+            // Cell header
+            fillTopRR(ctx, x, cellY, cellW, CHH, px(L.R, S), us.bg);
+            ctx.font = `900 ${px(9, S)}px Arial,Helvetica,sans-serif`;
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(fit(ctx, us.label, cellW - px(6, S)), x + cellW / 2, cellY + CHH / 2);
+            ctx.textAlign = 'left';
+
+            let cy = cellY + CHH + px(2, S);
+            ctx.textBaseline = 'middle';
+
+            // Encargado row
+            if (encargado) {
+                const midY = cy + px(L.ROW_H, S) / 2;
+                ctx.fillStyle = us.accent + '1A';
+                ctx.fillRect(x, cy, cellW, px(L.ROW_H, S));
+                ctx.fillStyle = us.accent;
+                ctx.fillRect(x, cy, px(2.5, S), px(L.ROW_H, S));
+                ctx.font = `700 ${px(7.5, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = us.accent;
+                ctx.fillText('ENCAR:', x + px(L.PX, S) + px(3, S), midY);
+                const lw = ctx.measureText('ENCAR:').width + px(3, S);
+                ctx.font = `600 ${px(8, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText(
+                    fit(ctx, encargado, cellW - px(L.PX, S) * 2 - px(3, S) - lw),
+                    x + px(L.PX, S) + px(3, S) + lw,
+                    midY
+                );
+                cy += px(L.ROW_H, S);
+            }
+
+            // Server rows
+            for (let j = 0; j < servers.length; j++) {
+                const sv   = servers[j];
+                const rowY = cy + j * px(L.ROW_H, S);
+                const midY = rowY + px(L.ROW_H, S) / 2;
+                if (j % 2 !== 0) {
+                    ctx.fillStyle = '#00000009';
+                    ctx.fillRect(x, rowY, cellW, px(L.ROW_H, S));
+                }
+                ctx.font = `700 ${px(7.5, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = us.accent;
+                ctx.fillText(abbrev(sv.posicion), x + px(L.PX, S), midY);
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = `400 ${px(7, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillText('·', x + px(L.PX, S) + px(L.POS_W, S) - px(5, S), midY);
+                ctx.font = `400 ${px(8, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = '#1e293b';
+                ctx.fillText(
+                    fit(ctx, sv.nombre || '', cellW - px(L.PX, S) * 2 - px(L.POS_W, S)),
+                    x + px(L.PX, S) + px(L.POS_W, S),
+                    midY
+                );
+            }
         }
 
-        for (let i = 0; i < nCols; i++) {
-            const dow = usedDow[i];
-            const dt = dayjs(monday).add(dow === 0 ? 6 : dow - 1, 'day').format('YYYY-MM-DD');
-            const g = grouped[dt];
-            const x = PAD + i * (CW + GAP);
-
-            if (!g) continue; // skip blanks — no gap artifacts
-
-            g._dayNum = dayjs(dt).date();
-            drawCell(ctx, x, y, maxH, g, S);
-        }
-        y += maxH + GAP;
+        y += WHH + GAP + cellTotalH + WGAP;
     }
 
     // ── Footer ─────────────────────────────────────────────────────────────
-    y += GAP * 2;
+    y += GAP;
     ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = Math.round(S);
+    ctx.lineWidth   = Math.round(S * 0.8);
     ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(PAD + GRID_W, y); ctx.stroke();
-    y += s(6, S);
-    ctx.font = `400 ${s(7, S)}px Arial,Helvetica,sans-serif`;
+    ctx.beginPath();
+    ctx.moveTo(gridX, y); ctx.lineTo(gridX + GRID_W, y); ctx.stroke();
+    y += px(5, S);
+    ctx.font      = `400 ${px(6.5, S)}px Arial,Helvetica,sans-serif`;
     ctx.fillStyle = '#94a3b8';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(`REPORTE OFICIAL  •  GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')}  •  © UJIERES APP SYSTEM`, PAD + GRID_W / 2, y);
+    ctx.fillText(
+        `REPORTE OFICIAL  •  GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')}  •  © UJIERES APP SYSTEM`,
+        gridX + GRID_W / 2, y
+    );
     ctx.textAlign = 'left';
 }
 
-// ─── Size measurement (mirrors render logic without drawing) ──────────────────
+// ─── Measure total canvas height ─────────────────────────────────────────────
 
-function measure(grouped: Record<string, any>, S: number): { width: number; height: number } {
-    const PAD = s(C.PAD, S);
-    const GAP = s(C.GAP, S);
-    const CW  = s(C.CW, S);
+function measureHeight(grouped: Record<string, any>, S: number): number {
+    const PAD  = px(L.PAD, S);
+    const WGAP = px(L.WEEK_GAP, S);
+    const GAP  = px(L.GAP, S);
 
     const dates = Object.keys(grouped).sort();
-    if (!dates.length) return { width: 800, height: 400 };
+    if (!dates.length) return 400;
 
-    const usedDow = [...new Set(dates.map(d => dayjs(d).day()))].sort((a, b) => DAY_ORDER(a) - DAY_ORDER(b));
-    const GRID_W = usedDow.length * CW + (usedDow.length - 1) * GAP;
+    const { allDows, weeks } = buildWeekStructure(grouped);
 
-    const weekMap = new Map<string, Set<string>>();
-    for (const d of dates) {
-        const m = getMondayOfWeek(d);
-        if (!weekMap.has(m)) weekMap.set(m, new Set());
-        weekMap.get(m)!.add(d);
+    let h = PAD + px(L.TITLE_H, S) + WGAP;
+
+    for (const days of weeks) {
+        const dowToDate = new Map<number, string>();
+        for (const d of days) dowToDate.set(dayjs(d).day(), d);
+
+        const maxRows = Math.max(1, ...allDows.map(dow => {
+            const dt = dowToDate.get(dow);
+            return dt && grouped[dt] ? rowCount(grouped[dt]) : 0;
+        }));
+
+        const cellBodyH  = maxRows * px(L.ROW_H, S) + px(4, S);
+        const cellTotalH = px(L.CELL_HDR_H, S) + cellBodyH;
+        h += px(L.WEEK_HDR_H, S) + GAP + cellTotalH + WGAP;
     }
 
-    let h = PAD + s(C.TITLE_H, S) + GAP * 2 + s(C.DHDR_H, S) + GAP;
-    for (const monday of weekMap.keys()) {
-        let maxH = s(30, S);
-        for (const dow of usedDow) {
-            const dt = dayjs(monday).add(dow === 0 ? 6 : dow - 1, 'day').format('YYYY-MM-DD');
-            const g = grouped[dt];
-            if (g) { const ch = cellH(g, S); if (ch > maxH) maxH = ch; }
-        }
-        h += maxH + GAP;
-    }
-    h += GAP * 2 + s(6, S) + s(16, S) + PAD;
-
-    return { width: GRID_W + PAD * 2, height: h };
+    h += GAP + px(5, S) + px(14, S) + PAD;
+    return h;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -381,11 +418,13 @@ export async function exportCalendarImage(
 
     notify.info('Generando imagen del calendario...', 'Exportando');
     try {
-        const S = 3;
-        const { width, height } = measure(groupedAssignments, S);
+        const S = 3; // 3× scale — crisp on any screen
+
+        const width  = px(L.GRID_W + L.PAD * 2, S);
+        const height = measureHeight(groupedAssignments, S);
 
         const canvas = document.createElement('canvas');
-        canvas.width = width;
+        canvas.width  = width;
         canvas.height = height;
 
         const ctx = canvas.getContext('2d')!;
@@ -400,9 +439,9 @@ export async function exportCalendarImage(
             canvas.toBlob((blob) => {
                 if (!blob) { notify.error('Error al generar la imagen.'); resolve(); return; }
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                const a   = document.createElement('a');
                 a.style.display = 'none';
-                a.href = url;
+                a.href     = url;
                 a.download = `Rol_Servicios_${dateLabel}.jpg`;
                 document.body.appendChild(a);
                 a.click();
@@ -411,6 +450,7 @@ export async function exportCalendarImage(
                 resolve();
             }, 'image/jpeg', 0.95);
         });
+
     } catch (err: any) {
         console.error('Calendar export error:', err);
         notify.error('Error al generar la imagen del calendario.');
