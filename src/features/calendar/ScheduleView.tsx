@@ -51,7 +51,7 @@ export default function ScheduleView() {
     const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
     const { managedDepartments, userMemberships } = useUser();
     const { data: deptData } = useDepartments();
-    const { exportToPng } = useExport();
+    const { exportToPng, exportSchedulePdf, exportCalendarImage } = useExport();
     const {
         groupedAssignments,
         loading,
@@ -102,16 +102,21 @@ export default function ScheduleView() {
     }, [departments, selectedDept]);
 
     const handleExport = useCallback(() => {
-        const fileName = viewMode === 'calendar' ? 'calendario-servidores.png' : 'detalle-asignaciones.png';
-        const exportRef = viewMode === 'calendar' ? calendarRef : detailRef;
         const deptLabel = departments.find(d => d.value === selectedDept)?.label || '';
-        
-        exportToPng(exportRef as any, fileName, {
-            title: viewMode === 'calendar' ? 'Calendario de Servidores' : 'Detalle de Asignaciones',
-            subtitle: dayjs(currentDate).format('MMMM YYYY'),
-            departmentName: deptLabel
-        });
-    }, [viewMode, exportToPng, departments, selectedDept, currentDate]);
+        const subtitle = dayjs(currentDate).format('MMMM YYYY');
+
+        if (viewMode === 'calendar') {
+            // Imagen de cuadrícula semanal generada programáticamente → nitidez perfecta
+            exportCalendarImage(groupedAssignments, deptLabel);
+        } else {
+            // Vista detalle → captura de imagen
+            exportToPng(detailRef as any, 'detalle-asignaciones.png', {
+                title: 'Detalle de Asignaciones',
+                subtitle,
+                departmentName: deptLabel,
+            });
+        }
+    }, [viewMode, exportToPng, exportSchedulePdf, groupedAssignments, departments, selectedDept, currentDate]);
 
     const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, blockedUserIds, loadingAssignedUsers);
 
