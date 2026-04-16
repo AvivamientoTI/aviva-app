@@ -10,193 +10,167 @@ interface ExportOptions {
     pixelRatio?: number;
 }
 
-// Detecta si el dispositivo es móvil para ajustar pixelRatio y timeout
-const isMobile = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+const isMobile = () =>
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
 
+/**
+ * Captura el elemento original directamente (sin clonar) y añade
+ * encabezado y pie de página dibujándolos sobre el canvas resultante.
+ * Esto evita el problema de CSS variables no resueltas en clones.
+ */
 export const exportHelper = {
-    captureAndDownload: async (element: HTMLElement, options: ExportOptions) => {
-        const {
-            fileName: originalFileName,
-            title,
-            subtitle,
-            departmentName,
-            pixelRatio,
-        } = options;
-
-        // En móviles limitar siempre a 1.5 para evitar errores de memoria,
-        // independientemente del pixelRatio solicitado
-        const devicePixelRatio = isMobile() ? Math.min(pixelRatio ?? 1.5, 1.5) : (pixelRatio ?? 2);
+    captureAndDownload: async (element: HTMLElement, options: ExportOptions): Promise<string> => {
+        const { fileName: originalFileName, title, subtitle, departmentName } = options;
 
         const fileName = originalFileName.replace('.png', '.jpg');
+        const ratio = isMobile() ? 1.5 : 2;
 
         try {
-            notify.info('Iniciando exportación de alta calidad...', 'Procesando Reporte');
+            notify.info('Iniciando exportación...', 'Procesando Reporte');
 
-            // 1. Crear el Marco Premium
-            const wrapper = document.createElement('div');
-            wrapper.id = 'export-capture-wrapper';
-
-            // CLAVE: position fixed fuera del viewport visible (top negativo),
-            // con opacity: 1 y z-index alto para que el navegador sí lo renderice.
-            // Evitar z-index negativo o opacity cercana a 0 — causa imágenes en blanco.
-            wrapper.style.cssText = `
-                position: fixed;
-                top: -9999px;
-                left: 0;
-                width: 1200px;
-                z-index: 99999;
-                opacity: 1;
-                pointer-events: none;
-                background-color: #ffffff;
-                padding: 40px;
-                display: flex;
-                flex-direction: column;
-                gap: 20px;
-                border-radius: 0;
-                box-sizing: border-box;
-            `;
-
-            // 2. Encabezado Premium con Borde Dorado
-            const header = document.createElement('div');
-            header.style.cssText = `
-                padding: 25px;
-                background-color: #fff;
-                border-radius: 16px;
-                border: 1px solid #e2e8f0;
-                border-left: 8px solid #d97706;
-                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            `;
-
-            const info = document.createElement('div');
-
-            const t = document.createElement('h1');
-            t.innerText = title.toUpperCase();
-            t.style.cssText = `
-                margin: 0;
-                font-size: 24px;
-                font-weight: 900;
-                color: #0f172a;
-                letter-spacing: -0.02em;
-            `;
-
-            const s = document.createElement('div');
-            s.innerText = `${departmentName ? departmentName + ' | ' : ''}${subtitle || dayjs().format('MMMM YYYY')}`;
-            s.style.cssText = `
-                font-size: 14px;
-                font-weight: 700;
-                color: #64748b;
-                text-transform: uppercase;
-                margin-top: 4px;
-            `;
-
-            info.appendChild(t);
-            info.appendChild(s);
-
-            const brand = document.createElement('div');
-            brand.innerText = 'UJIERES APP';
-            brand.style.cssText = `
-                font-weight: 900;
-                font-size: 18px;
-                color: #d97706;
-                letter-spacing: 0.1em;
-            `;
-
-            header.appendChild(info);
-            header.appendChild(brand);
-
-            // 3. Contenedor del contenido
-            const contentContainer = document.createElement('div');
-            contentContainer.style.cssText = `
-                background-color: white;
-                border-radius: 16px;
-                overflow: visible;
-            `;
-
-            // Clonar el elemento original
-            const clone = element.cloneNode(true) as HTMLElement;
-            clone.style.cssText += `
-                width: 100%;
-                transform: none;
-                position: static;
-                visibility: visible;
-                display: block;
-                opacity: 1;
-            `;
-
-            contentContainer.appendChild(clone);
-
-            // 4. Pie de Página
-            const footer = document.createElement('div');
-            footer.style.cssText = `
-                text-align: center;
-                padding: 20px;
-                font-size: 11px;
-                color: #94a3b8;
-                font-weight: 600;
-            `;
-            footer.innerText = `REPORTE OFICIAL • GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')} • © UJIERES APP SYSTEM`;
-
-            wrapper.appendChild(header);
-            wrapper.appendChild(contentContainer);
-            wrapper.appendChild(footer);
-
-            // Inyectar en document.body para evitar restricciones de overflow del contenedor padre
-            document.body.appendChild(wrapper);
-
-            // 5. Esperar renderizado — más tiempo en móviles
-            const renderDelay = isMobile() ? 1200 : 800;
-            await new Promise(resolve => setTimeout(resolve, renderDelay));
-
-            // 6. Captura vía Canvas
-            const canvas = await toCanvas(wrapper, {
-                pixelRatio: devicePixelRatio,
+            // 1. Capturar el elemento tal como está en el DOM (con todos sus estilos resueltos)
+            const contentCanvas = await toCanvas(element, {
+                pixelRatio: ratio,
                 backgroundColor: '#ffffff',
-                skipFonts: true, // Evita errores CORS de fuentes en móviles
+                skipFonts: false,
             });
 
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            // 2. Dimensiones del canvas final (contenido + header + footer + padding)
+            const PADDING = Math.round(32 * ratio);
+            const HEADER_H = Math.round(90 * ratio);
+            const FOOTER_H = Math.round(40 * ratio);
+            const BORDER_W = Math.round(8 * ratio);
 
-            // Limpiar wrapper inmediatamente
-            if (wrapper.parentNode) {
-                wrapper.parentNode.removeChild(wrapper);
-            }
+            const totalWidth = contentCanvas.width + PADDING * 2;
+            const totalHeight = contentCanvas.height + HEADER_H + FOOTER_H + PADDING * 2;
 
-            // 7. Descarga como BLOB (más compatible en móviles)
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = totalWidth;
+            finalCanvas.height = totalHeight;
+
+            const ctx = finalCanvas.getContext('2d')!;
+
+            // 3. Fondo blanco
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, totalWidth, totalHeight);
+
+            // 4. Dibujar header
+            const headerY = PADDING / 2;
+            const headerH = HEADER_H;
+            const headerX = PADDING;
+            const headerW = totalWidth - PADDING * 2;
+
+            // Fondo del header
+            ctx.fillStyle = '#ffffff';
+            roundRect(ctx, headerX, headerY, headerW, headerH, Math.round(12 * ratio));
+
+            // Borde izquierdo dorado
+            ctx.fillStyle = '#d97706';
+            ctx.fillRect(headerX, headerY, BORDER_W, headerH);
+
+            // Borde sutil alrededor del header
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = ratio;
+            roundRectStroke(ctx, headerX, headerY, headerW, headerH, Math.round(12 * ratio));
+
+            // Título
+            ctx.fillStyle = '#0f172a';
+            ctx.font = `900 ${Math.round(20 * ratio)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.textBaseline = 'middle';
+            const titleX = headerX + BORDER_W + Math.round(20 * ratio);
+            ctx.fillText(title.toUpperCase(), titleX, headerY + headerH * 0.38);
+
+            // Subtítulo
+            const subtitleText = `${departmentName ? departmentName + '  |  ' : ''}${subtitle || dayjs().format('MMMM YYYY')}`.toUpperCase();
+            ctx.fillStyle = '#64748b';
+            ctx.font = `700 ${Math.round(11 * ratio)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.fillText(subtitleText, titleX, headerY + headerH * 0.68);
+
+            // Brand "UJIERES APP"
+            ctx.fillStyle = '#d97706';
+            ctx.font = `900 ${Math.round(13 * ratio)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.fillText('UJIERES APP', headerX + headerW - Math.round(20 * ratio), headerY + headerH / 2);
+            ctx.textAlign = 'left';
+
+            // 5. Dibujar contenido
+            const contentY = PADDING / 2 + HEADER_H + PADDING / 2;
+            ctx.drawImage(contentCanvas, PADDING, contentY);
+
+            // 6. Dibujar footer
+            const footerY = contentY + contentCanvas.height + Math.round(12 * ratio);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = `600 ${Math.round(9 * ratio)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                `REPORTE OFICIAL  •  GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')}  •  © UJIERES APP SYSTEM`,
+                totalWidth / 2,
+                footerY + FOOTER_H / 2
+            );
+            ctx.textAlign = 'left';
+
+            // 7. Obtener dataUrl para PDF (jsPDF)
+            const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.92);
+
+            // 8. Descargar como BLOB (mejor compatibilidad móvil)
             return new Promise<string>((resolve) => {
-                canvas.toBlob(async (blob) => {
+                finalCanvas.toBlob((blob) => {
                     if (!blob) {
-                        notify.error('Error al procesar la imagen final.');
+                        notify.error('Error al procesar la imagen.');
                         resolve(dataUrl);
                         return;
                     }
-
-                    const downloadUrl = URL.createObjectURL(blob);
+                    const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.style.display = 'none';
-                    a.href = downloadUrl;
+                    a.href = url;
                     a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
-
                     setTimeout(() => {
-                        URL.revokeObjectURL(downloadUrl);
+                        URL.revokeObjectURL(url);
                         document.body.removeChild(a);
                     }, 100);
-
-                    notify.success('Reporte generado con nitidez premium', '¡Éxito!');
+                    notify.success('Reporte generado exitosamente', '¡Éxito!');
                     resolve(dataUrl);
-                }, 'image/jpeg', 0.9);
+                }, 'image/jpeg', 0.92);
             });
 
         } catch (error: any) {
-            console.error('CRITICAL EXPORT ERROR:', error);
-            notify.error('Error al generar el reporte. Intenta cerrar otras pestañas e intentarlo de nuevo.', 'Error de Captura');
-            const w = document.getElementById('export-capture-wrapper');
-            if (w) w.remove();
+            console.error('EXPORT ERROR:', error);
+            notify.error('Error al generar el reporte. Intenta de nuevo.', 'Error');
             throw error;
         }
     }
 };
+
+// Helpers para dibujar rectángulos con bordes redondeados en canvas
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function roundRectStroke(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.stroke();
+}
