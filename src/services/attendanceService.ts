@@ -114,19 +114,7 @@ export const attendanceService = {
     /**
      * Guarda o actualiza los registros de asistencia
      */
-    async updateAttendanceRecords(records: any[]): Promise<void> {
-        // En Supabase, usamos upsert. Necesitamos mappear los campos si es necesario.
-        // El componente envía { id, estado, justificacion, hora_registro }
-        // Pero la tabla 'asistencias' necesita { id, estado, justificacion, usuario_id, configuracion_dia_id }
-        
-        // Sin embargo, si el ID es 'temp-xxx', significa que es un INSERT.
-        // Y el upsert necesita el usuario_id y configuracion_dia_id para el conflicto.
-        
-        // Vamos a mejorar el manejador para que sea robusto.
-
-
-        // La implementación anterior de saveAttendance usaba AttendanceInsert[]
-        // Vamos a mantener el nombre updateAttendanceRecords pero con la lógica de upsert
+    async updateAttendanceRecords(records: (AttendanceInsert & { id?: string | number })[]): Promise<void> {
         const { error } = await supabase
             .from('asistencias')
             .upsert(records.map(r => ({
@@ -134,7 +122,8 @@ export const attendanceService = {
                 configuracion_dia_id: r.configuracion_dia_id,
                 estado: r.estado,
                 justificacion: r.justificacion,
-                hora_registro: r.hora_registro
+                hora_registro: r.hora_registro,
+                registrado_por: r.registrado_por
             })), { onConflict: 'configuracion_dia_id, usuario_id' });
 
         if (error) throw error;

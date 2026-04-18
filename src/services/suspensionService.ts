@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { supabase } from './supabaseClient';
 
 export interface Suspension {
@@ -31,7 +32,7 @@ export const suspensionService = {
      * Obtiene las suspensiones activas (fecha_fin >= hoy)
      */
     async getActiveSuspensions(): Promise<Suspension[]> {
-        const today = new Date().toISOString().split('T')[0];
+        const today = dayjs().format('YYYY-MM-DD');
 
         const { data, error } = await supabase
             .from('suspensiones')
@@ -64,48 +65,13 @@ export const suspensionService = {
 
     /**
      * Finaliza una suspensión prematuramente (actualizando fecha_fin a ayer)
-     * O elimina el registro si se prefiere. Por ahora actualizamos fecha.
+     * Proceso atómico mediante RPC.
      */
     async endSuspension(id: number): Promise<void> {
-        // First, get the suspension details to check start date
-        const { data: suspension, error: fetchError } = await supabase
-            .from('suspensiones')
-            .select('fecha_inicio')
-            .eq('id', id)
-            .single();
+        const { error } = await supabase
+            .rpc('end_suspension', { p_suspension_id: id });
 
-        if (fetchError) throw fetchError;
-        if (!suspension) return;
-
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-        // If suspension starts today or in Future (>= today's calculated yesterday),
-        // we can't set end_date = yesterday because end >= start constraint.
-        // Logic: 
-        // If start > yesterday => Start is Today or Future. 
-        // Action: DELETE (Cancel entirely)
-        // If start <= yesterday => Start is Yesterday or Past.
-        // Action: UPDATE end_date = yesterday (Shorten it)
-
-        if (suspension.fecha_inicio > yesterdayStr) {
-            // Delete it
-            const { error } = await supabase
-                .from('suspensiones')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-        } else {
-            // Shorten it
-            const { error } = await supabase
-                .from('suspensiones')
-                .update({ fecha_fin: yesterdayStr })
-                .eq('id', id);
-
-            if (error) throw error;
-        }
+        if (error) throw error;
     },
 
     /**

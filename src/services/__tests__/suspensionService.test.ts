@@ -3,18 +3,31 @@ import { suspensionService } from '../suspensionService';
 import { supabase } from '../supabaseClient';
 
 describe('suspensionService', () => {
-    beforeEach(() => vi.clearAllMocks());
+    beforeEach(() => {
+        vi.clearAllMocks();
+        // Reset default mock behaviors
+        (supabase.rpc as any).mockResolvedValue({ data: null, error: null });
+        (supabase.from as any).mockReturnValue({
+            select: vi.fn().mockReturnThis(),
+            insert: vi.fn().mockReturnThis(),
+            update: vi.fn().mockReturnThis(),
+            delete: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            lte: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockReturnThis(),
+            or: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            single: vi.fn().mockReturnThis(),
+        });
+    });
 
     describe('isUserSuspended', () => {
         it('should return true when user has an active suspension', async () => {
             (supabase.from as any).mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        lte: vi.fn().mockReturnValue({
-                            gte: vi.fn().mockResolvedValue({ count: 1, error: null })
-                        })
-                    })
-                })
+                select: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                lte: vi.fn().mockReturnThis(),
+                or: vi.fn().mockResolvedValue({ count: 1, error: null })
             });
 
             const result = await suspensionService.isUserSuspended(1, '2024-06-15');
@@ -23,13 +36,10 @@ describe('suspensionService', () => {
 
         it('should return false when user has no active suspension', async () => {
             (supabase.from as any).mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        lte: vi.fn().mockReturnValue({
-                            gte: vi.fn().mockResolvedValue({ count: 0, error: null })
-                        })
-                    })
-                })
+                select: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                lte: vi.fn().mockReturnThis(),
+                or: vi.fn().mockResolvedValue({ count: 0, error: null })
             });
 
             const result = await suspensionService.isUserSuspended(1, '2024-06-15');
@@ -38,13 +48,10 @@ describe('suspensionService', () => {
 
         it('should throw error when Supabase returns an error', async () => {
             (supabase.from as any).mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        lte: vi.fn().mockReturnValue({
-                            gte: vi.fn().mockResolvedValue({ count: null, error: { message: 'DB error' } })
-                        })
-                    })
-                })
+                select: vi.fn().mockReturnThis(),
+                eq: vi.fn().mockReturnThis(),
+                lte: vi.fn().mockReturnThis(),
+                or: vi.fn().mockResolvedValue({ count: null, error: { message: 'DB error' } })
             });
 
             await expect(suspensionService.isUserSuspended(1, '2024-06-15')).rejects.toEqual({ message: 'DB error' });
@@ -58,9 +65,8 @@ describe('suspensionService', () => {
             ];
 
             (supabase.from as any).mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    order: vi.fn().mockResolvedValue({ data: mockData, error: null })
-                })
+                select: vi.fn().mockReturnThis(),
+                order: vi.fn().mockResolvedValue({ data: mockData, error: null })
             });
 
             const result = await suspensionService.getAllSuspensions();
@@ -70,9 +76,8 @@ describe('suspensionService', () => {
 
         it('should return empty array when no suspensions', async () => {
             (supabase.from as any).mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    order: vi.fn().mockResolvedValue({ data: [], error: null })
-                })
+                select: vi.fn().mockReturnThis(),
+                order: vi.fn().mockResolvedValue({ data: [], error: null })
             });
 
             const result = await suspensionService.getAllSuspensions();
@@ -87,11 +92,9 @@ describe('suspensionService', () => {
             ];
 
             (supabase.from as any).mockReturnValue({
-                select: vi.fn().mockReturnValue({
-                    gte: vi.fn().mockReturnValue({
-                        order: vi.fn().mockResolvedValue({ data: mockData, error: null })
-                    })
-                })
+                select: vi.fn().mockReturnThis(),
+                or: vi.fn().mockReturnThis(),
+                order: vi.fn().mockResolvedValue({ data: mockData, error: null })
             });
 
             const result = await suspensionService.getActiveSuspensions();
@@ -101,52 +104,18 @@ describe('suspensionService', () => {
     });
 
     describe('endSuspension', () => {
-        it('should DELETE suspension when it starts today or in the future', async () => {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-            const deleteMock = vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({ error: null })
-            });
-
-            // First call: select to fetch fecha_inicio
-            (supabase.from as any)
-                .mockReturnValueOnce({
-                    select: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockReturnValue({
-                            single: vi.fn().mockResolvedValue({ data: { fecha_inicio: tomorrowStr }, error: null })
-                        })
-                    })
-                })
-                // Second call: delete
-                .mockReturnValueOnce({ delete: deleteMock });
+        it('should call end_suspension RPC', async () => {
+            const rpcSpy = vi.spyOn(supabase, 'rpc').mockResolvedValue({ error: null });
 
             await suspensionService.endSuspension(1);
-            expect(deleteMock).toHaveBeenCalled();
+            
+            expect(rpcSpy).toHaveBeenCalledWith('end_suspension', { p_suspension_id: 1 });
         });
 
-        it('should UPDATE fecha_fin when suspension started in the past', async () => {
-            const lastWeek = new Date();
-            lastWeek.setDate(lastWeek.getDate() - 7);
-            const lastWeekStr = lastWeek.toISOString().split('T')[0];
+        it('should throw error when RPC fails', async () => {
+            vi.spyOn(supabase, 'rpc').mockResolvedValue({ error: { message: 'RPC Error' } });
 
-            const updateMock = vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({ error: null })
-            });
-
-            (supabase.from as any)
-                .mockReturnValueOnce({
-                    select: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockReturnValue({
-                            single: vi.fn().mockResolvedValue({ data: { fecha_inicio: lastWeekStr }, error: null })
-                        })
-                    })
-                })
-                .mockReturnValueOnce({ update: updateMock });
-
-            await suspensionService.endSuspension(2);
-            expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ fecha_fin: expect.any(String) }));
+            await expect(suspensionService.endSuspension(1)).rejects.toEqual({ message: 'RPC Error' });
         });
     });
 
@@ -154,6 +123,7 @@ describe('suspensionService', () => {
         it('should insert a new suspension record', async () => {
             const insertMock = vi.fn().mockResolvedValue({ error: null });
             (supabase.from as any).mockReturnValue({ insert: insertMock });
+            (supabase.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
 
             await suspensionService.create({
                 usuario_id: 3,
@@ -162,13 +132,17 @@ describe('suspensionService', () => {
                 motivo: 'Test'
             });
 
-            expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ usuario_id: 3 }));
+            expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ 
+                usuario_id: 3,
+                created_by: 'user-1'
+            }));
         });
 
         it('should throw when insert fails', async () => {
             (supabase.from as any).mockReturnValue({
                 insert: vi.fn().mockResolvedValue({ error: { message: 'Insert failed' } })
             });
+            (supabase.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
 
             await expect(suspensionService.create({
                 usuario_id: 3,

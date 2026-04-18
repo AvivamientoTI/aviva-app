@@ -53,11 +53,28 @@ describe('exportHelper > captureAndDownload', () => {
         // Mock URL.createObjectURL & revokeObjectURL
         global.URL.createObjectURL = vi.fn().mockReturnValue('blob:fake-url');
         global.URL.revokeObjectURL = vi.fn();
+
+        // Ensure canvas prototype is mocked and returns the mock object
+        HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
+            fillStyle: '',
+            fillRect: vi.fn(),
+            beginPath: vi.fn(),
+            moveTo: vi.fn(),
+            lineTo: vi.fn(),
+            quadraticCurveTo: vi.fn(),
+            closePath: vi.fn(),
+            fill: vi.fn(),
+            stroke: vi.fn(),
+            fillText: vi.fn(),
+            drawImage: vi.fn(),
+            textAlign: '',
+            textBaseline: '',
+            font: '',
+        }) as any;
     });
 
     afterEach(() => {
         // Safely remove only tracked elements instead of wiping innerHTML
-        // (clearing innerHTML detaches nodes that Mantine portals may still reference)
         while (appendedElements.length > 0) {
             const el = appendedElements.pop()!;
             if (el.parentNode) el.parentNode.removeChild(el);
