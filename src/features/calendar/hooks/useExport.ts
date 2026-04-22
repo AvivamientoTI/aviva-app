@@ -38,7 +38,6 @@ export function useExport() {
             const maxHeight = pdfH - (margin * 2);
 
             const imgRatio = canvas.width / canvas.height;
-            const pdfRatio = maxWidth / maxHeight;
             
             let finalW = maxWidth;
             let finalH = finalW / imgRatio;

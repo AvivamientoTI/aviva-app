@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
     Table, Button, Modal, TextInput, Select, Group, Title, Badge, 
     ActionIcon, Alert, Paper, Avatar, Text, Menu, SimpleGrid, 
-    ThemeIcon, Stack, Container, Box, Center, NumberInput 
+    ThemeIcon, Stack, Container, Box, Center 
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
@@ -11,7 +11,7 @@ import { notifications } from '@mantine/notifications';
 import { 
     IconSearch, IconUserPlus, IconEdit, IconTrash, 
     IconDotsVertical, IconUsers, IconUser, IconFilter,
-    IconPhone, IconMail, IconCake
+    IconPhone, IconMail
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -181,18 +181,13 @@ export default function UsersList() {
       // Gender Filter
       const matchesGender = !filterGender || u.genero === filterGender;
 
-      // Age Filter
-      const age = calculateAge(u.fecha_nacimiento);
-      const matchesAgeMin = filterAgeMin === null || filterAgeMin === '' || (age !== null && age >= Number(filterAgeMin));
-      const matchesAgeMax = filterAgeMax === null || filterAgeMax === '' || (age !== null && age <= Number(filterAgeMax));
-
       // Search Query
       const matchesSearch = search.toLowerCase().trim() === '' ||
         `${u.nombre} ${u.apellido}`.toLowerCase().includes(search.toLowerCase());
 
-      return matchesDept && matchesGender && matchesAgeMin && matchesAgeMax && matchesSearch;
+      return matchesDept && matchesGender && matchesSearch;
     });
-  }, [usersData, filterDept, filterGender, filterAgeMin, filterAgeMax, search, permissions]);
+  }, [usersData, filterDept, filterGender, search, permissions]);
 
   const stats = [
     { label: 'Total Servidores(as)', value: filteredUsers.length, icon: IconUsers, color: 'gold' },

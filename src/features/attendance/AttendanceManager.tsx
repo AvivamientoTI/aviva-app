@@ -332,7 +332,7 @@ export default function AttendanceManager() {
                                                     <Table.Td>
                                                         <Center>
                                                             <SegmentedControl
-                                                                value={record.estado}
+                                                                value={record.estado ?? undefined}
                                                                 onChange={(value) => handleAttendanceChange(record.id, value)}
                                                                 data={[
                                                                     { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },

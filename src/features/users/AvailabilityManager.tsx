@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Table, Button, Group, Text, Select } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { supabase } from '../../services/supabaseClient';
@@ -32,7 +32,7 @@ export function AvailabilityManager({ userId }: { userId: number }) {
   }, [userId]);
 
   const fetchSchedules = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('horarios_no_disponibilidad')
       .select('*')
       .eq('usuario_id', userId)
