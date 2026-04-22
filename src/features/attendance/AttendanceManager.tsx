@@ -26,7 +26,7 @@ import {
     IconX,
     IconAlertCircle,
     IconUserCheck,
-    IconUsersGroup,
+
     IconChevronRight,
     IconDeviceFloppy
 } from '@tabler/icons-react';
@@ -335,7 +335,7 @@ export default function AttendanceManager() {
                                                         <Center>
                                                             <Stack gap={6} align="center">
                                                                 <SegmentedControl
-                                                                    value={record.estado ?? undefined}
+                                                                    value={record.estado ?? ''}
                                                                     onChange={(value) => handleAttendanceChange(record.id, value)}
                                                                     data={[
                                                                         { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },
