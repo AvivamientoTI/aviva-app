@@ -42,7 +42,7 @@ import { useExport } from './hooks/useExport';
 import { useAvailableUsersForSwap } from './hooks/useAvailableUsersForSwap';
 import { CalendarSkeleton } from '../../components/SkeletonLoaders';
 import { SwapServerModal } from './components/SwapServerModal';
-import { AssignmentDetailModal } from './components/AssignmentDetailModal';
+
 import { DetailedListTab } from './components/DetailedListTab';
 import { formatName } from '../../utils/formatName';
 
@@ -326,13 +326,7 @@ export default function ScheduleView() {
                     </Card>
                 )}
 
-                <AssignmentDetailModal
-                    opened={opened}
-                    onClose={close}
-                    selectedEvent={selectedEvent}
-                    onDelete={handleDeleteAssignment}
-                    canModify={puedeModificar}
-                />
+
 
                 <Modal
                     opened={dayEventsOpened}
