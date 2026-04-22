@@ -1,6 +1,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2.28.0";
 import { timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
+import * as Sentry from "https://deno.land/x/sentry/index.mjs";
+
+// Initialize Sentry
+Sentry.init({
+  dsn: Deno.env.get("SENTRY_DSN") || "https://eea493c606dd0b918ac3e577f0bb5f67@o4511242478354432.ingest.us.sentry.io/4511242483728384",
+  performance: true,
+});
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -63,6 +70,7 @@ Deno.serve(async (req: Request) => {
 
     if (error) {
       console.error("❌ RPC error:", error);
+      Sentry.captureException(error);
       // En caso de error, devolvemos las claims originales sin cambios
       return new Response(JSON.stringify({ claims: originalClaims }), {
         status: 200,
@@ -94,6 +102,7 @@ Deno.serve(async (req: Request) => {
 
   } catch (err) {
     console.error("❌ Handler error:", err);
+    Sentry.captureException(err);
     return new Response(JSON.stringify({ error: "internal_error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

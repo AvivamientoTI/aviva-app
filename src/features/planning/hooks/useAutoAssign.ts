@@ -18,18 +18,44 @@ interface SavedConfig {
     serviceIndex?: number;
 }
 
+interface DraftAssignment {
+    configuracion_dia_id: string | number;
+    usuario_id: string | number;
+    usuario: PublicUser;
+    posicion_id: string | number;
+    posicion: Position;
+    aiMetadata: {
+        reasons: string[];
+        usageInPlan: number;
+    };
+}
+
 interface AutoAssignResult {
-    assignments: any[];
+    assignments: DraftAssignment[];
     diagnostics: {
         deptUsersFound: number;
         datesProcessed: number;
-        details: any[];
+        details: string[];
     };
 }
 
 interface UserWithMetadata extends PublicUser {
     roles: string[];
     isExternalLeader: boolean;
+    isInternalLeader: boolean;
+    totalServedCount: number;
+}
+
+interface MembershipQueryResponse {
+    usuario_id: number;
+    rol_jerarquico: string;
+    usuario: PublicUser;
+}
+
+interface OtherMembershipResponse {
+    usuario_id: number;
+    departamento_id: number;
+    rol_jerarquico: string;
 }
 
 export const useAutoAssign = (selectedDept: string | number | null) => {
@@ -43,30 +69,30 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
         setLoading(true);
         try {
             // 1. Fetch department users
-            const { data: deptMemberships } = await supabase
+            const { data: mData } = await supabase
                 .from('membresias')
                 .select('usuario_id, rol_jerarquico, usuario:usuarios(*)')
-                .eq('departamento_id', Number(selectedDept));
+                .eq('departamento_id', Number(selectedDept)) as { data: MembershipQueryResponse[] | null };
 
-            if (!deptMemberships || deptMemberships.length === 0) {
+            if (!mData || mData.length === 0) {
                 console.warn("No memberships found for dept:", selectedDept);
                 return { assignments: [], diagnostics: { deptUsersFound: 0, datesProcessed: 0, details: [] } };
             }
 
-            const userIds = deptMemberships.map(m => m.usuario_id);
+            const userIds = mData.map(m => m.usuario_id);
 
             // 2. Fetch ALL memberships for these users to find external leadership roles
-            const { data: allMemberships } = await supabase
+            const { data: allM } = await supabase
                 .from('membresias')
                 .select('usuario_id, departamento_id, rol_jerarquico')
-                .in('usuario_id', userIds);
+                .in('usuario_id', userIds) as { data: OtherMembershipResponse[] | null };
 
             const normalize = (str: string | null | undefined) => str?.toLowerCase()
                 .normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || '';
 
             // 3. Process users and identify internal/external roles
             const usersMap: Record<string, UserWithMetadata> = {};
-            deptMemberships.forEach((m: any) => {
+            mData.forEach(m => {
                 if (!m.usuario) return;
                 const uid = String(m.usuario.id);
                 const internalRole = normalize(m.rol_jerarquico);
@@ -75,14 +101,15 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                         ...m.usuario,
                         roles: [],
                         isExternalLeader: false,
-                        isInternalLeader: ['lider', 'sublider', 'encargado', 'liderazgo'].includes(internalRole)
+                        isInternalLeader: ['lider', 'sublider', 'encargado', 'liderazgo'].includes(internalRole),
+                        totalServedCount: 0
                     };
                 }
                 usersMap[uid].roles.push(internalRole);
             });
 
             // Flag users who are leaders/subleaders in other departments
-            (allMemberships || []).forEach((m: any) => {
+            (allM || []).forEach(m => {
                 const uid = String(m.usuario_id);
                 if (usersMap[uid] && Number(m.departamento_id) !== Number(selectedDept)) {
                     const role = normalize(m.rol_jerarquico);
@@ -99,17 +126,15 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
             const { data: recentAssignments } = await supabase
                 .from('asignaciones')
                 .select('usuario_id, configuracion_dia(fecha)')
-                .gte('configuracion_dia.fecha', lastMonth.toISOString().slice(0, 10));
+                .gte('configuracion_dia.fecha', lastMonth.toISOString().slice(0, 10)) as { data: { usuario_id: number; configuracion_dia: { fecha: string } }[] | null };
 
             const recentCount: Record<string, number> = {};
-            const userDates: Record<string, string[]> = {};
             if (recentAssignments) {
-                (recentAssignments as any[]).forEach(a => {
+                recentAssignments.forEach(a => {
                     const uid = String(a.usuario_id);
                     recentCount[uid] = (recentCount[uid] || 0) + 1;
-                    if (!userDates[uid]) userDates[uid] = [];
-                    if (a.configuracion_dia && a.configuracion_dia.fecha) {
-                        userDates[uid].push(a.configuracion_dia.fecha);
+                    if (usersMap[uid]) {
+                        usersMap[uid].totalServedCount = (usersMap[uid].totalServedCount || 0) + 1;
                     }
                 });
             }
@@ -117,127 +142,109 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
             // 4. Fetch Suspension Data
             const allSuspensions = await suspensionService.getAllSuspensions();
 
-            const assignments: any[] = [];
+            // ─── 3-PASS ASSIGNMENT STRATEGY ──────────────────────────────────
+            const assignments: DraftAssignment[] = [];
             const configsSorted = [...savedConfigs].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+            const planUsageCount: Record<string, number> = {};
 
-            const diagnostics = {
-                deptUsersFound: deptUsers.length,
-                datesProcessed: 0,
-                details: [] as any[]
-            };
+            const passes = [
+                { name: 'Leadership', predicate: (p: Position) => p.nombre.toLowerCase().includes('encargado') },
+                { name: 'Gender Restricted', predicate: (p: Position) => !!p.genero_requerido && p.genero_requerido !== 'A' },
+                { name: 'General', predicate: () => true }
+            ];
 
-            for (let i = 0; i < configsSorted.length; i++) {
-                const config = configsSorted[i];
-                diagnostics.datesProcessed++;
-                const dateStr = config.fecha;
-                // If serviceIndex is present, use it, otherwise default to 0
-                const sIdx = config.serviceIndex || 0;
+            const assignedPositions = new Set<string>(); 
 
-                const dayConfigs = serviceConfigs[dateStr] || [];
-                const serviceConfig = dayConfigs[sIdx];
+            for (const pass of passes) {
+                for (const config of configsSorted) {
+                    const dateStr = config.fecha;
+                    const sIdx = config.serviceIndex || 0;
+                    const dayConfigs = serviceConfigs[dateStr] || [];
+                    const serviceConfig = dayConfigs[sIdx];
+                    if (!serviceConfig) continue;
 
-                if (!serviceConfig) continue;
+                    let eligibleUsers = await getUsersNotAssignedOnDate(dateStr, deptUsers);
+                    eligibleUsers = eligibleUsers.filter(u => u.activo !== false);
 
-                // Eligible users logic needs to be typing and ensured
-                let eligibleUsers = await getUsersNotAssignedOnDate(config.fecha, deptUsers);
-                
-                // 4.5 Filter out inactive users
-                eligibleUsers = eligibleUsers.filter(u => u.activo !== false);
+                    const suspendedIds = allSuspensions
+                        .filter(s => s.fecha_inicio <= dateStr && (!s.fecha_fin || s.fecha_fin >= dateStr))
+                        .map(s => String(s.usuario_id));
+                    
+                    eligibleUsers = eligibleUsers.filter(u => !suspendedIds.includes(String(u.id)));
 
-                // Filter out suspended users for this date
-                const suspendedUserIds = allSuspensions
-                    .filter(s => s.fecha_inicio <= dateStr && (!s.fecha_fin || s.fecha_fin >= dateStr))
-                    .map(s => String(s.usuario_id));
+                    for (const pos of positions) {
+                        if (!pass.predicate(pos)) continue;
+                        
+                        const quota = serviceConfig.positionQuotas[pos.id] || 0;
+                        for (let q = 0; q < quota; q++) {
+                            const slotKey = `${config.id}-${pos.id}-${q}`;
+                            if (assignedPositions.has(slotKey)) continue;
 
-                if (suspendedUserIds.length > 0) {
-                    eligibleUsers = eligibleUsers.filter(u => !suspendedUserIds.includes(String(u.id)));
-                }
+                            let candidates = eligibleUsers.filter(u => {
+                                if (assignments.some(a => String(a.configuracion_dia_id) === String(config.id) && String(a.usuario_id) === String(u.id))) return false;
+                                const reqGen = String(pos.genero_requerido || 'A').toUpperCase();
+                                if (reqGen !== 'A' && String(u.genero).toUpperCase() !== reqGen) return false;
+                                if (pass.name === 'Leadership' && !(usersMap[String(u.id)]?.isInternalLeader)) return false;
+                                return true;
+                            });
 
-                let prevDateStr: string | null = null;
-                if (i > 0) prevDateStr = configsSorted[i - 1].fecha;
+                            if (candidates.length === 0) continue;
 
-                for (const pos of positions) {
-                    const quota = serviceConfig.positionQuotas[pos.id] || 0;
-                    const isEncargadoPos = pos.nombre.toLowerCase().includes('encargado');
-                    const logEntry: any = { date: dateStr, position: pos.nombre, quota, eligible: eligibleUsers.length, assigned: 0 };
+                            // Scoring
+                            candidates.sort((u1, u2) => {
+                                const uid1 = String(u1.id);
+                                const uid2 = String(u2.id);
+                                let s1 = 0;
+                                let s2 = 0;
 
-                    if (quota <= 0) {
-                        logEntry.status = 'Skipped: Quota 0';
-                        diagnostics.details.push(logEntry);
-                        continue;
-                    }
+                                s1 -= (recentCount[uid1] || 0) * 20;
+                                s2 -= (recentCount[uid2] || 0) * 20;
+                                s1 -= (planUsageCount[uid1] || 0) * 50;
+                                s2 -= (planUsageCount[uid2] || 0) * 50;
 
-                    let candidates = eligibleUsers.filter(u => {
-                        // Already assigned today
-                        if (assignments.some(a => a.configuracion_dia_id === config.id && String(a.usuario_id) === String(u.id))) return false;
+                                if (pass.name === 'General') {
+                                    const team = assignments.filter(a => String(a.configuracion_dia_id) === String(config.id));
+                                    const hasVeteran = team.some(a => (usersMap[String(a.usuario_id)]?.totalServedCount || 0) > 10);
+                                    const hasNew = team.some(a => (usersMap[String(a.usuario_id)]?.totalServedCount || 0) < 3);
 
-                        // Gender check (Strict)
-                        const reqGen = String(pos.genero_requerido || 'A').toUpperCase();
-                        if (reqGen !== 'A') {
-                            const userGen = String(u.genero || '').toUpperCase();
-                            if (userGen !== reqGen) return false;
+                                    if (!hasVeteran && (usersMap[uid1]?.totalServedCount || 0) > 10) s1 += 30;
+                                    if (!hasVeteran && (usersMap[uid2]?.totalServedCount || 0) > 10) s2 += 30;
+                                    if (!hasNew && (usersMap[uid1]?.totalServedCount || 0) < 3) s1 += 20;
+                                    if (!hasNew && (usersMap[uid2]?.totalServedCount || 0) < 3) s2 += 20;
+                                }
+
+                                return s2 - s1;
+                            });
+
+                            const selected = candidates[0];
+                            const reasons = [];
+                            if (pass.name === 'Leadership') reasons.push('Líder necesario');
+                            if (pass.name === 'Gender Restricted') reasons.push('Restricción de género');
+                            const totalSrv = usersMap[String(selected.id)]?.totalServedCount || 0;
+                            if (totalSrv > 10) reasons.push('Aporta experiencia');
+                            if (totalSrv < 3) reasons.push('Integración de nuevo');
+                            if ((recentCount[String(selected.id)] || 0) === 0) reasons.push('Equidad: No ha servido');
+
+                            assignments.push({
+                                configuracion_dia_id: config.id,
+                                usuario_id: selected.id,
+                                usuario: selected,
+                                posicion_id: pos.id,
+                                posicion: pos,
+                                aiMetadata: {
+                                    reasons,
+                                    usageInPlan: planUsageCount[String(selected.id)] || 0
+                                }
+                            });
+                            
+                            assignedPositions.add(slotKey);
+                            planUsageCount[String(selected.id)] = (planUsageCount[String(selected.id)] || 0) + 1;
                         }
-
-                        // ENCARGADO LOGIC
-                        if (isEncargadoPos) {
-                            return (u as any).isInternalLeader;
-                        }
-
-                        return true;
-                    });
-
-                    logEntry.candidatesAfterGenderAndDupes = candidates.length;
-
-                    // Consecutividad
-                    let prevDayAssignedIds: string[] = [];
-                    if (prevDateStr && i > 0) {
-                        prevDayAssignedIds = assignments
-                            .filter(a => String(a.configuracion_dia_id) === String(configsSorted[i - 1].id))
-                            .map(a => String(a.usuario_id));
                     }
-
-                    const nonConsecutive = candidates.filter(u => !prevDayAssignedIds.includes(String(u.id)));
-                    if (nonConsecutive.length >= quota) {
-                        candidates = nonConsecutive;
-                    }
-
-                    // Sort criteria
-                    candidates.sort((a, b) => {
-                        if (a.isExternalLeader !== b.isExternalLeader) {
-                            return a.isExternalLeader ? 1 : -1;
-                        }
-                        const countA = recentCount[String(a.id)] || 0;
-                        const countB = recentCount[String(b.id)] || 0;
-                        if (countA !== countB) return countA - countB;
-                        return 0.5 - Math.random();
-                    });
-
-                    const selected = candidates.slice(0, quota);
-                    logEntry.assigned = selected.length;
-
-                    if (selected.length < quota) {
-                        logEntry.status = 'Partial/None: Not enough candidates';
-                    } else {
-                        logEntry.status = 'Success';
-                    }
-                    diagnostics.details.push(logEntry);
-
-                    selected.forEach(user => {
-                        assignments.push({
-                            configuracion_dia_id: config.id,
-                            usuario_id: user.id,
-                            usuario: user,
-                            posicion_id: pos.id
-                        });
-                        const uid = String(user.id);
-                        recentCount[uid] = (recentCount[uid] || 0) + 1;
-                        if (!userDates[uid]) userDates[uid] = [];
-                        userDates[uid].push(dateStr);
-                    });
                 }
             }
 
-            return { assignments, diagnostics };
+            return { assignments, diagnostics: { deptUsersFound: deptUsers.length, datesProcessed: configsSorted.length, details: [] } };
         } catch (error) {
             console.error('Error generating assignments:', error);
             throw error;

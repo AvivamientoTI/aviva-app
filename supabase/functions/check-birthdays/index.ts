@@ -1,6 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2.39.0";
-
 import nodemailer from "npm:nodemailer@6.9.7";
+import * as Sentry from "https://deno.land/x/sentry/index.mjs";
+
+// Initialize Sentry
+Sentry.init({
+    dsn: Deno.env.get("SENTRY_DSN") || "https://eea493c606dd0b918ac3e577f0bb5f67@o4511242478354432.ingest.us.sentry.io/4511242483728384",
+    performance: true,
+});
 
 // Define Interfaces for Types
 interface User {
@@ -29,22 +35,18 @@ Deno.serve(async (req: Request) => {
         }
 
         if (!GMAIL_APP_PASSWORD) {
-            console.error("Missing GMAIL_APP_PASSWORD");
-            return new Response(JSON.stringify({ error: "Configuration Error: Missing GMAIL_APP_PASSWORD" }), {
+            const err = new Error("Missing GMAIL_APP_PASSWORD");
+            Sentry.captureException(err);
+            return new Response(JSON.stringify({ error: err.message }), {
                 status: 500,
                 headers: { "Content-Type": "application/json" },
             });
         }
 
-        // 1. Get today's date info
         const today = new Date();
-        // Adjustment for timezone as needed (simplifying to server time matching logic here)
-        const currentMonth = today.getUTCMonth() + 1; // 0-indexed
+        const currentMonth = today.getUTCMonth() + 1;
         const currentDay = today.getUTCDate();
 
-        console.log(`Checking birthdays for: ${currentMonth}-${currentDay} (UTC)`);
-
-        // 2. Fetch all users from DB directly filtering by today's date using RPC
         const { data: birthdayPeople, error: usersError } = await supabase
             .rpc("get_birthdays_today", {
                 p_month: currentMonth,
@@ -54,22 +56,17 @@ Deno.serve(async (req: Request) => {
 
         if (usersError) throw usersError;
 
-        if (birthdayPeople.length === 0) {
-            console.log("No birthdays today.");
+        if (!birthdayPeople || birthdayPeople.length === 0) {
             return new Response(JSON.stringify({ message: "No birthdays today" }), {
                 status: 200,
                 headers: { "Content-Type": "application/json" },
             });
         }
 
-        // 3. Info of birthday people
         const birthdayNames = birthdayPeople.map(
             (u: User) => `${u.nombre} ${u.apellido}`
         ).join(", ");
 
-        console.log(`Found birthdays: ${birthdayNames}`);
-
-        // 4. Fetch recipients from the database (Strictly for Holiber Hall)
         const { data: user, error: userError } = await supabase
             .from('usuarios')
             .select('email_personal')
@@ -77,31 +74,24 @@ Deno.serve(async (req: Request) => {
             .single();
 
         if (userError) {
-            console.warn("Could not fetch Holiber Hall's email from DB, using fallback:", userError.message);
+            console.warn("Could not fetch Holiber Hall email from DB, using fallback:", userError.message);
         }
 
         const emails: string[] = [user?.email_personal || "holiberhall@gmail.com"];
 
-        // 5. Send Email
-        // Construct HTML
         const htmlList = birthdayPeople
             .map((u: User) => `<li><b>${u.nombre} ${u.apellido}</b> (${u.fecha_nacimiento})</li>`)
             .join("");
 
-        console.log(`Sending email to ${emails.length} receivers: ${emails.join(", ")}`);
-
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
             port: 587,
-            secure: false, // Use STARTTLS
+            secure: false,
             auth: {
                 user: "geovanniga32@gmail.com",
                 pass: GMAIL_APP_PASSWORD,
             },
         });
-
-        console.log("Attempting to send mail via smtp.gmail.com:587...");
-
 
         const info = await transporter.sendMail({
             from: 'Aviva App <geovanniga32@gmail.com>',
@@ -117,16 +107,16 @@ Deno.serve(async (req: Request) => {
       `,
         });
 
-        console.log("Email sent successfully. Message ID:", info.messageId);
-
         return new Response(JSON.stringify({ message: "Emails sent", data: info }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
         });
 
-    } catch (err: any) {
+    } catch (err) {
         console.error("Error processing birthdays:", err);
-        return new Response(JSON.stringify({ error: err.message || "Unknown error" }), {
+        Sentry.captureException(err);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        return new Response(JSON.stringify({ error: errorMessage }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
         });

@@ -10,29 +10,38 @@ interface ExportOptions {
     pixelRatio?: number;
 }
 
+import * as Sentry from "@sentry/react";
+
 const isMobile = () =>
     /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-/**
- * Captura el elemento original directamente (sin clonar) y añade
- * encabezado y pie de página dibujándolos sobre el canvas resultante.
- * Esto evita el problema de CSS variables no resueltas en clones.
- */
 export const exportHelper = {
     captureAndDownload: async (element: HTMLElement, options: ExportOptions): Promise<string> => {
         const { fileName: originalFileName, title, subtitle, departmentName } = options;
-
         const fileName = originalFileName.replace('.png', '.jpg');
-        const ratio = isMobile() ? 1.5 : 2;
+        
+        // --- Optimización Móvil ---
+        const elementHeight = element.offsetHeight;
+        let ratio = isMobile() ? 1.5 : 2;
+        
+        // Si el elemento es muy alto, bajamos el ratio para evitar que Safari crashee el Canvas
+        if (isMobile() && elementHeight > 1200) {
+            ratio = 1.0; 
+        } else if (elementHeight > 2500) {
+            ratio = isMobile() ? 0.8 : 1.5;
+        }
 
         try {
             notify.info('Iniciando exportación...', 'Procesando Reporte');
 
-            // 1. Capturar el elemento tal como está en el DOM (con todos sus estilos resueltos)
             const contentCanvas = await toCanvas(element, {
                 pixelRatio: ratio,
                 backgroundColor: '#ffffff',
                 skipFonts: false,
+                fontEmbedCSS: isMobile() ? undefined : undefined, // html-to-image lo maneja internamente mejor si no se fuerza a veces
+                style: {
+                   transform: 'scale(1)', // Asegurar que no hay zooms raros
+                }
             });
 
             // 2. Dimensiones del canvas final (contenido + header + footer + padding)
@@ -136,8 +145,13 @@ export const exportHelper = {
                 }, 'image/jpeg', 0.92);
             });
 
-        } catch (error: any) {
+        } catch (error) {
             console.error('EXPORT ERROR:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            Sentry.captureException(error, {
+                tags: { feature: 'export_png', is_mobile: isMobile() },
+                extra: { options, elementHeight: element?.offsetHeight, errorDetails: errorMessage }
+            });
             notify.error('Error al generar el reporte. Intenta de nuevo.', 'Error');
             throw error;
         }

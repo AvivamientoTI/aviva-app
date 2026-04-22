@@ -2,6 +2,8 @@ import React, { type ReactNode } from 'react';
 import { Container, Title, Text, Button, Group, Paper, Stack, ThemeIcon } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 
+import * as Sentry from "@sentry/react";
+
 interface ErrorBoundaryProps {
     children: ReactNode;
 }
@@ -25,6 +27,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error("Uncaught error:", error, errorInfo);
+        Sentry.captureException(error, { extra: { ...errorInfo } });
         
         // Auto-fix para White Screen / Chunk Error en Vercel
         const isChunkError = error.name === 'ChunkLoadError' || 

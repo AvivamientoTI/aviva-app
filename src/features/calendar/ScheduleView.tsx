@@ -18,7 +18,8 @@ import {
     Stack, 
     Container, 
     Paper, 
-    Card
+    Card,
+    Menu
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notify } from '../../utils/notificationsHelper';
@@ -26,7 +27,10 @@ import {
     IconCalendar, 
     IconList, 
     IconRocket, 
-    IconBuildingCommunity
+    IconBuildingCommunity,
+    IconFileTypePdf,
+    IconPhoto,
+    IconChevronDown
 } from '@tabler/icons-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useUser } from '../../contexts/UserContext';
@@ -41,7 +45,6 @@ import { AssignmentDetailModal } from './components/AssignmentDetailModal';
 import { DetailedListTab } from './components/DetailedListTab';
 
 async function getUsersNotAssignedOnDate(_date: string, members: any[], _headerId?: number) {
-  // Mock logic or real fetch - assuming it exists in the scope or handled by hook
   return members; 
 }
 
@@ -101,22 +104,30 @@ export default function ScheduleView() {
         }
     }, [departments, selectedDept]);
 
-    const handleExport = useCallback(() => {
+    const handleExport = useCallback((format: 'png' | 'pdf') => {
         const deptLabel = departments.find(d => d.value === selectedDept)?.label || '';
         const subtitle = dayjs(currentDate).format('MMMM YYYY');
 
+        if (format === 'pdf') {
+            exportSchedulePdf(groupedAssignments, {
+                title: 'Programación de Servicios',
+                subtitle,
+                departmentName: deptLabel,
+            });
+            return;
+        }
+
+        // Caso PNG
         if (viewMode === 'calendar') {
-            // Imagen de cuadrícula semanal generada programáticamente → nitidez perfecta
             exportCalendarImage(groupedAssignments, deptLabel);
         } else {
-            // Vista detalle → captura de imagen
             exportToPng(detailRef as any, 'detalle-asignaciones.png', {
                 title: 'Detalle de Asignaciones',
                 subtitle,
                 departmentName: deptLabel,
             });
         }
-    }, [viewMode, exportToPng, exportSchedulePdf, groupedAssignments, departments, selectedDept, currentDate]);
+    }, [viewMode, exportToPng, exportSchedulePdf, exportCalendarImage, groupedAssignments, departments, selectedDept, currentDate]);
 
     const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, blockedUserIds, loadingAssignedUsers);
 
@@ -222,16 +233,37 @@ export default function ScheduleView() {
                                 size="sm"
                                 variant="filled"
                             />
-                            <Button 
-                                className="btn-premium" 
-                                size="sm" 
-                                radius="md" 
-                                leftSection={<IconRocket size={18} />}
-                                onClick={handleExport}
-                                style={{ height: '36px' }}
-                            >
-                                Exportar
-                            </Button>
+                            
+                            <Menu shadow="md" width={200} radius="md" position="bottom-end">
+                                <Menu.Target>
+                                    <Button 
+                                        className="btn-premium" 
+                                        size="sm" 
+                                        radius="md" 
+                                        leftSection={<IconRocket size={18} />}
+                                        rightSection={<IconChevronDown size={14} />}
+                                        style={{ height: '36px' }}
+                                    >
+                                        Exportar
+                                    </Button>
+                                </Menu.Target>
+
+                                <Menu.Dropdown>
+                                    <Menu.Label>Formato de Reporte</Menu.Label>
+                                    <Menu.Item 
+                                        leftSection={<IconPhoto size={16} />}
+                                        onClick={() => handleExport('png')}
+                                    >
+                                        Imagen (WhatsApp)
+                                    </Menu.Item>
+                                    <Menu.Item 
+                                        leftSection={<IconFileTypePdf size={16} />}
+                                        onClick={() => handleExport('pdf')}
+                                    >
+                                        Documento PDF
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
                         </Group>
                     </Paper>
                 </Group>

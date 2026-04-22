@@ -1,7 +1,15 @@
+import * as Sentry from "https://deno.land/x/sentry/index.mjs";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize Sentry
+Sentry.init({
+  dsn: Deno.env.get("SENTRY_DSN") || "https://eea493c606dd0b918ac3e577f0bb5f67@o4511242478354432.ingest.us.sentry.io/4511242483728384",
+  performance: true,
+});
 
 // Decodifica el payload del JWT sin verificar la firma (el gateway ya lo verificó con verify_jwt: true)
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -84,8 +92,11 @@ Formato de respuesta OBLIGATORIO:
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error) {
+    console.error("CHAT_AI_ERROR:", error);
+    Sentry.captureException(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });

@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
  * Uses a Supabase RPC to bypass RLS for global conflict detection.
  */
 export const getUsersNotAssignedOnDate = async <T extends { id: number | string }>(
-  date: any, 
+  date: string | Date | dayjs.Dayjs | null, 
   allUsers: T[],
   excludeHeaderId?: number | string
 ): Promise<T[]> => {
@@ -21,14 +21,14 @@ export const getUsersNotAssignedOnDate = async <T extends { id: number | string 
     const { data: blockedResults, error } = await supabase.rpc('get_blocked_users', {
       p_date: normalizedDate,
       p_exclude_role_id: excludeHeaderId ? Number(excludeHeaderId) : null
-    });
+    }) as { data: { usuario_id: number }[] | null; error: any };
 
     if (error) {
       console.error('❌ [GlobalExclusion] RPC Error:', error);
       // En caso de error, preferimos no bloquear a nadie globalmente para no romper la app,
       // pero logueamos fuerte para depurar.
     } else if (blockedResults) {
-      (blockedResults as any[]).forEach(row => {
+      blockedResults.forEach(row => {
         if (row.usuario_id) {
           blockedIds.add(String(row.usuario_id));
         }

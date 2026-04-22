@@ -44,7 +44,7 @@ export interface CalendarAssignment {
     usuario_id?: number;
     nombre: string;
     posicion: string;
-    posicionObj?: any; // Keep ref to original if needed
+    posicionObj?: TransformerAssignment['posicion'];
     uniforme: string;
     servicio: string;
     usuario?: {
@@ -54,5 +54,13 @@ export interface CalendarAssignment {
     };
     orden: number;
     departamento_id?: number;
-    resource?: any; // For calendar event resource
+}
+
+export interface CalendarEvent {
+    id: string | number;
+    title: string;
+    start: Date;
+    end: Date;
+    allDay: boolean;
+    resource: TransformerAssignment;
 }

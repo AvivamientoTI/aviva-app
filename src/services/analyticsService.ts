@@ -298,79 +298,30 @@ export const analyticsService = {
   },
 
   /**
-   * Obtiene tendencias de puntualidad
+   * Obtiene tendencias de puntualidad (Optimizado via RPC)
    */
   async fetchPunctualityTrends(deptId: number): Promise<PunctualityStat[]> {
-    const { data: attendance } = await supabase
-      .from('asistencias')
-      .select(`
-        hora_registro,
-        configuracion_dia!inner(roles_cabecera!inner(departamento_id))
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .eq('estado', 'Asistió')
-      .not('hora_registro', 'is', null)
-      .order('hora_registro', { ascending: false })
-      .limit(100);
-
-    const stats = {
-      'Temprano': 0,
-      'A tiempo': 0,
-      'Tarde': 0
-    };
-
-    attendance?.forEach((r: any) => {
-      if (!r.hora_registro) return;
-      
-      const hour = dayjs(r.hora_registro).hour();
-      const minute = dayjs(r.hora_registro).minute();
-      
-      // Lógica simplificada: Antes de las 08:50 es temprano, hasta 09:05 a tiempo, luego tarde.
-      // En una app real esto dependería de la hora del servicio configurada.
-      if (hour < 8 || (hour === 8 && minute < 50)) stats['Temprano']++;
-      else if (hour === 8 || (hour === 9 && minute <= 5)) stats['A tiempo']++;
-      else stats['Tarde']++;
+    const { data, error } = await supabase.rpc('get_punctuality_stats', { 
+      p_dept_id: deptId, 
+      p_limit: 100 
     });
 
-    return Object.entries(stats).map(([label, count]) => ({ label, count }));
+    if (error) throw error;
+    return (data as PunctualityStat[]) || [];
   },
 
   /**
-   * Obtiene la distribución demográfica de un departamento o global
+   * Obtiene la distribución demográfica de un departamento o global (Optimizado via RPC)
    */
   async fetchDemographicDist(deptId?: number): Promise<DemographicData> {
-    let query = supabase.from('usuarios').select('genero, fecha_nacimiento, membresias(departamento_id)');
-    
-    if (deptId) {
-      // Nota: Si se requiere filtrar por depto, idealmente usar una join o el RPC si es complejo
-      // Por simplicidad aquí filtramos todos y luego procesamos o usamos la membresía
-    }
+    const { data, error } = await supabase.rpc('get_demographic_stats', { 
+      p_dept_id: deptId 
+    });
 
-    const { data, error } = await query;
     if (error) throw error;
-
-    const stats: DemographicData = {
+    return (data as DemographicData) || {
       gender: { male: 0, female: 0 },
       ageRanges: { '13-17': 0, '18-25': 0, '26-35': 0, '36-50': 0, '51+': 0 }
     };
-
-    data.forEach((u: any) => {
-      // Filtrar por depto si se pasó
-      if (deptId && !u.membresias?.some((m: any) => m.departamento_id === deptId)) return;
-
-      if (u.genero === 'M') stats.gender.male++;
-      else if (u.genero === 'F') stats.gender.female++;
-
-      if (u.fecha_nacimiento) {
-        const age = dayjs().diff(dayjs(u.fecha_nacimiento), 'year');
-        if (age < 18) stats.ageRanges['13-17']++;
-        else if (age <= 25) stats.ageRanges['18-25']++;
-        else if (age <= 35) stats.ageRanges['26-35']++;
-        else if (age <= 50) stats.ageRanges['36-50']++;
-        else stats.ageRanges['51+']++;
-      }
-    });
-
-    return stats;
   }
 };

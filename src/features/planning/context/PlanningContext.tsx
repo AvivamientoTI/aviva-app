@@ -25,6 +25,10 @@ export interface DraftAssignment {
     posicion?: Position;
     usuario?: { nombre: string; apellido: string };
     configuracion_dia_id?: number | string;
+    aiMetadata?: {
+        reasons: string[];
+        usageInPlan: number;
+    };
 }
 
 interface PlanningContextType {

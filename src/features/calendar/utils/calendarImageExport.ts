@@ -16,6 +16,9 @@ import { notify } from '../../../utils/notificationsHelper';
 
 dayjs.locale('es');
 
+const isMobile = () =>
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+
 // ─── Day helpers ──────────────────────────────────────────────────────────────
 
 const DAY_SHORT: Record<number, string> = {
@@ -440,7 +443,15 @@ export async function exportCalendarImage(
 
     notify.info('Generando imagen del calendario...', 'Exportando');
     try {
-        const S = 3; // 3× scale — crisp on any screen
+        let S = 3; // 3× scale — crisp on any screen
+        const tempHeight = measureHeight(groupedAssignments, S);
+        
+        // Si la imagen resultante es gigantesca (> 7000px en 3x), bajamos escala en móviles
+        if (isMobile() && tempHeight > 4000) {
+            S = 2;
+        } else if (tempHeight > 8000) {
+            S = 1.5;
+        }
 
         const width  = px(L.GRID_W + L.PAD * 2, S);
         const height = measureHeight(groupedAssignments, S);

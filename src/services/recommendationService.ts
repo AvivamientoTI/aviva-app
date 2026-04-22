@@ -8,128 +8,154 @@ export interface ScoredCandidate extends PublicUser {
     matchReasons: string[];
     lastServedDate?: string;
     roles: string[];
+    isVeteran?: boolean;
+    totalServedCount?: number;
+}
+
+interface UserQueryResponse {
+    id: number;
+    nombre: string;
+    apellido: string;
+    genero: string;
+    activo: boolean;
+}
+
+interface MemberQueryResponse {
+    usuario_id: number;
+    rol_jerarquico: string;
+    usuario: UserQueryResponse | UserQueryResponse[];
 }
 
 export const recommendationService = {
+    /**
+     * Finds candidates for a specific position, applying hard filters and AI scoring.
+     */
     async getRecommendations(
         date: string,
         departmentId: number,
-        positionRequiresGender: 'M' | 'F' | null = null,
-        positionRequiresLeadership: boolean = false
+        options: {
+            positionRequiresGender?: 'M' | 'F' | null;
+            positionRequiresLeadership?: boolean;
+            teamComposition?: { veterans: number; regulars: number; new: number };
+        } = {}
     ): Promise<ScoredCandidate[]> {
-        console.log(`🤖 AI Recommendation Engine: Finding candidates for Dept ${departmentId} on ${date}`);
+        const { positionRequiresGender = null, positionRequiresLeadership = false, teamComposition = null } = options;
+        console.log(`🤖 AI Engine: Analyzing candidates for Dept ${departmentId} on ${date}`);
 
-        // 1. Fetch all department members with their roles
+        // 1. Fetch department members
         const { data: members, error: membersError } = await supabase
             .from('membresias')
             .select(`
                 usuario_id, 
                 rol_jerarquico, 
-                usuario:usuarios (id, nombre, apellido, genero)
+                usuario:usuarios (id, nombre, apellido, genero, activo)
             `)
-            .eq('departamento_id', departmentId);
+            .eq('departamento_id', departmentId) as { data: MemberQueryResponse[] | null; error: any };
 
         if (membersError) throw membersError;
         if (!members) return [];
 
-        // 2. Fetch active suspensions for this date
-        const allSuspensions = await suspensionService.getAllSuspensions();
+        // 2. Fetch active suspensions & busy users
+        const [allSuspensions, busyAssignments] = await Promise.all([
+            suspensionService.getAllSuspensions(),
+            supabase
+                .from('asignaciones')
+                .select('usuario_id, configuracion_dia!inner(fecha)')
+                .eq('configuracion_dia.fecha', date)
+        ]);
+
         const suspendedUserIds = new Set(
             allSuspensions
                 .filter(s => s.fecha_inicio <= date && (!s.fecha_fin || s.fecha_fin >= date))
                 .map(s => s.usuario_id)
         );
+        const busyUserIds = new Set(busyAssignments.data?.map(a => a.usuario_id) || []);
 
-        // 3. Fetch users already assigned on this date (in ANY department)
-        const { data: busyAssignments, error: busyError } = await supabase
-            .from('asignaciones')
-            .select('usuario_id, configuracion_dia!inner(fecha)')
-            .eq('configuracion_dia.fecha', date);
-
-        if (busyError) throw busyError;
-        const busyUserIds = new Set(busyAssignments?.map(a => a.usuario_id));
-
-        // 4. Fetch last assignment date for each user (for fairness scoring)
-        // Optimization: Look back 3 months
-        const threeMonthsAgo = dayjs().subtract(3, 'months').format('YYYY-MM-DD');
+        // 3. Experience & History Analysis (Last 6 months)
+        const sixMonthsAgo = dayjs().subtract(6, 'months').format('YYYY-MM-DD');
         const { data: history } = await supabase
             .from('asignaciones')
             .select('usuario_id, configuracion_dia!inner(fecha)')
-            .gte('configuracion_dia.fecha', threeMonthsAgo)
-            .order('configuracion_dia(fecha)', { ascending: false });
+            .gte('configuracion_dia.fecha', sixMonthsAgo)
+            .order('configuracion_dia(fecha)', { ascending: false }) as { data: { usuario_id: number; configuracion_dia: { fecha: string } }[] | null };
 
         const lastServiceMap: Record<number, string> = {};
-        history?.forEach((h: any) => {
-            if (!lastServiceMap[h.usuario_id]) {
-                lastServiceMap[h.usuario_id] = h.configuracion_dia.fecha;
-            }
+        const serviceCountMap: Record<number, number> = {};
+        
+        history?.forEach(h => {
+            const uid = h.usuario_id;
+            if (!lastServiceMap[uid]) lastServiceMap[uid] = h.configuracion_dia.fecha;
+            serviceCountMap[uid] = (serviceCountMap[uid] || 0) + 1;
         });
 
-        // 5. Filter & Score
+        // 4. Scoring Logic
         const candidates: ScoredCandidate[] = [];
 
         for (const m of members) {
-            const rawUser = m.usuario as any; // Cast potential array/object to any
-            const user = (Array.isArray(rawUser) ? rawUser[0] : rawUser);
-
-            if (!user) continue;
+            const user = (Array.isArray(m.usuario) ? m.usuario[0] : m.usuario);
+            if (!user || user.activo === false) continue;
 
             // --- HARD FILTERS ---
-            if (suspendedUserIds.has(user.id)) continue; // Suspended
-            if (busyUserIds.has(user.id)) continue; // Already working today
-            if (positionRequiresGender && user.genero !== positionRequiresGender) continue; // Wrong gender
+            if (suspendedUserIds.has(user.id)) continue; 
+            if (busyUserIds.has(user.id)) continue; 
+            if (positionRequiresGender && user.genero !== positionRequiresGender) continue; 
 
-            // --- SCORING ---
-            let score = 100;
+            // --- AI SCORING ---
+            let score = 70; // Base score
             const reasons: string[] = [];
-            const role = m.rol_jerarquico?.toLowerCase() || 'servidor';
+            const role = (m.rol_jerarquico || 'servidor').toLowerCase();
+            const totalCount = serviceCountMap[user.id] || 0;
+            const isVeteran = totalCount > 12;
+            const isNew = totalCount < 3;
 
-            // Factor A: Leadership for Leadership positions
+            // Factor A: Leadership
             if (positionRequiresLeadership) {
-                if (['lider', 'líder', 'sublider', 'sublíder', 'encargado'].includes(role)) {
-                    score += 30;
-                    reasons.push('Tiene rango de liderazgo');
+                if (['lider', 'líder', 'sublider', 'sublíder', 'encargado'].some(r => role.includes(r))) {
+                    score += 40;
+                    reasons.push('Perfil de liderazgo ideal');
                 } else {
-                    score -= 50; // Penalty for non-leaders in leader slots
+                    score -= 50; 
                 }
-            } else {
-                // If normal position, slight preference for non-leaders to save leaders for their slots? 
-                // Or maybe neutral. Let's keep it neutral but boost regular servers slightly for fairness
             }
 
-            // Factor B: Fairness (Time since last service)
+            // Factor B: Fairness (Time gap)
             const lastDate = lastServiceMap[user.id];
             if (!lastDate) {
-                score += 25; // Hasn't served in 3 months! High priority.
-                reasons.push('No ha servido recientemente');
+                score += 30;
+                reasons.push('Prioridad: No ha servido recientemente');
             } else {
                 const daysSince = dayjs(date).diff(dayjs(lastDate), 'day');
-                if (daysSince > 30) {
-                    score += 15;
-                    reasons.push(`Último servicio hace ${Math.floor(daysSince / 7)} semanas`);
+                if (daysSince > 25) {
+                    score += 20;
+                    reasons.push('Buena disponibilidad (descanso suficiente)');
                 } else if (daysSince < 7) {
-                    score -= 30; // Burnout protection
-                    reasons.push('Sirvió hace menos de una semana');
+                    score -= 40;
+                    reasons.push('Riesgo de agotamiento (sirvió hace poco)');
                 }
             }
 
-            // Factor C: Role Bonus
-            // Give a tiny bonus to leaders just because they are reliable usually
-            if (['lider', 'líder'].includes(role)) {
-                score += 5;
+            // Factor C: Experience Mixing
+            if (teamComposition) {
+                if (isNew && teamComposition.new === 0) {
+                    score += 15;
+                    reasons.push('Impulsa integración de nuevos servidores');
+                } else if (isVeteran && teamComposition.veterans === 0) {
+                    score += 15;
+                    reasons.push('Aporta experiencia necesaria al equipo');
+                }
             }
 
-            // Construct Candidate
             candidates.push({
                 ...user,
-                score: Math.max(0, Math.min(100, score)), // Clamp 0-100 (or allow >100 for super matches)
+                score: Math.max(0, Math.min(100, score)),
                 matchReasons: reasons,
                 lastServedDate: lastDate,
-                roles: [role]
+                roles: [role],
+                isVeteran,
+                totalServedCount: totalCount
             });
         }
 
-        // Sort by Score Descending
-        return candidates.sort((a, b) => b.score - a.score).slice(0, 5);
+        return candidates.sort((a, b) => b.score - a.score).slice(0, 8);
     }
 };

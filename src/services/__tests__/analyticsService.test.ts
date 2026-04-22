@@ -112,4 +112,45 @@ describe('analyticsService', () => {
             await expect(analyticsService.fetchChurnRisk(1)).rejects.toBeDefined();
         });
     });
+
+    describe('fetchPunctualityTrends', () => {
+        it('should call get_punctuality_stats RPC and return mapped data', async () => {
+            const mockData = [
+                { label: 'Temprano', count: 10 },
+                { label: 'A tiempo', count: 5 }
+            ];
+            (supabase.rpc as any).mockResolvedValue({ data: mockData, error: null });
+
+            const result = await analyticsService.fetchPunctualityTrends(1);
+            expect(supabase.rpc).toHaveBeenCalledWith('get_punctuality_stats', { 
+                p_dept_id: 1, 
+                p_limit: 100 
+            });
+            expect(result).toEqual(mockData);
+        });
+    });
+
+    describe('fetchDemographicDist', () => {
+        it('should call get_demographic_stats RPC and return results', async () => {
+            const mockData = {
+                gender: { male: 5, female: 5 },
+                ageRanges: { '18-25': 10 }
+            };
+            (supabase.rpc as any).mockResolvedValue({ data: mockData, error: null });
+
+            const result = await analyticsService.fetchDemographicDist(1);
+            expect(supabase.rpc).toHaveBeenCalledWith('get_demographic_stats', { 
+                p_dept_id: 1 
+            });
+            expect(result).toEqual(mockData);
+        });
+
+        it('should return default structure if RPC returns null', async () => {
+            (supabase.rpc as any).mockResolvedValue({ data: null, error: null });
+
+            const result = await analyticsService.fetchDemographicDist(1);
+            expect(result.gender.male).toBe(0);
+            expect(result.ageRanges['13-17']).toBe(0);
+        });
+    });
 });

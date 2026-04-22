@@ -1,4 +1,4 @@
-import type { TransformerAssignment, CalendarAssignment } from './transformerTypes';
+import type { TransformerAssignment, CalendarAssignment, CalendarEvent } from './transformerTypes';
 
 /**
  * Determina la prioridad de un departamento
@@ -17,17 +17,16 @@ const getSafeOrder = (item: TransformerAssignment): number => {
     if (!item) return 999;
 
     const p = item.posicion;
-    let ordenVal: any = null;
+    let ordenVal: number | null = null;
     let nombreVal: string = '';
 
     if (p) {
         if (Array.isArray(p) && p.length > 0) {
-            ordenVal = p[0].orden;
+            ordenVal = p[0].orden ?? null;
             nombreVal = p[0].nombre || '';
         } else if (typeof p === 'object' && !Array.isArray(p)) {
-            // @ts-ignore
             const pObj = p as { orden?: number; nombre?: string };
-            ordenVal = pObj.orden;
+            ordenVal = pObj.orden ?? null;
             nombreVal = pObj.nombre || '';
         } else if (typeof p === 'string') {
             nombreVal = p;
@@ -40,15 +39,14 @@ const getSafeOrder = (item: TransformerAssignment): number => {
         const alt = item.posiciones_departamento;
         if (alt) {
             if (Array.isArray(alt) && alt.length > 0) {
-                ordenVal = alt[0].orden;
+                ordenVal = alt[0].orden ?? null;
             } else if (typeof alt === 'object' && !Array.isArray(alt)) {
-                // @ts-ignore
-                ordenVal = (alt as any).orden;
+                ordenVal = (alt as { orden?: number }).orden ?? null;
             }
         }
     }
 
-    if (ordenVal !== null && ordenVal !== undefined && ordenVal !== '') {
+    if (ordenVal !== null && ordenVal !== undefined) {
         const n = Number(ordenVal);
         if (!isNaN(n)) return n;
     }
@@ -125,7 +123,7 @@ export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Re
 
         const nombreCompleto = item.usuario ? `${item.usuario.nombre} ${item.usuario.apellido}` : 'Usuario desconocido';
 
-        const posName = item.posicion && typeof item.posicion === 'object' && !Array.isArray(item.posicion) ? (item.posicion as any).nombre :
+        const posName = item.posicion && typeof item.posicion === 'object' && !Array.isArray(item.posicion) ? (item.posicion as { nombre?: string }).nombre :
             Array.isArray(item.posicion) ? item.posicion[0]?.nombre : item.posicion;
 
         acc[fecha].assignments.push({
@@ -145,7 +143,6 @@ export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Re
             departamento_id: item.configuracion_dia?.roles_cabecera?.[0]?.departamento_id
         });
 
-        // Ordenar estrictamente por la propiedad 'orden'
         acc[fecha].assignments.sort((a, b) => {
             const o1 = a.orden ?? 999;
             const o2 = b.orden ?? 999;
@@ -157,15 +154,15 @@ export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Re
     }, {} as Record<string, GroupedAssignment>);
 };
 
-export const transformToCalendarEvents = (assignments: TransformerAssignment[]): any[] => {
+export const transformToCalendarEvents = (assignments: TransformerAssignment[]): CalendarEvent[] => {
     return assignments.map(item => {
-        const posName = typeof item.posicion === 'object' && !Array.isArray(item.posicion) ? (item.posicion as any).nombre :
+        const posName = typeof item.posicion === 'object' && !Array.isArray(item.posicion) ? (item.posicion as { nombre?: string }).nombre :
             Array.isArray(item.posicion) ? item.posicion[0]?.nombre : item.posicion;
-        const position = posName ? ` – ${posName}` : '';
+        const positionString = posName ? ` – ${posName}` : '';
         const fecha = item.configuracion_dia?.fecha;
         return {
             id: item.id,
-            title: `${item.usuario?.nombre || ''} ${item.usuario?.apellido || ''}${position}`,
+            title: `${item.usuario?.nombre || ''} ${item.usuario?.apellido || ''}${positionString}`,
             start: fecha ? new Date(fecha) : new Date(),
             end: fecha ? new Date(fecha) : new Date(),
             allDay: true,
