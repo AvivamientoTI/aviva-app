@@ -65,8 +65,6 @@ export default function ScheduleView() {
     } = useAssignments(selectedDept);
 
     const puedeModificar = permissions.canModifyAssignments(selectedDept);
-    const [selectedEvent, setSelectedEvent] = useState<any>(null);
-    const [opened, { open, close }] = useDisclosure(false);
     const [dayEventsOpened, { open: openDayEvents, close: closeDayEvents }] = useDisclosure(false);
     const [selectedDayEvents, setSelectedDayEvents] = useState<any[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -204,18 +202,7 @@ export default function ScheduleView() {
         );
     };
 
-    const handleDeleteAssignment = () => {
-        if (!selectedEvent) return;
-        deleteAssignment.mutate(selectedEvent.id, {
-            onSuccess: () => {
-                notify.success('Asignación eliminada correctamente');
-                close();
-            },
-            onError: () => {
-                notify.error('No se pudo eliminar la asignación');
-            }
-        });
-    };
+
 
     return (
         <Container size="xl" py={{ base: 'md', sm: 'xl' }} px={{ base: 'xs', sm: 'md' }}>
