@@ -205,7 +205,7 @@ export default function AttendanceManager() {
         );
     }
 
-    const deptOptions = filteredDepts.map(d => ({ value: String(d.id), label: d.nombre }));
+
     const serviceOptions = serviceDays.map(d => ({ value: String(d.id), label: d.tipo_servicio }));
 
     return (
@@ -230,19 +230,7 @@ export default function AttendanceManager() {
                     border: '1px solid var(--mantine-color-default-border)'
                 }}>
                     <Group grow align="flex-end" gap="lg">
-                        <Select
-                            label="Departamento"
-                            placeholder="Selecciona departamento"
-                            data={deptOptions}
-                            value={selectedDept}
-                            onChange={(val) => {
-                                setSelectedDept(val);
-                                setSelectedService(null);
-                            }}
-                            radius="md"
-                            size="md"
-                            leftSection={<IconUsersGroup size={18} color="var(--mantine-color-gold-6)" />}
-                        />
+
                         <DatePickerInput
                             label="Fecha del Servicio"
                             placeholder="Seleccionar fecha"
