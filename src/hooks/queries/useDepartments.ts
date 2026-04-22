@@ -12,7 +12,7 @@ export const useDepartments = () => {
             const { data, error } = await supabase
                 .from('departamentos')
                 .select('*')
-                .order('nombre');
+                .order('id', { ascending: true });
 
             if (error) throw error;
             return data as Department[];

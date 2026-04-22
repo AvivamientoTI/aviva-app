@@ -1,26 +1,26 @@
-import { useState, useEffect } from 'react';
-import { 
-    Container, 
-    Title, 
-    Text, 
-    Paper, 
-    Group, 
-    Stack, 
-    SimpleGrid, 
-    ThemeIcon, 
-    Tabs, 
-    Box, 
+import { useState } from 'react';
+import {
+    Container,
+    Title,
+    Text,
+    Paper,
+    Group,
+    Stack,
+    SimpleGrid,
+    ThemeIcon,
+    Tabs,
+    Box,
     Card,
     Badge,
     Progress,
     Center
 } from '@mantine/core';
 import { AreaChart, BarChart, DonutChart } from '@mantine/charts';
-import { 
-    IconChartBar, 
-    IconCalendarStats, 
-    IconTrendingUp, 
-    IconCalendar, 
+import {
+    IconChartBar,
+    IconCalendarStats,
+    IconTrendingUp,
+    IconCalendar,
     IconActivity,
     IconArrowUpRight,
     IconAlertTriangle,
@@ -32,9 +32,6 @@ import dayjs from 'dayjs';
 import { analyticsService } from '../../services/analyticsService';
 import { useQuery } from '@tanstack/react-query';
 import type { ChurnRiskUser } from '../../types';
-import { useUser } from '../../contexts/UserContext';
-import { Select } from '@mantine/core';
-import { useState as useLocalState } from 'react';
 
 
 // Re-using the logic for activity heatmap
@@ -59,23 +56,23 @@ const ActivityHeatmap = ({ data }: { data: { date: string, count: number }[] }) 
 
 export default function AnalyticsDashboard() {
     const [activeTab, setActiveTab] = useState<string | null>('weekly');
-    const { attendanceManagedDepartments } = useUser();
 
-    // Selector de departamento para líderes con múltiples departamentos
-    const deptOptions = (attendanceManagedDepartments || []).map(d => ({
-        value: String(d.id),
-        label: d.nombre
-    }));
-    const [selectedDeptIdStr, setSelectedDeptIdStr] = useLocalState<string | null>(null);
+    // Obtener el departamento "Servidores" directamente de la BD — toda la estadística se basa en él
+    const { data: servidoresDept } = useQuery({
+        queryKey: ['dept', 'servidores'],
+        queryFn: async () => {
+            const { data, error } = await (await import('../../services/supabaseClient')).supabase
+                .from('departamentos')
+                .select('id, nombre')
+                .ilike('nombre', 'servidores')
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        },
+        staleTime: Infinity
+    });
 
-    // Sync initial selection when depts load asynchronously
-    useEffect(() => {
-        if (!selectedDeptIdStr && deptOptions.length > 0) {
-            setSelectedDeptIdStr(deptOptions[0].value);
-        }
-    }, [deptOptions.length]);
-
-    const deptId = selectedDeptIdStr ? Number(selectedDeptIdStr) : (deptOptions[0] ? Number(deptOptions[0].value) : null);
+    const deptId: number | null = servidoresDept?.id ?? null;
     
     // Using React Query for data fetching
     const { data: weeklyStatsData, isLoading: loadingWeekly, isError: errorWeekly } = useQuery({
@@ -393,17 +390,10 @@ export default function AnalyticsDashboard() {
                         <Text c="dimmed" fw={500} size="md">Analítica avanzada de participación y asistencia</Text>
                     </Stack>
 
-                    {deptOptions.length > 1 && (
-                        <Select
-                            label="Departamento"
-                            placeholder="Cambiar departamento"
-                            data={deptOptions}
-                            value={selectedDeptIdStr}
-                            onChange={setSelectedDeptIdStr}
-                            radius="md"
-                            size="sm"
-                            w={220}
-                        />
+                    {servidoresDept && (
+                        <Badge color="gold" variant="light" size="lg" radius="md" fw={700}>
+                            {servidoresDept.nombre}
+                        </Badge>
                     )}
                 </Group>
 

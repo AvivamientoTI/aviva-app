@@ -67,7 +67,7 @@ export default function DepartmentsList() {
             const { data, error } = await supabase
                 .from('departamentos')
                 .select('*')
-                .order('nombre', { ascending: false });
+                .order('id', { ascending: true });
 
             if (error) throw error;
             setDepartments(data || []);

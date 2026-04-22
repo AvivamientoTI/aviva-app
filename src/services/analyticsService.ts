@@ -182,146 +182,242 @@ export const analyticsService = {
     return stats;
   },
 
-  /**
-   * Obtiene estadísticas semanales (últimas 12 semanas) para gráficos de tendencia
-   */
   async fetchWeeklyStats(deptId: number): Promise<any[]> {
-    const { data: trendData, error } = await supabase
-      .rpc('get_weekly_attendance_trend', { p_dept_id: deptId, p_weeks: 12 });
+    const startDate = dayjs().subtract(12, 'week').startOf('week').format('YYYY-MM-DD');
+
+    const { data, error } = await supabase
+      .from('asistencias')
+      .select(`
+        estado,
+        configuracion_dia!inner (
+          fecha,
+          roles_cabecera!inner (
+            departamento_id
+          )
+        )
+      `)
+      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+      .gte('configuracion_dia.fecha', startDate);
 
     if (error) throw error;
-    if (!trendData) return [];
 
-    return trendData.map((w: any) => {
-      const present = Number(w.present);
-      const total = Number(w.total);
-      const date = dayjs(w.week_start_date);
-      return {
-        weekStart: `Semana ${date.week()} (${date.format('DD/MM')})`,
-        present,
-        absent: Number(w.absent),
-        total,
-        rate: total > 0 ? Math.round((present / total) * 100) : 0
-      };
-    });
+    const byWeek: Record<string, { weekStart: string; present: number; absent: number; total: number }> = {};
+
+    for (const r of (data || []) as any[]) {
+      const date = dayjs((r.configuracion_dia as any).fecha);
+      const weekKey = date.startOf('week').format('YYYY-MM-DD');
+      if (!byWeek[weekKey]) {
+        byWeek[weekKey] = {
+          weekStart: `Sem ${date.week()} (${date.startOf('week').format('DD/MM')})`,
+          present: 0,
+          absent: 0,
+          total: 0
+        };
+      }
+      byWeek[weekKey].total++;
+      if (r.estado === 'Asistió') byWeek[weekKey].present++;
+      else byWeek[weekKey].absent++;
+    }
+
+    return Object.entries(byWeek)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, v]) => ({ ...v, rate: v.total > 0 ? Math.round((v.present / v.total) * 100) : 0 }));
   },
-  /**
-   * Obtiene estadísticas anuales para el heatmap
-   */
+
   async fetchAnnualStats(deptId: number): Promise<any> {
     const startOfYear = dayjs().startOf('year').format('YYYY-MM-DD');
 
-    const { data: heatmapData, error } = await supabase
-      .rpc('get_annual_attendance_heatmap', { 
-        p_dept_id: deptId, 
-        p_start_date: startOfYear 
-      });
+    const { data, error } = await supabase
+      .from('asistencias')
+      .select(`
+        estado,
+        configuracion_dia!inner (
+          fecha,
+          roles_cabecera!inner (
+            departamento_id
+          )
+        )
+      `)
+      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+      .gte('configuracion_dia.fecha', startOfYear);
 
     if (error) throw error;
 
-    let totalServices = 0;
-    const formattedHeatmap = (heatmapData || []).map((r: any) => {
-      const count = Number(r.asistencias);
-      totalServices += count;
-      return {
-        date: r.fecha,
-        count
-      };
-    });
+    const byDate: Record<string, number> = {};
+    for (const r of (data || []) as any[]) {
+      const fecha = (r.configuracion_dia as any).fecha as string;
+      if (r.estado === 'Asistió') {
+        byDate[fecha] = (byDate[fecha] || 0) + 1;
+      }
+    }
+
+    const heatmapData = Object.entries(byDate).map(([date, count]) => ({ date, count }));
 
     return {
       year: dayjs().year(),
-      totalServices,
-      uniqueDates: heatmapData?.length || 0,
-      heatmapData: formattedHeatmap
+      totalServices: (data || []).filter((r: any) => r.estado === 'Asistió').length,
+      uniqueDates: heatmapData.length,
+      heatmapData
     };
   },
 
-  /**
-   * Detecta servidores con riesgo de baja (consecutivas faltas en las últimas semanas)
-   */
   async fetchChurnRisk(deptId: number): Promise<ChurnRiskUser[]> {
-    const { data: riskData, error } = await supabase
-      .rpc('get_churn_risk', { p_dept_id: deptId, p_weeks: 4 });
+    const startDate = dayjs().subtract(4, 'week').format('YYYY-MM-DD');
+
+    const { data, error } = await supabase
+      .from('asistencias')
+      .select(`
+        usuario_id,
+        estado,
+        usuario:usuarios (nombre, apellido),
+        configuracion_dia!inner (
+          fecha,
+          roles_cabecera!inner (
+            departamento_id
+          )
+        )
+      `)
+      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+      .gte('configuracion_dia.fecha', startDate);
 
     if (error) throw error;
-    if (!riskData) return [];
 
-    return riskData.map((u: any) => {
-      const asistencias = Number(u.asistencias);
-      const faltas = Number(u.faltas);
-      const total = asistencias + faltas;
-      const riskScore = total > 0 ? (faltas / total) * 100 : 0;
-      
-      return {
-        id: Number(u.id),
-        nombre: u.nombre,
-        apellido: u.apellido,
-        asistencias,
-        faltas,
-        riskScore: Math.round(riskScore)
-      };
-    })
-    .filter((u: any) => u.riskScore >= 50 && (u.asistencias + u.faltas) >= 2)
-    .sort((a: any, b: any) => b.riskScore - a.riskScore);
+    const byUser: Record<string, any> = {};
+    for (const r of (data || []) as any[]) {
+      const uid = String(r.usuario_id);
+      if (!byUser[uid]) {
+        byUser[uid] = {
+          id: r.usuario_id,
+          nombre: (r.usuario as any)?.nombre || '',
+          apellido: (r.usuario as any)?.apellido || '',
+          asistencias: 0,
+          faltas: 0
+        };
+      }
+      if (r.estado === 'Asistió') byUser[uid].asistencias++;
+      else byUser[uid].faltas++;
+    }
+
+    return Object.values(byUser)
+      .map(u => {
+        const total = u.asistencias + u.faltas;
+        return { ...u, riskScore: total > 0 ? Math.round((u.faltas / total) * 100) : 0 };
+      })
+      .filter(u => u.riskScore >= 50 && (u.asistencias + u.faltas) >= 2)
+      .sort((a, b) => b.riskScore - a.riskScore);
   },
 
-  /**
-   * Obtiene la salud global de todos los departamentos
-   */
   async fetchGlobalStats(): Promise<GlobalDeptHealth[]> {
     const last3Months = dayjs().subtract(3, 'months').format('YYYY-MM-DD');
 
-    const { data: depts } = await supabase.from('departamentos').select('id, nombre, color_hex');
-    const { data: statsMap, error } = await supabase
-        .rpc('get_global_attendance_health', { p_start_date: last3Months });
-
+    const { data: depts } = await supabase.from('departamentos').select('id, nombre');
     if (!depts) return [];
+
+    const { data, error } = await supabase
+      .from('asistencias')
+      .select(`
+        estado,
+        usuario_id,
+        configuracion_dia!inner (
+          fecha,
+          roles_cabecera!inner (
+            departamento_id
+          )
+        )
+      `)
+      .gte('configuracion_dia.fecha', last3Months);
+
     if (error) throw error;
 
-    const statsByDept = new Map((statsMap as any[])?.map(s => [s.departamento_id, s]));
+    const statsByDept: Record<number, { total: number; present: number; users: Set<string> }> = {};
+    for (const r of (data || []) as any[]) {
+      const deptId = (r.configuracion_dia as any).roles_cabecera?.[0]?.departamento_id;
+      if (!deptId) continue;
+      if (!statsByDept[deptId]) statsByDept[deptId] = { total: 0, present: 0, users: new Set() };
+      statsByDept[deptId].total++;
+      statsByDept[deptId].users.add(String(r.usuario_id));
+      if (r.estado === 'Asistió') statsByDept[deptId].present++;
+    }
 
     return depts.map(d => {
-      const stats = statsByDept.get(d.id) || { total: 0, present: 0, active_servers: 0 };
-      const total = Number(stats.total) || 0;
-      const present = Number(stats.present) || 0;
+      const s = statsByDept[d.id] || { total: 0, present: 0, users: new Set() };
       return {
         id: d.id,
         nombre: d.nombre,
-        totalServers: Number(stats.active_servers) || 0,
-        attendanceRate: total > 0 
-          ? Math.round((present / total) * 100) 
-          : 0,
-        color: d.color_hex || '#3b82f6'
+        totalServers: s.users.size,
+        attendanceRate: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0,
+        color: '#3b82f6'
       };
     }).sort((a, b) => b.attendanceRate - a.attendanceRate);
   },
 
-  /**
-   * Obtiene tendencias de puntualidad (Optimizado via RPC)
-   */
   async fetchPunctualityTrends(deptId: number): Promise<PunctualityStat[]> {
-    const { data, error } = await supabase.rpc('get_punctuality_stats', { 
-      p_dept_id: deptId, 
-      p_limit: 100 
-    });
+    const startDate = dayjs().subtract(3, 'month').format('YYYY-MM-DD');
+
+    const { data, error } = await supabase
+      .from('asistencias')
+      .select(`
+        estado,
+        configuracion_dia!inner (
+          fecha,
+          roles_cabecera!inner (
+            departamento_id
+          )
+        )
+      `)
+      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+      .gte('configuracion_dia.fecha', startDate);
 
     if (error) throw error;
-    return (data as PunctualityStat[]) || [];
+
+    const counts: Record<string, number> = {};
+    for (const r of (data || []) as any[]) {
+      const label = r.estado || 'Sin registro';
+      counts[label] = (counts[label] || 0) + 1;
+    }
+
+    return Object.entries(counts).map(([label, count]) => ({ label, count }));
   },
 
-  /**
-   * Obtiene la distribución demográfica de un departamento o global (Optimizado via RPC)
-   */
   async fetchDemographicDist(deptId?: number): Promise<DemographicData> {
-    const { data, error } = await supabase.rpc('get_demographic_stats', { 
-      p_dept_id: deptId 
-    });
+    let query = supabase
+      .from('usuarios')
+      .select('genero, fecha_nacimiento');
 
+    if (deptId) {
+      const { data: members } = await supabase
+        .from('membresias')
+        .select('usuario_id')
+        .eq('departamento_id', deptId);
+      const ids = (members || []).map(m => m.usuario_id);
+      if (ids.length > 0) {
+        query = query.in('id', ids);
+      }
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
-    return (data as DemographicData) || {
+
+    const result: DemographicData = {
       gender: { male: 0, female: 0 },
       ageRanges: { '13-17': 0, '18-25': 0, '26-35': 0, '36-50': 0, '51+': 0 }
     };
+
+    for (const u of (data || []) as any[]) {
+      const g = (u.genero || '').toLowerCase();
+      if (g === 'masculino' || g === 'm' || g === 'hombre') result.gender.male++;
+      else if (g === 'femenino' || g === 'f' || g === 'mujer') result.gender.female++;
+
+      if (u.fecha_nacimiento) {
+        const age = dayjs().diff(dayjs(u.fecha_nacimiento), 'year');
+        if (age >= 13 && age <= 17) result.ageRanges['13-17']++;
+        else if (age >= 18 && age <= 25) result.ageRanges['18-25']++;
+        else if (age >= 26 && age <= 35) result.ageRanges['26-35']++;
+        else if (age >= 36 && age <= 50) result.ageRanges['36-50']++;
+        else if (age > 50) result.ageRanges['51+']++;
+      }
+    }
+
+    return result;
   }
 };

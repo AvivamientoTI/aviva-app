@@ -56,7 +56,7 @@ export default function ScheduleView() {
     const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
     const { managedDepartments, userMemberships } = useUser();
     const { data: deptData } = useDepartments();
-    const { exportToPng, exportSchedulePdf, exportCalendarImage } = useExport();
+    const { exportSchedulePdf, exportCalendarImage } = useExport();
     const {
         groupedAssignments,
         loading,
@@ -79,7 +79,6 @@ export default function ScheduleView() {
     const [loadingAssignedUsers, setLoadingAssignedUsers] = useState(false);
     const [deletingId, setDeletingId] = useState<string | number | null>(null);
     const calendarRef = useRef<HTMLDivElement>(null);
-    const detailRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (permissions.canViewAllSchedules && deptData?.options) {
@@ -136,16 +135,8 @@ export default function ScheduleView() {
         }
 
         // Caso PNG
-        if (viewMode === 'calendar') {
-            exportCalendarImage(filteredAssignments, deptLabel);
-        } else {
-            exportToPng(detailRef as any, 'detalle-asignaciones.png', {
-                title: 'Detalle de Asignaciones',
-                subtitle,
-                departmentName: deptLabel,
-            });
-        }
-    }, [viewMode, exportToPng, exportSchedulePdf, exportCalendarImage, groupedAssignments, departments, selectedDept, currentDate]);
+        exportCalendarImage(filteredAssignments, deptLabel);
+    }, [exportSchedulePdf, exportCalendarImage, groupedAssignments, departments, selectedDept, currentDate]);
 
     const userOptions = useAvailableUsersForSwap(users, swapTarget, allAssignedUsersOnDay, blockedUserIds, loadingAssignedUsers);
 
@@ -318,7 +309,7 @@ export default function ScheduleView() {
                             </Tabs.Panel>
 
                             <Tabs.Panel value="detail">
-                                <Box ref={detailRef}>
+                                <Box>
                                     <DetailedListTab groupedAssignments={groupedAssignments} departmentName={departments.find(d => d.value === selectedDept)?.label} />
                                 </Box>
                             </Tabs.Panel>
