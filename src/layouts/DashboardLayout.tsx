@@ -41,8 +41,10 @@ export function DashboardLayout() {
         ...(isSystemAdmin ? [
             { label: 'Analítica Global', path: '/admin/analytics', icon: <IconTrendingUp size={20} stroke={1.5} /> },
         ] : []),
-        ...(isSystemAdmin || isLiderOrSubliderServidores ? [
+        ...(isSystemAdmin || isLiderOrSublider ? [
             { label: 'Servidores', path: '/servers', icon: <IconUsers size={20} stroke={1.5} /> },
+        ] : []),
+        ...(isSystemAdmin || isLiderOrSubliderServidores ? [
             { label: 'Suspensiones', path: '/suspensions', icon: <IconCalendarCancel size={20} stroke={1.5} /> },
         ] : []),
         ...(isSystemAdmin || isLiderSubliderEncargadoServidores ? [

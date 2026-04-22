@@ -57,7 +57,7 @@ export function AppRoutes() {
                     } />
 
                     <Route path="servers" element={
-                        <ProtectedRoute requireLiderServidores>
+                        <ProtectedRoute requireLider>
                             <UsersList />
                         </ProtectedRoute>
                     } />
