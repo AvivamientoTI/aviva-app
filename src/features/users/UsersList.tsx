@@ -321,9 +321,10 @@ export default function UsersList() {
                         </Table.Td>
                         <Table.Td style={{ paddingRight: '24px' }}>
                             <Group justify="flex-end" gap="xs">
-                                <Button variant="light" size="xs" radius="md" leftSection={<IconEdit size={14} />} onClick={() => handleEdit(user)} disabled={!permissions.canManageUsers}>
-                                    Perfil
+                                <Button variant="light" size="xs" radius="md" leftSection={<IconEdit size={14} />} onClick={() => handleEdit(user)}>
+                                    {permissions.isSystemAdmin ? 'Editar' : 'Ver perfil'}
                                 </Button>
+                                {permissions.isSystemAdmin && (
                                 <Menu position="bottom-end" shadow="md">
                                     <Menu.Target>
                                     <ActionIcon variant="subtle" color="gray" radius="md" size="lg">
@@ -336,12 +337,12 @@ export default function UsersList() {
                                         leftSection={<IconTrash size={14} />}
                                         color="red"
                                         onClick={() => handleDelete(user.id)}
-                                        disabled={!permissions.canManageUsers}
                                     >
                                         Eliminar Servidor
                                     </Menu.Item>
                                     </Menu.Dropdown>
                                 </Menu>
+                                )}
                             </Group>
                         </Table.Td>
                     </Table.Tr>
@@ -367,13 +368,14 @@ export default function UsersList() {
 
         <Modal opened={opened} onClose={close} title={editingUser ? "Ficha de Servidor(a)" : "Alta de Nuevo(a) Servidor(a)"} size="lg" radius="xl">
             <Paper p={0}>
-                <form onSubmit={handleSubmit}>
+<form onSubmit={handleSubmit}>
                     <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                         <TextInput
                             label="Nombre"
                             placeholder="Ej. Juan"
                             required
                             radius="md"
+                            readOnly={editingUser && !permissions.isSystemAdmin}
                             value={formData.nombre}
                             onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                         />
@@ -382,6 +384,7 @@ export default function UsersList() {
                             placeholder="Ej. Pérez"
                             required
                             radius="md"
+                            readOnly={editingUser && !permissions.isSystemAdmin}
                             value={formData.apellido}
                             onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
                         />
@@ -391,6 +394,7 @@ export default function UsersList() {
                             data={[{ value: 'M', label: 'Masculino' }, { value: 'F', label: 'Femenino' }]}
                             required
                             radius="md"
+                            disabled={editingUser && !permissions.isSystemAdmin}
                             value={formData.genero}
                             onChange={(val) => setFormData({ ...formData, genero: val as string })}
                         />
@@ -399,6 +403,7 @@ export default function UsersList() {
                             placeholder="ej. juan.perez"
                             required
                             radius="md"
+                            readOnly={editingUser && !permissions.isSystemAdmin}
                             value={formData.username}
                             onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().trim() })}
                         />
@@ -407,6 +412,7 @@ export default function UsersList() {
                             placeholder="ej. juan@gmail.com"
                             required
                             radius="md"
+                            readOnly={editingUser && !permissions.isSystemAdmin}
                             value={formData.email_personal}
                             onChange={(e) => setFormData({ ...formData, email_personal: e.target.value })}
                         />
@@ -414,6 +420,7 @@ export default function UsersList() {
                             label="Teléfono"
                             placeholder="Ej. 0981 123 456"
                             radius="md"
+                            readOnly={editingUser && !permissions.isSystemAdmin}
                             value={formData.telefono}
                             onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                         />
@@ -422,16 +429,19 @@ export default function UsersList() {
                             placeholder="Selecciona una fecha"
                             required
                             radius="md"
+                            disabled={editingUser && !permissions.isSystemAdmin}
                             value={formData.fecha_nacimiento}
                             onChange={(val) => setFormData({ ...formData, fecha_nacimiento: val as Date | null })}
                             locale="es"
                             leftSection={<IconCalendar size={16} />}
                         />
                     </SimpleGrid>
-                    
-                    <Button type="submit" fullWidth mt="xl" radius="md" size="md">
-                        {editingUser ? "Actualizar Datos" : "Registrar Servidor(a)"}
-                    </Button>
+
+                    {(!editingUser || permissions.isSystemAdmin) && (
+                        <Button type="submit" fullWidth mt="xl" radius="md" size="md">
+                            {editingUser ? "Actualizar Datos" : "Registrar Servidor(a)"}
+                        </Button>
+                    )}
                 </form>
 
                 {editingUser && (
