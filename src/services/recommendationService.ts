@@ -40,7 +40,6 @@ export const recommendationService = {
         } = {}
     ): Promise<ScoredCandidate[]> {
         const { positionRequiresGender = null, positionRequiresLeadership = false, teamComposition = null } = options;
-        console.log(`🤖 AI Engine: Analyzing candidates for Dept ${departmentId} on ${date}`);
 
         // 1. Fetch department members
         const { data: members, error: membersError } = await supabase

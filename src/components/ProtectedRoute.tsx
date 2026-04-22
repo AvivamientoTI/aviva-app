@@ -25,7 +25,7 @@ export function ProtectedRoute({
     requireLiderServidores,
     requireEncargado
 }: ProtectedRouteProps) {
-    const { loading, userProfile, userMemberships } = useUser();
+    const { loading, userProfile } = useUser();
     const perms = usePermissions();
 
     // 1. Mostrar loader si estamos cargando datos
@@ -45,7 +45,7 @@ export function ProtectedRoute({
 
     // 4. Verificación de Membresía Básica (Servidores)
     if (requireMember && !perms.isServidoresMember && !perms.isSystemAdmin) {
-        return <RestrictedAccess type="no-permissions" memberships={userMemberships} isMember={false} />;
+        return <RestrictedAccess type="no-permissions" />;
     }
 
     // 5. Verificaciones de Roles Específicos

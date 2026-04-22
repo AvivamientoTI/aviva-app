@@ -101,7 +101,13 @@ export const AiQueryWidget = ({ departmentId }: AiQueryWidgetProps) => {
     const [expanded, setExpanded] = useState(false);
 
     const handleSearch = async () => {
-        if (!query.trim()) return;
+        const trimmed = query.trim();
+        if (!trimmed) return;
+        if (trimmed.length > 500) {
+            setResponse({ type: 'text', message: 'La consulta es demasiado larga (máx. 500 caracteres).' });
+            setExpanded(true);
+            return;
+        }
         setLoading(true);
         setExpanded(true);
         setResponse(null);

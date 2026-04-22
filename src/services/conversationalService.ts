@@ -35,7 +35,7 @@ export const conversationalService = {
         });
 
         if (error || !data || !data.data) {
-            console.error("Error AI Edge:", error);
+            if (import.meta.env.DEV) console.error("Error AI Edge:", error);
             return {
                 type: 'text',
                 message: 'El Asistente de IA no pudo procesar tu consulta. Intenta de nuevo más tarde.'
@@ -47,7 +47,7 @@ export const conversationalService = {
         const startDate = aiResponse.startDate || parseDateContext(query);
         const nameFragment = aiResponse.nameFragment;
 
-        console.log(`🧠 AI Intent: ${intent} | DateContext: ${startDate} | Name: ${nameFragment}`);
+        if (import.meta.env.DEV) console.log(`🧠 AI Intent: ${intent}`);
 
         if (intent === 'attendance_summary') return await this.getAttendanceSummary(departmentId, startDate);
         if (intent === 'top_servers') return await this.getTopServers(departmentId, startDate);

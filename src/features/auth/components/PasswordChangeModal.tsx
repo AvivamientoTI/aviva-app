@@ -33,10 +33,16 @@ export function PasswordChangeModal({ opened, onClose }: PasswordChangeModalProp
             return;
         }
 
-        if (password.length < 6) {
+        const pwdErrors: string[] = [];
+        if (password.length < 8) pwdErrors.push('mínimo 8 caracteres');
+        if (!/[A-Z]/.test(password)) pwdErrors.push('al menos una mayúscula');
+        if (!/[0-9]/.test(password)) pwdErrors.push('al menos un número');
+        if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password)) pwdErrors.push('al menos un símbolo');
+
+        if (pwdErrors.length > 0) {
             notifications.show({
                 title: 'Contraseña débil',
-                message: 'La contraseña debe tener al menos 6 caracteres.',
+                message: `La contraseña requiere: ${pwdErrors.join(', ')}.`,
                 color: 'orange'
             });
             return;

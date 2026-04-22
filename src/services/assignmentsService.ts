@@ -26,7 +26,7 @@ export const assignmentsService = {
             .in('rol_cabecera_id', cabeceraIds);
 
         if (errorConfigs) {
-            console.error('[assignmentsService] Error consultando configuracion_dia:', errorConfigs);
+            if (import.meta.env.DEV) console.error('[assignmentsService] Error en configuracion_dia:', errorConfigs?.message);
             return [];
         }
 
@@ -74,9 +74,11 @@ export const assignmentsService = {
     },
 
     /**
-     * Intercambia el usuario asignado en una asignación
+     * Intercambia el usuario asignado en una asignación.
+     * RLS en DB garantiza que solo líderes del depto pueden modificar.
      */
     async swap(assignmentId: number | string, newUserId: number | string): Promise<void> {
+        if (!assignmentId || !newUserId) throw new Error('IDs inválidos para swap');
         const { error } = await supabase
             .from('asignaciones')
             .update({ usuario_id: Number(newUserId) })

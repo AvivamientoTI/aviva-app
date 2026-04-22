@@ -3,13 +3,10 @@ import { supabase } from '../services/supabaseClient';
 
 interface RestrictedAccessProps {
     type?: 'no-profile' | 'no-permissions';
-    memberships?: any[];
-    isMember?: boolean;
 }
 
-export function RestrictedAccess({ type = 'no-permissions', memberships, isMember }: RestrictedAccessProps) {
+export function RestrictedAccess({ type = 'no-permissions' }: RestrictedAccessProps) {
     const isNoProfile = type === 'no-profile';
-    const membershipsCount = memberships?.length || 0;
 
     return (
         <Center h="100vh" w="100vw" style={{ backgroundColor: '#f8fafc' }}>
@@ -28,20 +25,6 @@ export function RestrictedAccess({ type = 'no-permissions', memberships, isMembe
                             ? 'Tu cuenta de acceso no está vinculada a un perfil de servidor en la base de datos.'
                             : 'Lo sentimos, no tienes los permisos necesarios para acceder a esta sección.'}
                     </Text>
-                    {memberships !== undefined && !isNoProfile && (
-                        <Stack gap="xs" w="100%">
-                            <Text size="xs" c="dimmed" ta="center">
-                                Debug: {membershipsCount} membresías detectadas.
-                                <br />
-                                isMember: {String(isMember)}
-                            </Text>
-                            {memberships.map((m, idx) => (
-                                <Text key={idx} size="xs" c="blue.7" ta="center">
-                                    {m.departamento?.nombre || 'Sin Dept'} - {m.rol_jerarquico || 'Sin Rol'}
-                                </Text>
-                            ))}
-                        </Stack>
-                    )}
                     <Divider w="100%" />
                     <Text ta="center" c="slate.6" size="sm" fw={600}>
                         {isNoProfile

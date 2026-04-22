@@ -29,10 +29,14 @@ playwright-report
 test-results
 .playwright-cache
 
-# Environment
+# Environment — nunca commitear archivos con credenciales
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.staging
+.env.*
 
 # OS
 Thumbs.db

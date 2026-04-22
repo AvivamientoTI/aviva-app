@@ -6,6 +6,7 @@ import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { PasswordChangeModal } from '../features/auth/components/PasswordChangeModal';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function DashboardLayout() {
     const [opened, { toggle }] = useDisclosure();
@@ -14,13 +15,14 @@ export function DashboardLayout() {
     const { userProfile, managedDepartments } = useUser();
     const { isSystemAdmin, isLiderOrSublider, isLiderOrSubliderServidores, isLiderSubliderEncargadoServidores } = usePermissions();
     const [pwdModalOpened, { open: openPwd, close: closePwd }] = useDisclosure(false);
+    const queryClient = useQueryClient();
 
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const dark = colorScheme === 'dark';
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        // Forzar recarga para limpiar el contexto y mostrar login
+        queryClient.clear();
         window.location.replace('/login');
     };
 
