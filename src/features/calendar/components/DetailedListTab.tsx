@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Box, Stack, Text, Paper, Group, Title, Badge, Table, Divider, ActionIcon, Button } from '@mantine/core';
-import { IconChevronLeft, IconChevronRight, IconPhoto } from '@tabler/icons-react';
+import { Box, Stack, Text, Paper, Group, Title, Badge, Table, Divider, ActionIcon } from '@mantine/core';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
-import { exportCalendarImage } from '../utils/calendarImageExport';
+
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
@@ -55,16 +55,7 @@ export function DetailedListTab({ groupedAssignments, departmentName = '' }: Det
 
                 {/* Navigation Header */}
                 <Group justify="space-between" mb="lg" align="center">
-                    <Button
-                        variant="light"
-                        color="gold"
-                        size="xs"
-                        radius="md"
-                        leftSection={<IconPhoto size={14} />}
-                        onClick={() => exportCalendarImage(groupedAssignments, departmentName)}
-                    >
-                        Exportar imagen
-                    </Button>
+
                 <Group justify="center" gap="sm" align="center">
                     <ActionIcon 
                         variant="filled" 

@@ -41,12 +41,16 @@ export interface StatsData {
 }
 
 export const useDashboardData = (selectedDeptId: number | null) => {
-    const { userProfile } = useUser();
+    const { userProfile, userMemberships } = useUser();
     const permissions = usePermissions();
     const userId = userProfile?.usuario_id;
 
+    // Fallback: if no dept selected yet but user has memberships, use the first one
+    const effectiveDeptId = selectedDeptId
+        ?? (userMemberships.length > 0 ? userMemberships[0].departamento?.id ?? null : null);
+
     // Use departmental stats if user is Admin or Leader of the selected department
-    const shouldShowDeptStats = selectedDeptId ? permissions.canViewReports(selectedDeptId) : false;
+    const shouldShowDeptStats = effectiveDeptId ? permissions.canViewReports(effectiveDeptId) : false;
 
     const {
         data: upcoming = [],
@@ -75,12 +79,12 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         isLoading: loadingStats,
         error: errorStats
     } = useQuery({
-        queryKey: ['attendanceStats', selectedDeptId, userId, shouldShowDeptStats],
+        queryKey: ['attendanceStats', effectiveDeptId, userId, shouldShowDeptStats],
         queryFn: () => shouldShowDeptStats
-            ? analyticsService.fetchAttendanceStats(selectedDeptId!, 'YTD')
-            : analyticsService.fetchUserAttendanceStats(userId!, selectedDeptId!, 'YTD'),
-        enabled: !!selectedDeptId && !!userId,
-        staleTime: 1000 * 30, // 30 seconds
+            ? analyticsService.fetchAttendanceStats(effectiveDeptId!, 'YTD')
+            : analyticsService.fetchUserAttendanceStats(userId!, effectiveDeptId!, 'YTD'),
+        enabled: !!effectiveDeptId && !!userId,
+        staleTime: 1000 * 30,
         select: (data) => data as StatsData
     });
 
@@ -89,7 +93,8 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         upcomingCount,
         stats,
         shouldShowDeptStats,
-        loading: loadingUpcoming || loadingUpcomingCount || (!!selectedDeptId && loadingStats),
+        effectiveDeptId,
+        loading: loadingUpcoming || loadingUpcomingCount || (!!effectiveDeptId && loadingStats),
         error: errorUpcoming || errorStats
     };
 };

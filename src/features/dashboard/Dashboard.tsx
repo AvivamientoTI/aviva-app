@@ -57,17 +57,21 @@ import { PersonalRoleTemplate } from '../reports/PersonalRoleTemplate';
 const getSingle = (val: any) => Array.isArray(val) ? val[0] : val;
 
 export default function Dashboard() {
-    const { userProfile, attendanceManagedDepartments } = useUser();
+    const { userProfile, attendanceManagedDepartments, userMemberships } = useUser();
     const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
 
-    // Initial department selection
+    // Initial department selection: prefer attendance-managed depts (leaders), fallback to memberships (servers)
     useEffect(() => {
-        if (attendanceManagedDepartments && attendanceManagedDepartments.length > 0 && !selectedDeptId) {
+        if (selectedDeptId) return;
+        if (attendanceManagedDepartments && attendanceManagedDepartments.length > 0) {
             setSelectedDeptId(attendanceManagedDepartments[0].id);
+        } else if (userMemberships && userMemberships.length > 0) {
+            const deptId = userMemberships[0].departamento?.id;
+            if (deptId) setSelectedDeptId(deptId);
         }
-    }, [attendanceManagedDepartments]);
+    }, [attendanceManagedDepartments, userMemberships]);
 
-    const { upcoming, upcomingCount, stats, loading, shouldShowDeptStats } = useDashboardData(selectedDeptId);
+    const { upcoming, upcomingCount, stats, loading, shouldShowDeptStats, effectiveDeptId } = useDashboardData(selectedDeptId);
 
     const { exporting, exportData, reportRef, handleExportRole } = useRoleExport(userProfile);
     const navigate = useNavigate();
@@ -167,7 +171,7 @@ export default function Dashboard() {
         <Container size="xl" py="md">
             <Stack gap="lg">
                 {/* AI Conversational Widget */}
-                {selectedDeptId && <AiQueryWidget departmentId={selectedDeptId} />}
+                {effectiveDeptId && <AiQueryWidget departmentId={effectiveDeptId} />}
 
                 <Grid gutter="xl" align="stretch">
                     <Grid.Col span={{ base: 12, lg: 7 }} className="animate-fade-in card-stagger-1">
@@ -235,7 +239,10 @@ export default function Dashboard() {
                     <Box className="animate-fade-in card-stagger-5">
                         <StatCard
                             title="Departamentos"
-                            value={Array.from(new Set(attendanceManagedDepartments?.map(d => d.id) || [])).length}
+                            value={Array.from(new Set([
+                                ...(attendanceManagedDepartments?.map(d => d.id) || []),
+                                ...(userMemberships?.map(m => m.departamento?.id).filter(Boolean) || [])
+                            ])).length}
                             icon={<IconUsers size={24} />}
                             color="orange"
                         />
