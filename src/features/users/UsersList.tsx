@@ -211,21 +211,22 @@ export default function UsersList() {
                 <Text c="dimmed" size="md" fw={500}>Gestión y administración de voluntarios por departamento</Text>
             </Stack>
 
-            <Paper p="md" radius="lg" withBorder className="shell-glass" style={{
-                backgroundColor: 'var(--mantine-glass-bg, rgba(255, 255, 255, 0.7))',
-                backdropFilter: 'blur(10px)',
-            }}>
-                <Button
-                    leftSection={<IconUserPlus size={18} />}
-                    onClick={() => { resetForm(); open(); }}
-                    disabled={!permissions.canManageUsers}
-                    radius="md"
-                    size="md"
-                    className="btn-premium"
-                >
-                    Nuevo(a) Servidor(a)
-                </Button>
-            </Paper>
+            {permissions.isSystemAdmin && (
+                <Paper p="md" radius="lg" withBorder className="shell-glass" style={{
+                    backgroundColor: 'var(--mantine-glass-bg, rgba(255, 255, 255, 0.7))',
+                    backdropFilter: 'blur(10px)',
+                }}>
+                    <Button
+                        leftSection={<IconUserPlus size={18} />}
+                        onClick={() => { resetForm(); open(); }}
+                        radius="md"
+                        size="md"
+                        className="btn-premium"
+                    >
+                        Nuevo(a) Servidor(a)
+                    </Button>
+                </Paper>
+            )}
         </Group>
 
         {!permissions.canManageUsers && (

@@ -375,6 +375,19 @@ export default function AnalyticsDashboard() {
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Analítica avanzada de participación y asistencia</Text>
                     </Stack>
+
+                    {deptOptions.length > 1 && (
+                        <Select
+                            label="Departamento"
+                            placeholder="Cambiar departamento"
+                            data={deptOptions}
+                            value={selectedDeptIdStr}
+                            onChange={setSelectedDeptIdStr}
+                            radius="md"
+                            size="sm"
+                            w={220}
+                        />
+                    )}
                 </Group>
 
                 <Tabs value={activeTab} onChange={setActiveTab} variant="pills" radius="xl">

@@ -225,8 +225,7 @@ export default function SuspensionManager() {
                                 </Stack>
                             </Stack>
                         </Paper>
-
-
+                    </Stack>
 
                     {/* History Section */}
                     <Paper p={0} radius="xl" withBorder className="glass-card" style={{ overflow: 'hidden' }}>

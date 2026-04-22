@@ -133,6 +133,13 @@ export default function AttendanceManager() {
             }
             const data = await attendanceService.fetchAttendanceWithDetails(Number(selectedService), Number(selectedDept));
             setAttendance(data);
+            
+            // Cargar turnos dominicales iniciales si existen
+            const turnosMap: Record<string | number, string> = {};
+            data.forEach((rec: any) => {
+                if (rec.turno_dominical) turnosMap[rec.id] = rec.turno_dominical;
+            });
+            setCultosTime(turnosMap);
         } catch (error) {
             console.error(error);
             notifications.show({
@@ -159,6 +166,7 @@ export default function AttendanceManager() {
                 configuracion_dia_id: rec.configuracion_dia_id,
                 estado: rec.estado,
                 justificacion: rec.justificacion || '',
+                turno_dominical: cultosTime[rec.id] || null,
                 hora_registro: rec.estado === ATTENDANCE_STATES.ASISTIO && !rec.hora_registro ? new Date().toISOString() : rec.hora_registro
             }));
             await attendanceService.updateAttendanceRecords(recordsToUpdate);
