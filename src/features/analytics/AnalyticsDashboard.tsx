@@ -32,6 +32,9 @@ import dayjs from 'dayjs';
 import { analyticsService } from '../../services/analyticsService';
 import { useQuery } from '@tanstack/react-query';
 import type { ChurnRiskUser } from '../../types';
+import { useUser } from '../../contexts/UserContext';
+import { Select } from '@mantine/core';
+import { useState as useLocalState } from 'react';
 
 
 // Re-using the logic for activity heatmap
@@ -54,8 +57,19 @@ const ActivityHeatmap = ({ data }: { data: { date: string, count: number }[] }) 
     );
 };
 
-export default function AnalyticsDashboard({ deptId = 2 }: { deptId?: number }) {
+export default function AnalyticsDashboard() {
     const [activeTab, setActiveTab] = useState<string | null>('weekly');
+    const { attendanceManagedDepartments } = useUser();
+
+    // Selector de departamento para líderes con múltiples departamentos
+    const deptOptions = (attendanceManagedDepartments || []).map(d => ({
+        value: String(d.id),
+        label: d.nombre
+    }));
+    const [selectedDeptIdStr, setSelectedDeptIdStr] = useLocalState<string | null>(
+        deptOptions.length > 0 ? deptOptions[0].value : null
+    );
+    const deptId = selectedDeptIdStr ? Number(selectedDeptIdStr) : (deptOptions[0] ? Number(deptOptions[0].value) : 2);
     
     // Using React Query for data fetching
     const { data: weeklyStatsData } = useQuery({

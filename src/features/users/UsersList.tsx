@@ -479,42 +479,6 @@ export default function UsersList() {
 
                 {editingUser && (
                 <Stack mt="xl" gap="xl">
-                    <Box style={{ borderTop: '1px solid var(--mantine-color-default-border)', pt: 'xl' }}>
-                        <Text fw={800} tt="uppercase" size="sm" mb="md" mt="xl" c="dimmed">Seguridad y Acceso</Text>
-                        
-                        {hasAuth ? (
-                            <Alert color="teal" variant="light" radius="md" icon={<IconUser size={16} />}>
-                            Este usuario posee una cuenta de acceso activa.
-                            </Alert>
-                        ) : (
-                            <Paper p="md" radius="md" withBorder style={{ backgroundColor: 'var(--mantine-color-gray-0)' }}>
-                            <Stack gap="xs">
-                                <Text size="sm" fw={600}>Generar credenciales de acceso</Text>
-                                <Group align="flex-end">
-                                    <TextInput
-                                        label="Contraseña Inicial"
-                                        placeholder="Mínimo 6 caracteres"
-                                        type="password"
-                                        style={{ flex: 1 }}
-                                        radius="md"
-                                        value={initialPassword}
-                                        onChange={(e) => setInitialPassword(e.target.value)}
-                                    />
-                                    <Button 
-                                        variant="filled" 
-                                        onClick={handleCreateAuth} 
-                                        loading={authLoading}
-                                        disabled={!formData.username}
-                                        radius="md"
-                                    >
-                                        Activar Link
-                                    </Button>
-                                </Group>
-                            </Stack>
-                            </Paper>
-                        )}
-                    </Box>
-
                     <MembershipsManager userId={editingUser.id} />
                     <AvailabilityManager userId={editingUser.id} />
                 </Stack>

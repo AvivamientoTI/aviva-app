@@ -46,6 +46,8 @@ export default function AttendanceManager() {
     const [attendance, setAttendance] = useState<AttendanceRecordWithDetails[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    // Mapa turno culto por record.id (solo domingos cuando asistio)
+    const [cultosTime, setCultosTime] = useState<Record<string | number, string>>({});
 
     const permissions = usePermissions();
 
@@ -91,6 +93,10 @@ export default function AttendanceManager() {
         setAttendance(prev => prev.map(rec =>
             String(rec.id) === String(recordId) ? { ...rec, estado: newState } : rec
         ));
+        // Limpiar turno culto si ya no está Presente
+        if (newState !== ATTENDANCE_STATES.ASISTIO) {
+            setCultosTime(prev => { const n = { ...prev }; delete n[recordId]; return n; });
+        }
     }
 
     async function fetchData() {
@@ -305,11 +311,11 @@ export default function AttendanceManager() {
                         }}>
                             <Table.ScrollContainer minWidth={600}>
                                 <Table verticalSpacing="md" highlightOnHover>
-                                    <Table.Thead style={{ backgroundColor: 'var(--mantine-color-dark-filled)' }}>
+                                    <Table.Thead style={{ backgroundColor: 'var(--mantine-color-gray-1)', borderBottom: '2px solid var(--mantine-color-gray-3)' }}>
                                         <Table.Tr>
-                                            <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>Servidor / Posición</Table.Th>
-                                            <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center' }}>Control de Asistencia</Table.Th>
-                                            <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Hora</Table.Th>
+                                            <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>Servidor / Posición</Table.Th>
+                                            <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'center' }}>Control de Asistencia</Table.Th>
+                                            <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Hora</Table.Th>
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
@@ -331,22 +337,42 @@ export default function AttendanceManager() {
                                                     </Table.Td>
                                                     <Table.Td>
                                                         <Center>
-                                                            <SegmentedControl
-                                                                value={record.estado ?? undefined}
-                                                                onChange={(value) => handleAttendanceChange(record.id, value)}
-                                                                data={[
-                                                                    { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },
-                                                                    { label: 'Falta', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
-                                                                    { label: 'Justificada', value: ATTENDANCE_STATES.CON_JUSTIFICACION },
-                                                                ]}
-                                                                color={record.estado === ATTENDANCE_STATES.ASISTIO ? 'teal' : record.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION ? 'red' : 'blue'}
-                                                                radius="xl"
-                                                                size="sm"
-                                                                styles={{
-                                                                    root: { backgroundColor: 'var(--mantine-color-gray-1)' },
-                                                                    label: { fontWeight: 700 }
-                                                                }}
-                                                            />
+                                                            <Stack gap={6} align="center">
+                                                                <SegmentedControl
+                                                                    value={record.estado ?? undefined}
+                                                                    onChange={(value) => handleAttendanceChange(record.id, value)}
+                                                                    data={[
+                                                                        { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },
+                                                                        { label: 'Falta', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
+                                                                        { label: 'Justificada', value: ATTENDANCE_STATES.CON_JUSTIFICACION },
+                                                                    ]}
+                                                                    color={record.estado === ATTENDANCE_STATES.ASISTIO ? 'teal' : record.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION ? 'red' : 'blue'}
+                                                                    radius="xl"
+                                                                    size="sm"
+                                                                    styles={{
+                                                                        root: { backgroundColor: 'var(--mantine-color-gray-1)' },
+                                                                        label: { fontWeight: 700 }
+                                                                    }}
+                                                                />
+                                                                {/* Culto dominical: solo si es domingo y marcó Presente */}
+                                                                {selectedDate && dayjs(selectedDate).day() === 0 && record.estado === ATTENDANCE_STATES.ASISTIO && (
+                                                                    <SegmentedControl
+                                                                        value={cultosTime[record.id] || ''}
+                                                                        onChange={(val) => setCultosTime(prev => ({ ...prev, [record.id]: val }))}
+                                                                        data={[
+                                                                            { label: '8 AM', value: '8am' },
+                                                                            { label: '11 AM', value: '11am' },
+                                                                        ]}
+                                                                        color="gold"
+                                                                        radius="xl"
+                                                                        size="xs"
+                                                                        styles={{
+                                                                            root: { backgroundColor: 'var(--mantine-color-gray-0)', border: '1px solid var(--mantine-color-gold-3)' },
+                                                                            label: { fontWeight: 700, fontSize: '11px' }
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            </Stack>
                                                         </Center>
                                                     </Table.Td>
                                                     <Table.Td style={{ paddingRight: '24px' }} align="right">

@@ -176,7 +176,7 @@ export default function SuspensionManager() {
                                     <ThemeIcon color="red" variant="light" size="lg" radius="md">
                                         <IconScale size={20} />
                                     </ThemeIcon>
-                                    <Text fw={800} size="lg">Registrar Nueva Sanción</Text>
+                                    <Text fw={800} size="lg">Registrar Suspensión</Text>
                                 </Group>
 
                                 <Stack component="form" onSubmit={handleSubmit} gap="md">
@@ -207,6 +207,7 @@ export default function SuspensionManager() {
                                             onChange={(val) => setFormData({ ...formData, fecha_fin: val as Date | null })}
                                             radius="md"
                                             leftSection={<IconCalendar size={18} />}
+                                            minDate={formData.fecha_inicio || undefined}
                                         />
                                     </Group>
 
@@ -225,23 +226,7 @@ export default function SuspensionManager() {
                             </Stack>
                         </Paper>
 
-                        {/* Stats / Info Card */}
-                        <Paper p="xl" radius="xl" withBorder className="shell-glass">
-                            <Group justify="space-between">
-                                <Stack gap={0}>
-                                    <Text size="xs" c="dimmed" fw={800} tt="uppercase">Impacto en el Servicio</Text>
-                                    <Text fw={800} size="xl">Resumen de Cumplimiento</Text>
-                                </Stack>
-                                <ThemeIcon size={50} radius="xl" variant="light" color="gold">
-                                    <IconHistory size={26} />
-                                </ThemeIcon>
-                            </Group>
-                            <Text size="sm" mt="md" c="dimmed" fw={500}>
-                                Las suspensiones afectan directamente la disponibilidad del personal en el calendario. 
-                                Asegúrate de registrar periodos justos y bien documentados.
-                            </Text>
-                        </Paper>
-                    </Stack>
+
 
                     {/* History Section */}
                     <Paper p={0} radius="xl" withBorder className="glass-card" style={{ overflow: 'hidden' }}>
