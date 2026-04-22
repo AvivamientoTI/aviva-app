@@ -14,7 +14,7 @@ export function useRoleExport(userProfile: any) {
     const [exportData, setExportData] = useState<any[] | null>(null);
     const reportRef = useRef<HTMLDivElement>(null);
 
-    const handleExportRole = async () => {
+    const handleExportRole = async (format: 'png' | 'pdf') => {
         if (!userProfile?.usuario_id) return;
         setExporting(true);
         notify.info('Obteniendo información de tus roles...', 'Preparando Exportación');
@@ -34,11 +34,9 @@ export function useRoleExport(userProfile: any) {
 
             setExportData(data);
 
-            // Esperar a que el componente se renderice en el DOM
             setTimeout(async () => {
                 if (reportRef.current) {
                     try {
-                        // Usar el helper robusto directamente (él se encarga de clonar, marcos y estilos)
                         const dataUrl = await exportHelper.captureAndDownload(reportRef.current, {
                             fileName: `Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.png`,
                             title: 'Mi Rol de Servicio',
@@ -47,14 +45,15 @@ export function useRoleExport(userProfile: any) {
                             pixelRatio: 2.5
                         });
 
-                        const pdf = new jsPDF('p', 'mm', 'a4');
-                        const imgProps = pdf.getImageProperties(dataUrl);
-                        const pdfWidth = pdf.internal.pageSize.getWidth();
-                        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                        
-                        pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                        pdf.save(`Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.pdf`);
-                        
+                        if (format === 'pdf') {
+                            const pdf = new jsPDF('p', 'mm', 'a4');
+                            const imgProps = pdf.getImageProperties(dataUrl);
+                            const pdfWidth = pdf.internal.pageSize.getWidth();
+                            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                            pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                            pdf.save(`Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.pdf`);
+                        }
+
                         notify.success('Tu rol ha sido exportado exitosamente.', '¡Listo!');
                     } catch (err) {
                         console.error('Error in export:', err);

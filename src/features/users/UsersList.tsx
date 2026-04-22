@@ -278,11 +278,11 @@ export default function UsersList() {
         }}>
             <Table.ScrollContainer minWidth={800}>
             <Table verticalSpacing="md" highlightOnHover>
-                <Table.Thead style={{ backgroundColor: 'var(--mantine-color-dark-filled)' }}>
+                <Table.Thead style={{ backgroundColor: 'var(--mantine-color-gray-1)', borderBottom: '2px solid var(--mantine-color-gray-3)' }}>
                 <Table.Tr>
-                    <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>Servidor(a)</Table.Th>
-                    <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Contacto</Table.Th>
-                    <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
+                    <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>Servidor(a)</Table.Th>
+                    <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Contacto</Table.Th>
+                    <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
                 </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>

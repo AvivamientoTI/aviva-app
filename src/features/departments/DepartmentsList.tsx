@@ -223,7 +223,7 @@ export default function DepartmentsList() {
                                     <Table.Tr>
                                         <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>ID</Table.Th>
                                         <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Nombre del Departamento</Table.Th>
-                                        <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prioridad</Table.Th>
+                                        {permissions.isSystemAdmin && <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prioridad</Table.Th>}
                                         <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
@@ -242,6 +242,7 @@ export default function DepartmentsList() {
                                                         <Text fw={700} size="md">{dept.nombre}</Text>
                                                     </Group>
                                                 </Table.Td>
+                                                {permissions.isSystemAdmin && (
                                                 <Table.Td>
                                                     {Number(dept.prioridad) === 1 ? (
                                                         <Badge color="red" variant="filled" radius="sm" fw={800}>CRÍTICA (1)</Badge>
@@ -249,6 +250,7 @@ export default function DepartmentsList() {
                                                         <Badge color="gold" variant="light" radius="sm" fw={800} c="gold.9" style={{ border: '1px solid var(--mantine-color-gold-2)' }}>NORMAL (2)</Badge>
                                                     )}
                                                 </Table.Td>
+                                                )}
                                                 <Table.Td style={{ paddingRight: '24px' }}>
                                                     <Group gap="xs" justify="flex-end">
                                                         <Button

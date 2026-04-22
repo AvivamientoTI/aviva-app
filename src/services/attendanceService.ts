@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient';
 import type { Database } from '../types/database.types';
-import { ATTENDANCE_STATES } from '../constants/attendance';
 
 export type ServiceDay = Pick<Database['public']['Tables']['configuracion_dia']['Row'], 'id' | 'fecha' | 'tipo_servicio'>;
 export type AttendanceRecord = Database['public']['Tables']['asistencias']['Row'];
@@ -166,7 +165,7 @@ export const attendanceService = {
             id: r.asistencia_id || `temp-${r.usuario_id}`,
             configuracion_dia_id: configDiaId,
             usuario_id: r.usuario_id,
-            estado: r.estado || ATTENDANCE_STATES.ASISTIO,
+            estado: r.estado || null,
             justificacion: r.justificacion || null,
             hora_registro: r.hora_registro || null,
             registrado_por: r.registrado_por || null,

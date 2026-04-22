@@ -53,7 +53,7 @@ export default function SuspensionManager() {
     const [submitting, setSubmitting] = useState(false);
 
     const [formData, setFormData] = useState({
-        usuario_id: '',
+        usuario_id: null as string | null,
         fecha_inicio: null as Date | null,
         fecha_fin: null as Date | null
     });
@@ -118,7 +118,7 @@ export default function SuspensionManager() {
                 icon: <IconCheck size={18} />
             });
 
-            setFormData({ usuario_id: '', fecha_inicio: null, fecha_fin: null });
+            setFormData({ usuario_id: null, fecha_inicio: null, fecha_fin: null });
             await loadData();
         } catch (err) {
             console.error(err);
@@ -185,7 +185,7 @@ export default function SuspensionManager() {
                                         placeholder="Busca al servidor..."
                                         data={users}
                                         value={formData.usuario_id}
-                                        onChange={(val) => setFormData({ ...formData, usuario_id: val || '' })}
+                                        onChange={(val) => setFormData({ ...formData, usuario_id: val })}
                                         searchable
                                         radius="md"
                                         leftSection={<IconUser size={18} />}

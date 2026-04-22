@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Container,
     Grid,
@@ -69,6 +70,7 @@ export default function Dashboard() {
     const { upcoming, upcomingCount, stats, loading, shouldShowDeptStats } = useDashboardData(selectedDeptId);
 
     const { exporting, exportData, reportRef, handleExportRole } = useRoleExport(userProfile);
+    const navigate = useNavigate();
 
     if (loading) {
         return (
@@ -244,7 +246,7 @@ export default function Dashboard() {
                     <Grid.Col span={{ base: 12, md: 8 }} className="animate-fade-in card-stagger-3">
                         <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
                             <Group justify="space-between" mb="xl">
-                                <Title order={4}>Mis Próximos Servicios</Title>
+                                <Title order={4} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, color: 'var(--mantine-color-orange-7)' }}>Mis Próximos Servicios</Title>
                                 <Group gap="xs">
                                     <Button
                                         variant="subtle"
@@ -273,10 +275,10 @@ export default function Dashboard() {
                                         </Menu.Target>
                                         <Menu.Dropdown>
                                             <Menu.Label>Formato</Menu.Label>
-                                            <Menu.Item leftSection={<IconPhoto size={14} />} onClick={handleExportRole}>
+                                            <Menu.Item leftSection={<IconPhoto size={14} />} onClick={() => handleExportRole('png')}>
                                                 Imagen (PNG)
                                             </Menu.Item>
-                                            <Menu.Item leftSection={<IconFileTypePdf size={14} />} onClick={handleExportRole}>
+                                            <Menu.Item leftSection={<IconFileTypePdf size={14} />} onClick={() => handleExportRole('pdf')}>
                                                 Documento PDF
                                             </Menu.Item>
                                         </Menu.Dropdown>
@@ -352,12 +354,17 @@ export default function Dashboard() {
 
                     <Grid.Col span={{ base: 12, md: 4 }} className="animate-fade-in card-stagger-4">
                         <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm">
-                            <Group justify="space-between" mb="xl">
-                                <Title order={4}>
+                            <Group justify="space-between" mb="xs">
+                                <Title order={4} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, color: 'var(--mantine-color-text)' }}>
                                     {shouldShowDeptStats ? "Estado del Departamento" : "Mi Estado de Asistencia"}
                                 </Title>
                                 {shouldShowDeptStats && <Badge color="orange" variant="light" size="lg" radius="md">Vista Líder</Badge>}
                             </Group>
+                            <Text size="xs" c="dimmed" fw={600} mb="lg">
+                                {shouldShowDeptStats
+                                    ? 'Registros de asistencia del equipo en el período actual'
+                                    : 'Tus registros de asistencia en el período actual'}
+                            </Text>
                             {stats ? (
                                 <Stack gap="md">
                                     <Box w="100%" h={200} style={{ minWidth: 0 }}>
@@ -407,8 +414,7 @@ export default function Dashboard() {
                                         size="xs"
                                         radius="md"
                                         rightSection={<IconArrowRight size={14} />}
-                                        component="a"
-                                        href="/estadisticas"
+                                        onClick={() => navigate('/analytics')}
                                         fullWidth
                                         mt={4}
                                     >

@@ -88,16 +88,6 @@ function abbrev(pos: string): string {
     return p.length > 8 ? p.slice(0, 7) + '.' : p;
 }
 
-/** Is this server the encargado? (filter from regular rows to avoid duplication) */
-function isEncargado(sv: any, encarName: string): boolean {
-    const pos = (sv.posicion || '').toUpperCase();
-    if (pos.includes('ENCARGAD')) return true;
-    if (!encarName) return false;
-    const a = (sv.nombre || '').toLowerCase().trim();
-    const b = encarName.toLowerCase().trim();
-    return a === b || b.includes(a) || a.includes(b);
-}
-
 // ─── Text helpers ─────────────────────────────────────────────────────────────
 
 function fit(ctx: CanvasRenderingContext2D, text: string, maxPx: number): string {
@@ -181,9 +171,9 @@ function px(v: number, S: number) { return Math.round(v * S); }
 // ─── Cell row count ────────────────────────────────────────────────────────────
 
 function rowCount(group: any): number {
-    const enc = group.encargado ? 1 : 0;
-    const srvs = (group.assignments || []).filter((sv: any) => !isEncargado(sv, group.encargado || '')).length;
-    return enc + srvs + 1; // +1 row reservada para el uniforme al pie
+    const encs = (group.assignments || []).filter((sv: any) => (sv.posicion || '').toUpperCase().includes('ENCARGAD')).length;
+    const srvs = (group.assignments || []).filter((sv: any) => !(sv.posicion || '').toUpperCase().includes('ENCARGAD')).length;
+    return encs + srvs + 1; // +1 row reservada para el uniforme al pie
 }
 
 // ─── Build week/column maps ────────────────────────────────────────────────────
@@ -295,8 +285,12 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
             const group  = grouped[dateStr];
             const cellY  = y + WHH + GAP;
             const us     = uStyle(group.uniforme, group.servicio);
-            const encargado: string = group.encargado || '';
-            const servers = (group.assignments || []).filter((sv: any) => !isEncargado(sv, encargado));
+            const encargados = (group.assignments || []).filter((sv: any) =>
+                (sv.posicion || '').toUpperCase().includes('ENCARGAD')
+            );
+            const servers = (group.assignments || []).filter((sv: any) =>
+                !(sv.posicion || '').toUpperCase().includes('ENCARGAD')
+            );
 
             // Shadow
             ctx.fillStyle = '#0000001A';
@@ -319,8 +313,8 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
             let cy = cellY + CHH + px(2, S);
             ctx.textBaseline = 'middle';
 
-            // Encargado row
-            if (encargado) {
+            // Encargado rows — one per person with encargado position
+            for (const enc of encargados) {
                 const midY = cy + px(L.ROW_H, S) / 2;
                 ctx.fillStyle = us.accent + '1A';
                 ctx.fillRect(x, cy, cellW, px(L.ROW_H, S));
@@ -333,7 +327,7 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
                 ctx.font = `600 ${px(8, S)}px Arial,Helvetica,sans-serif`;
                 ctx.fillStyle = '#0f172a';
                 ctx.fillText(
-                    fit(ctx, shortName(encargado), cellW - px(L.PX, S) * 2 - px(3, S) - lw),
+                    fit(ctx, shortName(enc.nombre || ''), cellW - px(L.PX, S) * 2 - px(3, S) - lw),
                     x + px(L.PX, S) + px(3, S) + lw,
                     midY
                 );

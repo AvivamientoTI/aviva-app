@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
     Container, 
     Title, 
@@ -66,37 +66,54 @@ export default function AnalyticsDashboard() {
         value: String(d.id),
         label: d.nombre
     }));
-    const [selectedDeptIdStr, setSelectedDeptIdStr] = useLocalState<string | null>(
-        deptOptions.length > 0 ? deptOptions[0].value : null
-    );
-    const deptId = selectedDeptIdStr ? Number(selectedDeptIdStr) : (deptOptions[0] ? Number(deptOptions[0].value) : 2);
+    const [selectedDeptIdStr, setSelectedDeptIdStr] = useLocalState<string | null>(null);
+
+    // Sync initial selection when depts load asynchronously
+    useEffect(() => {
+        if (!selectedDeptIdStr && deptOptions.length > 0) {
+            setSelectedDeptIdStr(deptOptions[0].value);
+        }
+    }, [deptOptions.length]);
+
+    const deptId = selectedDeptIdStr ? Number(selectedDeptIdStr) : (deptOptions[0] ? Number(deptOptions[0].value) : null);
     
     // Using React Query for data fetching
-    const { data: weeklyStatsData } = useQuery({
+    const { data: weeklyStatsData, isLoading: loadingWeekly, isError: errorWeekly } = useQuery({
         queryKey: ['analytics', 'weekly', deptId],
-        queryFn: () => analyticsService.fetchWeeklyStats(deptId)
+        queryFn: () => analyticsService.fetchWeeklyStats(deptId!),
+        enabled: deptId != null,
+        retry: 1
     });
 
-    const { data: annualStatsData } = useQuery({
+    const { data: annualStatsData, isLoading: loadingAnnual } = useQuery({
         queryKey: ['analytics', 'annual', deptId],
-        queryFn: () => analyticsService.fetchAnnualStats(deptId)
+        queryFn: () => analyticsService.fetchAnnualStats(deptId!),
+        enabled: deptId != null,
+        retry: 1
     });
 
-    const { data: churnRiskData } = useQuery({
+    const { data: churnRiskData, isLoading: loadingChurn } = useQuery({
         queryKey: ['analytics', 'churn', deptId],
-        queryFn: () => analyticsService.fetchChurnRisk(deptId)
+        queryFn: () => analyticsService.fetchChurnRisk(deptId!),
+        enabled: deptId != null,
+        retry: 1
     });
 
-    const { data: demographicData } = useQuery({
+    const { data: demographicData, isLoading: loadingDemographic } = useQuery({
         queryKey: ['analytics', 'demographics', deptId],
-        queryFn: () => analyticsService.fetchDemographicDist(deptId)
+        queryFn: () => analyticsService.fetchDemographicDist(deptId!),
+        enabled: deptId != null,
+        retry: 1
     });
 
-    const { data: punctualityData } = useQuery({
+    const { data: punctualityData, isLoading: loadingPunctuality } = useQuery({
         queryKey: ['analytics', 'punctuality', deptId],
-        queryFn: () => analyticsService.fetchPunctualityTrends(deptId)
+        queryFn: () => analyticsService.fetchPunctualityTrends(deptId!),
+        enabled: deptId != null,
+        retry: 1
     });
 
+    const isLoading = deptId == null || loadingWeekly || loadingAnnual || loadingChurn || loadingDemographic || loadingPunctuality;
     const weeklyStats = weeklyStatsData || [];
     const annualStats = annualStatsData || null;
 
@@ -416,21 +433,19 @@ export default function AnalyticsDashboard() {
                     </Tabs.List>
 
                     <Box mt="xl">
-                        <Tabs.Panel value="weekly">
-                            {renderWeekly()}
-                        </Tabs.Panel>
-                        <Tabs.Panel value="monthly">
-                            {renderMonthly()}
-                        </Tabs.Panel>
-                        <Tabs.Panel value="annual">
-                            {renderAnnual()}
-                        </Tabs.Panel>
-                        <Tabs.Panel value="demographics">
-                            {renderDemographics()}
-                        </Tabs.Panel>
-                        <Tabs.Panel value="insights">
-                            {renderInsights()}
-                        </Tabs.Panel>
+                        {isLoading ? (
+                            <Center py="xl"><Stack align="center" gap="md"><div className="loader" style={{ width: 40, height: 40, border: '4px solid var(--mantine-color-gold-2)', borderTop: '4px solid var(--mantine-color-gold-6)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><Text c="dimmed" fw={600}>Cargando estadísticas...</Text></Stack></Center>
+                        ) : errorWeekly && weeklyStats.length === 0 ? (
+                            <Center py="xl"><Stack align="center" gap="sm"><IconAlertTriangle size={40} color="var(--mantine-color-orange-6)" /><Text fw={700} c="orange.7">No se pudieron cargar las estadísticas</Text><Text size="sm" c="dimmed" ta="center">Es posible que las funciones de análisis no estén configuradas en la base de datos.</Text></Stack></Center>
+                        ) : (
+                            <>
+                                <Tabs.Panel value="weekly">{renderWeekly()}</Tabs.Panel>
+                                <Tabs.Panel value="monthly">{renderMonthly()}</Tabs.Panel>
+                                <Tabs.Panel value="annual">{renderAnnual()}</Tabs.Panel>
+                                <Tabs.Panel value="demographics">{renderDemographics()}</Tabs.Panel>
+                                <Tabs.Panel value="insights">{renderInsights()}</Tabs.Panel>
+                            </>
+                        )}
                     </Box>
                 </Tabs>
             </Stack>

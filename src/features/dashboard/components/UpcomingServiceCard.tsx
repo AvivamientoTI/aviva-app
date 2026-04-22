@@ -155,7 +155,7 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
                         rightSection={<IconArrowRight size={18} />}
                         onClick={() => navigate('/calendar')}
                     >
-                        Ver Detalles del servicio
+                        Ver detalles del servicio
                     </Button>
                 </Stack>
             </Stack>
