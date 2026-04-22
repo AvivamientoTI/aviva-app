@@ -11,7 +11,7 @@ import { notifications } from '@mantine/notifications';
 import { 
     IconSearch, IconUserPlus, IconEdit, IconTrash, 
     IconDotsVertical, IconUsers, IconUser, IconFilter,
-    IconPhone, IconMail
+    IconPhone, IconMail, IconCalendar
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -468,7 +468,7 @@ export default function UsersList() {
                             value={formData.fecha_nacimiento}
                             onChange={(val) => setFormData({ ...formData, fecha_nacimiento: val as Date | null })}
                             locale="es"
-                            leftSection={<IconCake size={16} />}
+                            leftSection={<IconCalendar size={16} />}
                         />
                     </SimpleGrid>
                     
