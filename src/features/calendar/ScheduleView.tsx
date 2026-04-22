@@ -43,6 +43,7 @@ import { CalendarSkeleton } from '../../components/SkeletonLoaders';
 import { SwapServerModal } from './components/SwapServerModal';
 import { AssignmentDetailModal } from './components/AssignmentDetailModal';
 import { DetailedListTab } from './components/DetailedListTab';
+import { formatName } from '../../utils/formatName';
 
 async function getUsersNotAssignedOnDate(_date: string, members: any[], _headerId?: number) {
   return members; 
@@ -171,8 +172,9 @@ export default function ScheduleView() {
             { assignmentId: swapTarget.id, newUserId: selectedUserId },
             {
                 onSuccess: () => {
-                    notify.success('Cambo realizado con éxito');
+                    notify.success('Cambio realizado con éxito');
                     closeSwap();
+                    closeDayEvents();
                     setSelectedUserId(null);
                     setSwapTarget(null);
                 },
@@ -316,7 +318,7 @@ export default function ScheduleView() {
 
                             <Tabs.Panel value="detail">
                                 <Box ref={detailRef}>
-                                    <DetailedListTab groupedAssignments={groupedAssignments} />
+                                    <DetailedListTab groupedAssignments={groupedAssignments} departmentName={departments.find(d => d.value === selectedDept)?.label} />
                                 </Box>
                             </Tabs.Panel>
                         </Tabs>
@@ -353,7 +355,7 @@ export default function ScheduleView() {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {selectedDayEvents.map((event) => {
-                                        const nombre = event.resource?.usuario ? `${event.resource.usuario.nombre} ${event.resource.usuario.apellido}` : event.nombre;
+                                        const nombre = event.resource?.usuario ? formatName(event.resource.usuario.nombre, event.resource.usuario.apellido) : event.nombre;
                                         const pos = event.resource?.posicion?.nombre || event.posicion || 'Sin posición';
                                         return (
                                             <Table.Tr key={event.id}>

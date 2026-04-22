@@ -434,6 +434,38 @@ function measureHeight(grouped: Record<string, any>, S: number): number {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+export function generateCalendarCanvas(
+    groupedAssignments: Record<string, any>,
+    departmentName: string
+): HTMLCanvasElement | null {
+    const dates = Object.keys(groupedAssignments);
+    if (!dates.length) return null;
+
+    let S = 3; // 3× scale — crisp on any screen
+    const tempHeight = measureHeight(groupedAssignments, S);
+    
+    // Si la imagen resultante es gigantesca (> 7000px en 3x), bajamos escala en móviles
+    if (isMobile() && tempHeight > 4000) {
+        S = 2;
+    } else if (tempHeight > 8000) {
+        S = 1.5;
+    }
+
+    const width  = px(L.GRID_W + L.PAD * 2, S);
+    const height = measureHeight(groupedAssignments, S);
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    render(ctx, groupedAssignments, departmentName, S);
+    return canvas;
+}
+
 export async function exportCalendarImage(
     groupedAssignments: Record<string, any>,
     departmentName: string
@@ -443,28 +475,8 @@ export async function exportCalendarImage(
 
     notify.info('Generando imagen del calendario...', 'Exportando');
     try {
-        let S = 3; // 3× scale — crisp on any screen
-        const tempHeight = measureHeight(groupedAssignments, S);
-        
-        // Si la imagen resultante es gigantesca (> 7000px en 3x), bajamos escala en móviles
-        if (isMobile() && tempHeight > 4000) {
-            S = 2;
-        } else if (tempHeight > 8000) {
-            S = 1.5;
-        }
-
-        const width  = px(L.GRID_W + L.PAD * 2, S);
-        const height = measureHeight(groupedAssignments, S);
-
-        const canvas = document.createElement('canvas');
-        canvas.width  = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d')!;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
-
-        render(ctx, groupedAssignments, departmentName, S);
+        const canvas = generateCalendarCanvas(groupedAssignments, departmentName);
+        if (!canvas) throw new Error("Could not generate canvas");
 
         const dateLabel = dayjs(dates.sort()[0]).format('MMMM_YYYY').toUpperCase();
 

@@ -16,8 +16,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { MembershipsManager } from './MembershipsManager';
-import { AbsencesManager } from './AbsencesManager';
-import { calculateAge } from '../../utils/ageCalculator';
+import { AvailabilityManager } from './AvailabilityManager';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useUsers } from '../../hooks/queries/useUsers';
 import { useDepartments } from '../../hooks/queries/useDepartments';
@@ -35,8 +34,6 @@ export default function UsersList() {
   // Filter state
   const [filterDept, setFilterDept] = useState<string | null>(null);
   const [filterGender, setFilterGender] = useState<string | null>(null);
-  const [filterAgeMin, setFilterAgeMin] = useState<number | string | null>(null);
-  const [filterAgeMax, setFilterAgeMax] = useState<number | string | null>(null);
   const [search, setSearch] = useState('');
 
   const [opened, { open, close }] = useDisclosure(false);
@@ -305,32 +302,7 @@ export default function UsersList() {
                 </Group>
                 
                 <Group gap="md">
-                    <Text size="sm" fw={700} c="dimmed" style={{ minWidth: '80px' }}>Rango de Edad:</Text>
-                    <Group gap="xs">
-                        <NumberInput
-                            placeholder="Mín"
-                            min={0}
-                            max={120}
-                            value={filterAgeMin as any}
-                            onChange={setFilterAgeMin}
-                            radius="md"
-                            size="sm"
-                            style={{ width: '100px' }}
-                        />
-                        <Text size="sm" fw={700} c="dimmed">-</Text>
-                        <NumberInput
-                            placeholder="Máx"
-                            min={0}
-                            max={120}
-                            value={filterAgeMax as any}
-                            onChange={setFilterAgeMax}
-                            radius="md"
-                            size="sm"
-                            style={{ width: '100px' }}
-                        />
-                    </Group>
-                    
-                    {(search || filterDept || filterGender || filterAgeMin || filterAgeMax) && (
+                    {(search || filterDept || filterGender) && (
                         <Button 
                             variant="subtle" 
                             color="gray" 
@@ -339,8 +311,6 @@ export default function UsersList() {
                                 setSearch('');
                                 setFilterDept(null);
                                 setFilterGender(null);
-                                setFilterAgeMin(null);
-                                setFilterAgeMax(null);
                             }}
                         >
                             Limpiar Filtros
@@ -359,7 +329,6 @@ export default function UsersList() {
                 <Table.Thead style={{ backgroundColor: 'var(--mantine-color-dark-filled)' }}>
                 <Table.Tr>
                     <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>Servidor(a)</Table.Th>
-                    <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Info Personal</Table.Th>
                     <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Contacto</Table.Th>
                     <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
                 </Table.Tr>
@@ -385,14 +354,6 @@ export default function UsersList() {
                                 </Badge>
                             </Stack>
                         </Group>
-                        </Table.Td>
-                        <Table.Td>
-                            <Stack gap={4}>
-                                <Group gap={6} align="center">
-                                    <IconCake size={14} color="var(--mantine-color-dimmed)" />
-                                    <Text size="sm" fw={600}>{calculateAge(user.fecha_nacimiento) || '-'} años</Text>
-                                </Group>
-                            </Stack>
                         </Table.Td>
                         <Table.Td>
                             <Stack gap={4}>
@@ -560,7 +521,7 @@ export default function UsersList() {
                     </Box>
 
                     <MembershipsManager userId={editingUser.id} />
-                    <AbsencesManager userId={editingUser.id} />
+                    <AvailabilityManager userId={editingUser.id} />
                 </Stack>
                 )}
             </Paper>

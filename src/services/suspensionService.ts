@@ -6,7 +6,7 @@ export interface Suspension {
     usuario_id: number;
     fecha_inicio: string;
     fecha_fin: string | null;
-    motivo: string;
+    motivo?: string;
     created_by?: string;
     created_at?: string;
     usuario?: {

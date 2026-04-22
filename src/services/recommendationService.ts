@@ -54,13 +54,18 @@ export const recommendationService = {
         if (membersError) throw membersError;
         if (!members) return [];
 
-        // 2. Fetch active suspensions & busy users
-        const [allSuspensions, busyAssignments] = await Promise.all([
+        // 2. Fetch active suspensions & busy users & config
+        const [allSuspensions, busyAssignments, serviceConfigs] = await Promise.all([
             suspensionService.getAllSuspensions(),
             supabase
                 .from('asignaciones')
                 .select('usuario_id, configuracion_dia!inner(fecha)')
-                .eq('configuracion_dia.fecha', date)
+                .eq('configuracion_dia.fecha', date),
+            supabase
+                .from('configuracion_dia')
+                .select('turno')
+                .eq('fecha', date)
+                .limit(1)
         ]);
 
         const suspendedUserIds = new Set(
@@ -69,6 +74,17 @@ export const recommendationService = {
                 .map(s => s.usuario_id)
         );
         const busyUserIds = new Set(busyAssignments.data?.map(a => a.usuario_id) || []);
+
+        const turno = serviceConfigs.data?.[0]?.turno || 'Noche';
+        const dayOfWeek = dayjs(date).day();
+
+        const { data: blockedAvailability } = await supabase
+            .from('horarios_no_disponibilidad')
+            .select('usuario_id')
+            .eq('dia_semana', dayOfWeek)
+            .eq('turno', turno);
+
+        const blockedUserIds = new Set(blockedAvailability?.map(b => b.usuario_id) || []);
 
         // 3. Experience & History Analysis (Last 6 months)
         const sixMonthsAgo = dayjs().subtract(6, 'months').format('YYYY-MM-DD');
@@ -98,6 +114,7 @@ export const recommendationService = {
             if (suspendedUserIds.has(user.id)) continue; 
             if (busyUserIds.has(user.id)) continue; 
             if (positionRequiresGender && user.genero !== positionRequiresGender) continue; 
+            if (blockedUserIds.has(user.id)) continue;
 
             // --- AI SCORING ---
             let score = 70; // Base score

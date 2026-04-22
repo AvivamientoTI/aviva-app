@@ -8,6 +8,8 @@ import { useDepartmentUsers } from '../hooks/useDepartmentUsers';
 import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
 import type { PublicUser } from '../../../types';
 
+import { formatName } from '../../../utils/formatName';
+
 const normalize = (s: string) => s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || '';
 
 // --- Helper: extraer fecha de forma robusta ---
@@ -66,7 +68,7 @@ function buildCandidates(
 
     return candidates.sort((a,b) => a.nombre.localeCompare(b.nombre)).map(u => ({
         value: String(u.id),
-        label: `${u.nombre} ${u.apellido}`
+        label: formatName(u.nombre, u.apellido)
     }));
 }
 
@@ -223,7 +225,7 @@ export const PlanningStepReview = () => {
                                                                         </Avatar>
                                                                         <div>
                                                                             <Group gap={4}>
-                                                                                <Text size="sm" fw={600}>{assignment.usuario?.nombre} {assignment.usuario?.apellido}</Text>
+                                                                                <Text size="sm" fw={600}>{formatName(assignment.usuario?.nombre, assignment.usuario?.apellido)}</Text>
                                                                                 {isOverworked && (
                                                                                     <Tooltip label="Fatiga: Sirve más de 3 veces este mes" withArrow color="red">
                                                                                         <IconAlertTriangle size={16} color="var(--mantine-color-red-6)" />

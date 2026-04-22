@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { DepartmentMember } from '../../../services/attendanceService';
+import { formatName } from '../../../utils/formatName';
 
 const normalize = (str: string | undefined): string =>
     str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || '';
@@ -64,8 +65,6 @@ export const useAvailableUsersForSwap = (
             return true;
         });
 
-        // console.log(`✅ Usuarios disponibles: ${filteredUsers.length}/${users.length} (EncargadoPos: ${isEncargadoPos})`);
-
-        return filteredUsers.map((u: any) => ({ value: String(u.id), label: `${u.nombre} ${u.apellido}` }));
+        return filteredUsers.map((u: any) => ({ value: String(u.id), label: formatName(u.nombre, u.apellido) }));
     }, [users, swapTarget, allAssignedUsersOnDay, loadingAssignedUsers]);
 };

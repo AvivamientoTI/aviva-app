@@ -1,12 +1,18 @@
 import { useState, useMemo } from 'react';
-import { Box, Stack, Text, Paper, Group, Title, Badge, Table, Divider, ActionIcon } from '@mantine/core';
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { Box, Stack, Text, Paper, Group, Title, Badge, Table, Divider, ActionIcon, Button } from '@mantine/core';
+import { IconChevronLeft, IconChevronRight, IconPhoto } from '@tabler/icons-react';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
+import { exportCalendarImage } from '../utils/calendarImageExport';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
-
 import type { CalendarAssignment } from '../../../utils/calendar/transformerTypes';
+
+function shortName(fullName: string): string {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    return parts.length >= 2 ? `${parts[0]} ${parts[1]}` : parts[0] ?? '';
+}
 
 interface DayData {
     servicio: string;
@@ -16,9 +22,10 @@ interface DayData {
 
 interface DetailedListTabProps {
     groupedAssignments: Record<string, DayData>;
+    departmentName?: string;
 }
 
-export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
+export function DetailedListTab({ groupedAssignments, departmentName = '' }: DetailedListTabProps) {
     // State for current month navigation
     // Initialize to current month to start
     const [currentDate, setCurrentDate] = useState(dayjs());
@@ -47,7 +54,18 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
             <Stack gap="md">
 
                 {/* Navigation Header */}
-                <Group justify="center" mb="lg" gap="sm" align="center">
+                <Group justify="space-between" mb="lg" align="center">
+                    <Button
+                        variant="light"
+                        color="gold"
+                        size="xs"
+                        radius="md"
+                        leftSection={<IconPhoto size={14} />}
+                        onClick={() => exportCalendarImage(groupedAssignments, departmentName)}
+                    >
+                        Exportar imagen
+                    </Button>
+                <Group justify="center" gap="sm" align="center">
                     <ActionIcon 
                         variant="filled" 
                         color="slate" 
@@ -73,17 +91,18 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                     >
                         {currentDate.locale('es').format('MMMM YYYY')}
                     </Title>
-                    <ActionIcon 
-                        variant="filled" 
-                        color="slate" 
-                        size="md" 
-                        radius="xl" 
-                        onClick={handleNextMonth} 
+                    <ActionIcon
+                        variant="filled"
+                        color="slate"
+                        size="md"
+                        radius="xl"
+                        onClick={handleNextMonth}
                         aria-label="Siguiente mes"
                         style={{ boxShadow: 'var(--mantine-shadow-xs)' }}
                     >
                         <IconChevronRight size={18} />
                     </ActionIcon>
+                </Group>
                 </Group>
 
                 <Divider mb="xl" color="gray.2" />
@@ -153,7 +172,7 @@ export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
                                         <Table.Tbody>
                                             {dayData.assignments.map((asig) => (
                                                 <Table.Tr key={asig.id}>
-                                                    <Table.Td fw={700} style={{ fontSize: '14px', color: '#1e293b' }}>{asig.nombre}</Table.Td>
+                                                    <Table.Td fw={700} style={{ fontSize: '14px', color: '#1e293b' }}>{shortName(asig.nombre)}</Table.Td>
                                                     <Table.Td>
                                                         <Group justify="center">
                                                             <Badge

@@ -1,6 +1,6 @@
 // Refreshing and ensuring TS service pickup
 import { useEffect } from 'react';
-import { Stepper, Button, Group, Title, Paper, Text, Stack, Container, Progress, Badge, Transition, Divider } from '@mantine/core';
+import { Stepper, Button, Group, Title, Paper, Text, Stack, Container, Progress, Badge, Transition, Divider, LoadingOverlay } from '@mantine/core';
 import { notify } from '../../utils/notificationsHelper';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -443,6 +443,7 @@ function PlanningWizardContent() {
           position: 'relative',
           overflow: 'hidden'
         }}>
+          <LoadingOverlay visible={loading} overlayProps={{ radius: 'xl', blur: 3 }} loaderProps={{ color: 'gold', type: 'bars' }} zIndex={1000} />
           {/* Progress Indicator */}
           <Stack gap="xs" mb="xl">
             <Group justify="space-between" mb={0}>
@@ -541,16 +542,18 @@ function PlanningWizardContent() {
           </Button>
 
           {activeStep < 2 ? (
-            <Button 
-              className="btn-premium" 
-              size="md" 
-              radius="md" 
-              px={40} 
-              onClick={handleNext} 
-              color="gold" 
+            <Button
+              className="btn-premium"
+              size="md"
+              radius="md"
+              px={40}
+              onClick={handleNext}
+              color="gold"
               c="white"
+              loading={loading}
+              disabled={loading}
             >
-              Continuar
+              {loading ? 'Generando roles...' : 'Continuar'}
             </Button>
           ) : (
             <Group gap="md">

@@ -52,6 +52,13 @@ export type Database = {
             foreignKeyName: "asignaciones_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
+            referencedRelation: "directorio_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asignaciones_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
@@ -59,37 +66,37 @@ export type Database = {
       }
       asistencias: {
         Row: {
-          configuracion_dia_id: number
+          configuracion_dia_id: number | null
           created_at: string | null
-          estado: string
+          estado: string | null
           hora_registro: string | null
           id: string
           justificacion: string | null
           registrado_por: number | null
           updated_at: string | null
-          usuario_id: number
+          usuario_id: number | null
         }
         Insert: {
-          configuracion_dia_id: number
+          configuracion_dia_id?: number | null
           created_at?: string | null
-          estado: string
+          estado?: string | null
           hora_registro?: string | null
           id?: string
           justificacion?: string | null
           registrado_por?: number | null
           updated_at?: string | null
-          usuario_id: number
+          usuario_id?: number | null
         }
         Update: {
-          configuracion_dia_id?: number
+          configuracion_dia_id?: number | null
           created_at?: string | null
-          estado?: string
+          estado?: string | null
           hora_registro?: string | null
           id?: string
           justificacion?: string | null
           registrado_por?: number | null
           updated_at?: string | null
-          usuario_id?: number
+          usuario_id?: number | null
         }
         Relationships: [
           {
@@ -103,6 +110,13 @@ export type Database = {
             foreignKeyName: "asistencias_registrado_por_fkey"
             columns: ["registrado_por"]
             isOneToOne: false
+            referencedRelation: "directorio_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asistencias_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
@@ -110,39 +124,11 @@ export type Database = {
             foreignKeyName: "asistencias_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
-            referencedRelation: "usuarios"
+            referencedRelation: "directorio_usuarios"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      ausencias: {
-        Row: {
-          created_at: string | null
-          fecha_fin: string | null
-          fecha_inicio: string
-          id: number
-          motivo: string | null
-          usuario_id: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          fecha_fin?: string | null
-          fecha_inicio: string
-          id?: number
-          motivo?: string | null
-          usuario_id?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          fecha_fin?: string | null
-          fecha_inicio?: string
-          id?: number
-          motivo?: string | null
-          usuario_id?: number | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "ausencias_usuario_id_fkey"
+            foreignKeyName: "asistencias_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
@@ -155,33 +141,63 @@ export type Database = {
           color_uniforme: string | null
           cupo_hombres: number | null
           cupo_mujeres: number | null
+          encargado_2_id: number | null
           encargado_id: number | null
           fecha: string
           id: number
           rol_cabecera_id: number | null
+          service_index: number | null
           tipo_servicio: string | null
+          turno: string
         }
         Insert: {
           color_uniforme?: string | null
           cupo_hombres?: number | null
           cupo_mujeres?: number | null
+          encargado_2_id?: number | null
           encargado_id?: number | null
           fecha: string
           id?: number
           rol_cabecera_id?: number | null
+          service_index?: number | null
           tipo_servicio?: string | null
+          turno?: string
         }
         Update: {
           color_uniforme?: string | null
           cupo_hombres?: number | null
           cupo_mujeres?: number | null
+          encargado_2_id?: number | null
           encargado_id?: number | null
           fecha?: string
           id?: number
           rol_cabecera_id?: number | null
+          service_index?: number | null
           tipo_servicio?: string | null
+          turno?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "configuracion_dia_encargado_2_id_fkey"
+            columns: ["encargado_2_id"]
+            isOneToOne: false
+            referencedRelation: "directorio_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "configuracion_dia_encargado_2_id_fkey"
+            columns: ["encargado_2_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "configuracion_dia_encargado_id_fkey"
+            columns: ["encargado_id"]
+            isOneToOne: false
+            referencedRelation: "directorio_usuarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "configuracion_dia_encargado_id_fkey"
             columns: ["encargado_id"]
@@ -200,24 +216,69 @@ export type Database = {
       }
       departamentos: {
         Row: {
+          color_hex: string | null
           created_at: string | null
+          descripcion: string | null
           id: number
           nombre: string
           prioridad: number | null
         }
         Insert: {
+          color_hex?: string | null
           created_at?: string | null
+          descripcion?: string | null
           id?: number
           nombre: string
           prioridad?: number | null
         }
         Update: {
+          color_hex?: string | null
           created_at?: string | null
+          descripcion?: string | null
           id?: number
           nombre?: string
           prioridad?: number | null
         }
         Relationships: []
+      }
+      horarios_no_disponibilidad: {
+        Row: {
+          created_at: string
+          dia_semana: number
+          id: number
+          turno: string
+          usuario_id: number
+        }
+        Insert: {
+          created_at?: string
+          dia_semana: number
+          id?: number
+          turno: string
+          usuario_id: number
+        }
+        Update: {
+          created_at?: string
+          dia_semana?: number
+          id?: number
+          turno?: string
+          usuario_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_no_disponibilidad_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "directorio_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_no_disponibilidad_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       membresias: {
         Row: {
@@ -244,6 +305,13 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membresias_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "directorio_usuarios"
             referencedColumns: ["id"]
           },
           {
@@ -330,38 +398,74 @@ export type Database = {
       }
       suspensiones: {
         Row: {
-          created_at: string
+          created_at: string | null
           created_by: string | null
-          fecha_fin: string
+          fecha_fin: string | null
           fecha_inicio: string
           id: number
           motivo: string | null
-          usuario_id: number
+          usuario_id: number | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
-          fecha_fin: string
+          fecha_fin?: string | null
           fecha_inicio: string
           id?: number
           motivo?: string | null
-          usuario_id: number
+          usuario_id?: number | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
-          fecha_fin?: string
+          fecha_fin?: string | null
           fecha_inicio?: string
           id?: number
           motivo?: string | null
-          usuario_id?: number
+          usuario_id?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "suspensiones_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
+            referencedRelation: "directorio_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suspensiones_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uniformes_departamento: {
+        Row: {
+          created_at: string | null
+          departamento_id: number | null
+          id: number
+          nombre: string
+        }
+        Insert: {
+          created_at?: string | null
+          departamento_id?: number | null
+          id?: number
+          nombre: string
+        }
+        Update: {
+          created_at?: string | null
+          departamento_id?: number | null
+          id?: number
+          nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uniformes_departamento_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -387,6 +491,13 @@ export type Database = {
             foreignKeyName: "user_profiles_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: true
+            referencedRelation: "directorio_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: true
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
@@ -394,72 +505,159 @@ export type Database = {
       }
       usuarios: {
         Row: {
+          activo: boolean | null
           apellido: string
           created_at: string | null
-          fecha_nacimiento: string
+          email_personal: string | null
+          fecha_nacimiento: string | null
           genero: string | null
           id: number
           nombre: string
           telefono: string | null
+          updated_at: string | null
+          username: string | null
         }
         Insert: {
+          activo?: boolean | null
           apellido: string
           created_at?: string | null
-          fecha_nacimiento: string
+          email_personal?: string | null
+          fecha_nacimiento?: string | null
           genero?: string | null
           id?: number
           nombre: string
           telefono?: string | null
+          updated_at?: string | null
+          username?: string | null
         }
         Update: {
+          activo?: boolean | null
           apellido?: string
           created_at?: string | null
-          fecha_nacimiento?: string
+          email_personal?: string | null
+          fecha_nacimiento?: string | null
           genero?: string | null
           id?: number
           nombre?: string
           telefono?: string | null
+          updated_at?: string | null
+          username?: string | null
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      directorio_usuarios: {
+        Row: {
+          activo: boolean | null
+          apellido: string | null
+          id: number | null
+          nombre: string | null
+          telefono: string | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          apellido?: string | null
+          id?: number | null
+          nombre?: string | null
+          telefono?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          apellido?: string | null
+          id?: number | null
+          nombre?: string | null
+          telefono?: string | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      end_suspension: { Args: { p_suspension_id: number }; Returns: undefined }
+      get_annual_attendance_heatmap: {
+        Args: { p_dept_id: number; p_start_date: string }
+        Returns: {
+          asistencias: number
+          fecha: string
+        }[]
+      }
+      get_attendance_detailed: {
+        Args: { p_config_dia_id: number; p_dept_id: number }
+        Returns: {
+          apellido: string
+          asistencia_id: string
+          estado: string
+          hora_registro: string
+          justificacion: string
+          nombre: string
+          posicion_nombre: string
+          registrado_por: number
+          usuario_id: number
+        }[]
+      }
+      get_birthdays_today: {
+        Args: { p_day: number; p_month: number }
+        Returns: {
+          apellido: string
+          fecha_nacimiento: string
+          genero: string
+          id: number
+          nombre: string
+        }[]
+      }
       get_blocked_users: {
-        Args: { p_date: string }
+        Args: { p_date: string; p_exclude_role_id?: number }
         Returns: {
           usuario_id: number
         }[]
       }
-      get_user_departments: {
-        Args: never
+      get_current_month_stats: {
+        Args: { p_anio: number; p_mes: number }
         Returns: {
-          departamento_id: number
+          proximo_servicio: string
+          total_asistencias: number
+          total_faltas: number
+          total_servidores: number
         }[]
       }
-      is_department_leader: { Args: { dept_id: number }; Returns: boolean }
-      is_dept_leader:
-        | {
-            Args: { target_dept_id: number }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.is_dept_leader(target_dept_id => int8), public.is_dept_leader(target_dept_id => int4). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-        | {
-            Args: { target_dept_id: number }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.is_dept_leader(target_dept_id => int8), public.is_dept_leader(target_dept_id => int4). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-      is_general_approved: {
-        Args: { anio: number; mes: number }
+      get_demographic_stats: { Args: { p_dept_id?: number }; Returns: Json }
+      get_global_attendance_health: {
+        Args: { p_start_date: string }
+        Returns: {
+          active_servers: number
+          departamento_id: number
+          present: number
+          total: number
+        }[]
+      }
+      get_punctuality_stats: {
+        Args: { p_dept_id: number; p_limit?: number }
+        Returns: Json
+      }
+      get_user_departments: { Args: never; Returns: number[] }
+      is_any_leader_or_admin: { Args: never; Returns: boolean }
+      is_dept_leader: { Args: { p_dept_id: number }; Returns: boolean }
+      is_dept_leader_for_config: {
+        Args: { config_id: number }
         Returns: boolean
       }
       is_global_admin: { Args: never; Returns: boolean }
       is_servidores_leader: { Args: never; Returns: boolean }
-      is_user_admin: { Args: { auth_uid: string }; Returns: boolean }
+      search_users_fuzzy: {
+        Args: { p_dept_id: number; p_search_query: string }
+        Returns: {
+          apellido: string
+          id: number
+          nombre: string
+          score: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

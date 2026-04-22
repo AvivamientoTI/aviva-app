@@ -25,7 +25,7 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
                         <IconCalendarEvent size={32} />
                     </ThemeIcon>
                     <Stack gap={4} align="center">
-                        <Text fw={800} size="lg" c="dimmed">Sin misiones próximas</Text>
+                        <Text fw={800} size="lg" c="dimmed">Sin servicios próximos</Text>
                         <Text size="sm" ta="center" c="dimmed" opacity={0.7}>Descansa y prepárate para el próximo rol.</Text>
                     </Stack>
                 </Stack>
@@ -69,7 +69,7 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
                 <div>
                     <Group justify="space-between" mb="lg">
                         <Badge variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} size="lg" radius="md">
-                            PRÓXIMA MISIÓN
+                            PRÓXIMO SERVICIO
                         </Badge>
                         <ThemeIcon variant="light" color="gold" radius="xl" size="lg">
                             <IconRocket size={20} />
@@ -155,7 +155,7 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
                         rightSection={<IconArrowRight size={18} />}
                         onClick={() => navigate('/calendar')}
                     >
-                        Ver Detalles de Misión
+                        Ver Detalles del servicio
                     </Button>
                 </Stack>
             </Stack>

@@ -1,5 +1,11 @@
 import { useMemo } from 'react';
 import { Box, Text, Stack, Group, ThemeIcon, Button } from '@mantine/core';
+
+function shortName(fullName: string): string {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    return parts.length >= 2 ? `${parts[0]} ${parts[1]}` : parts[0] ?? '';
+}
 import { IconStar, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 
@@ -81,7 +87,7 @@ function RoleSection({ rol, servidores }: RoleSectionProps) {
                             c={isEncargado ? '#b45309' : '#1e293b'}
                             style={{ lineHeight: 1.4 }}
                         >
-                            {asig.nombre}
+                            {shortName(asig.nombre)}
                         </Text>
                     </Box>
                 ))}

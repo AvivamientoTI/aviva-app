@@ -17,7 +17,6 @@ import {
     ThemeIcon,
     SimpleGrid,
     Paper,
-    Textarea,
     Center,
     Avatar,
     Loader,
@@ -55,7 +54,6 @@ export default function SuspensionManager() {
 
     const [formData, setFormData] = useState({
         usuario_id: '',
-        motivo: '',
         fecha_inicio: null as Date | null,
         fecha_fin: null as Date | null
     });
@@ -78,7 +76,7 @@ export default function SuspensionManager() {
             if (usersData.data) {
                 setUsers(usersData.data.map(u => ({
                     value: String(u.id),
-                    label: `${u.apellido}, ${u.nombre}`
+                    label: `${u.nombre} ${u.apellido}`
                 })));
             }
         } catch (err) {
@@ -96,7 +94,7 @@ export default function SuspensionManager() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.usuario_id || !formData.fecha_inicio || !formData.motivo) {
+        if (!formData.usuario_id || !formData.fecha_inicio) {
             notifications.show({
                 title: 'Campos incompletos',
                 message: 'Por favor completa todos los campos requeridos',
@@ -111,7 +109,6 @@ export default function SuspensionManager() {
                 usuario_id: Number(formData.usuario_id),
                 fecha_inicio: dayjs(formData.fecha_inicio).format('YYYY-MM-DD'),
                 fecha_fin: formData.fecha_fin ? dayjs(formData.fecha_fin).format('YYYY-MM-DD') : null,
-                motivo: formData.motivo
             });
 
             notifications.show({
@@ -121,7 +118,7 @@ export default function SuspensionManager() {
                 icon: <IconCheck size={18} />
             });
 
-            setFormData({ usuario_id: '', motivo: '', fecha_inicio: null, fecha_fin: null });
+            setFormData({ usuario_id: '', fecha_inicio: null, fecha_fin: null });
             await loadData();
         } catch (err) {
             console.error(err);
@@ -213,16 +210,7 @@ export default function SuspensionManager() {
                                         />
                                     </Group>
 
-                                    <Textarea
-                                        label="Motivo o Descripción"
-                                        placeholder="Escribe el motivo de la suspensión..."
-                                        minRows={3}
-                                        value={formData.motivo}
-                                        onChange={(e) => setFormData({ ...formData, motivo: e.currentTarget.value })}
-                                        radius="md"
-                                    />
-
-                                    <Button 
+                                    <Button
                                         type="submit" 
                                         fullWidth 
                                         size="md" 
@@ -307,8 +295,7 @@ export default function SuspensionManager() {
                                                                 {s.usuario?.nombre[0]}{s.usuario?.apellido[0]}
                                                             </Avatar>
                                                             <Stack gap={0}>
-                                                                <Text size="sm" fw={800}>{s.usuario?.apellido}, {s.usuario?.nombre}</Text>
-                                                                <Text size="xs" c="dimmed" fw={600} maw={150} truncate="end">{s.motivo}</Text>
+                                                                <Text size="sm" fw={800}>{s.usuario?.nombre} {s.usuario?.apellido}</Text>
                                                             </Stack>
                                                         </Group>
                                                     </Table.Td>
