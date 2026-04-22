@@ -18,6 +18,7 @@ export function StatCard({ title, value, subtitle, icon, color, trendData }: Sta
             borderBottom: `4px solid var(--mantine-color-${color}-6)`,
             overflow: 'hidden',
             position: 'relative',
+            minHeight: 148,
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
         }}>
             <Box style={{
@@ -33,7 +34,7 @@ export function StatCard({ title, value, subtitle, icon, color, trendData }: Sta
 
             <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
                 <Group justify="space-between" align="center">
-                    <Text size="xs" fw={800} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.1em' }}>
+                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.05em' }}>
                         {title}
                     </Text>
                     <ThemeIcon color={color} variant="light" size="lg" radius="md">
@@ -47,7 +48,7 @@ export function StatCard({ title, value, subtitle, icon, color, trendData }: Sta
                             {value}
                         </Text>
                         {subtitle && (
-                            <Text size="xs" c="dimmed" fw={700} mt={-4}>
+                            <Text size="xs" c="dimmed" fw={600} mt={-4}>
                                 {subtitle}
                             </Text>
                         )}

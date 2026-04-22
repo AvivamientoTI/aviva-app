@@ -1,6 +1,6 @@
 import { Select, Paper, Text, Grid, ThemeIcon, Stack, Group, Alert, Button } from '@mantine/core';
 import { MonthPicker } from '@mantine/dates';
-import { IconBuildingCommunity, IconCalendarEvent, IconInfoCircle } from '@tabler/icons-react';
+import { IconBuildingCommunity, IconCalendarEvent, IconInfoCircle, IconCircleCheck, IconCircleDashed } from '@tabler/icons-react';
 
 interface Props {
     departments: { value: string; label: string }[];
@@ -67,16 +67,29 @@ export const PlanningStepDeptMonth = ({
                             />
                         </Group>
 
-                        {headerState && (
-                            <Alert mt="lg" icon={<IconInfoCircle size={16} />} title="¡Rol Encontrado!" color="blue" variant="light" style={{ width: '100%' }}>
-                                <Text size="sm" mb="sm">
-                                    El sistema detectó que ya existe un rol en estado <b>{headerState.estado}</b> para este mes y departamento.
-                                </Text>
-                                <Button variant="filled" color="blue" fullWidth onClick={onLoadExisting}>
-                                    Cargar Rol Existente
-                                </Button>
-                            </Alert>
-                        )}
+                        {headerState && (() => {
+                            const isConfirmed = headerState.estado?.toLowerCase() === 'confirmado';
+                            const alertColor = isConfirmed ? 'green' : 'yellow';
+                            const AlertIcon = isConfirmed ? IconCircleCheck : IconCircleDashed;
+                            const estadoLabel = isConfirmed ? 'Confirmado' : 'Borrador';
+                            return (
+                                <Alert
+                                    mt="lg"
+                                    icon={<AlertIcon size={16} />}
+                                    title="¡Rol Encontrado!"
+                                    color={alertColor}
+                                    variant="light"
+                                    style={{ width: '100%' }}
+                                >
+                                    <Text size="sm" mb="sm">
+                                        Ya existe un rol en estado <b>{estadoLabel}</b> para este mes y departamento.
+                                    </Text>
+                                    <Button variant="filled" color={alertColor} fullWidth onClick={onLoadExisting}>
+                                        Cargar Rol Existente
+                                    </Button>
+                                </Alert>
+                            );
+                        })()}
                     </Stack>
                 </Paper>
             </Grid.Col>

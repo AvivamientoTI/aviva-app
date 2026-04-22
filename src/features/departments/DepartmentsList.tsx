@@ -12,7 +12,6 @@ import {
     Modal,
     TextInput,
     NumberInput,
-    Alert,
     Paper,
     ThemeIcon,
     Center
@@ -26,8 +25,7 @@ import {
     IconSettings, 
     IconShirt, 
     IconBuildingCommunity,
-    IconSearch,
-    IconAlertCircle
+    IconSearch
 } from '@tabler/icons-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PositionsManager } from './PositionsManager';
@@ -211,11 +209,6 @@ export default function DepartmentsList() {
                     </Paper>
                 </Group>
 
-                {!permissions.canManageAllDepartments && (
-                    <Alert color="yellow" title="Acceso limitado" variant="light" radius="md" icon={<IconAlertCircle size={16} />}>
-                        Solo el líder de Servicio General puede crear o eliminar departamentos.
-                    </Alert>
-                )}
 
                 {loading ? (
                     <TableSkeleton rows={5} columns={4} />
@@ -226,12 +219,12 @@ export default function DepartmentsList() {
                     }}>
                         <Table.ScrollContainer minWidth={600}>
                             <Table verticalSpacing="md" highlightOnHover>
-                                <Table.Thead style={{ backgroundColor: 'var(--mantine-color-dark-filled)' }}>
+                                <Table.Thead style={{ backgroundColor: 'var(--mantine-color-gray-1)', borderBottom: '2px solid var(--mantine-color-gray-3)' }}>
                                     <Table.Tr>
-                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>ID</Table.Th>
-                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Nombre del Departamento</Table.Th>
-                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prioridad</Table.Th>
-                                        <Table.Th style={{ color: 'var(--mantine-color-dimmed)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
+                                        <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: '24px' }}>ID</Table.Th>
+                                        <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Nombre del Departamento</Table.Th>
+                                        <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prioridad</Table.Th>
+                                        <Table.Th style={{ color: 'var(--mantine-color-gray-7)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right', paddingRight: '24px' }}>Acciones</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
@@ -258,18 +251,52 @@ export default function DepartmentsList() {
                                                 </Table.Td>
                                                 <Table.Td style={{ paddingRight: '24px' }}>
                                                     <Group gap="xs" justify="flex-end">
-                                                        <Button variant="subtle" color="gray" size="xs" radius="md" leftSection={<IconSettings size={14} />} onClick={() => handleManagePositions(dept)} disabled={!permissions.canManagePositions(dept.id)}>
+                                                        <Button
+                                                            variant="light"
+                                                            color="blue"
+                                                            size="xs"
+                                                            radius="md"
+                                                            leftSection={<IconSettings size={14} />}
+                                                            onClick={() => handleManagePositions(dept)}
+                                                            disabled={!permissions.canManagePositions(dept.id)}
+                                                        >
                                                             Posiciones
                                                         </Button>
-                                                        <Button variant="subtle" color="orange" size="xs" radius="md" leftSection={<IconShirt size={14} />} onClick={() => handleManageUniforms(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
+                                                        <Button
+                                                            variant="light"
+                                                            color="orange"
+                                                            size="xs"
+                                                            radius="md"
+                                                            leftSection={<IconShirt size={14} />}
+                                                            onClick={() => handleManageUniforms(dept)}
+                                                            disabled={!permissions.canManageDepartment(dept.id)}
+                                                        >
                                                             Uniformes
                                                         </Button>
-                                                        <Button variant="light" color="blue" size="xs" radius="md" leftSection={<IconEdit size={14} />} onClick={() => handleEdit(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
-                                                            Editar
-                                                        </Button>
-                                                        <Button variant="light" color="red" size="xs" radius="md" leftSection={<IconTrash size={14} />} onClick={() => openDeleteModal(dept)} disabled={!permissions.canManageDepartment(dept.id)}>
-                                                            Eliminar
-                                                        </Button>
+                                                        {permissions.canManageAllDepartments && (
+                                                            <>
+                                                                <Button
+                                                                    variant="light"
+                                                                    color="blue"
+                                                                    size="xs"
+                                                                    radius="md"
+                                                                    leftSection={<IconEdit size={14} />}
+                                                                    onClick={() => handleEdit(dept)}
+                                                                >
+                                                                    Editar
+                                                                </Button>
+                                                                <Button
+                                                                    variant="light"
+                                                                    color="red"
+                                                                    size="xs"
+                                                                    radius="md"
+                                                                    leftSection={<IconTrash size={14} />}
+                                                                    onClick={() => openDeleteModal(dept)}
+                                                                >
+                                                                    Eliminar
+                                                                </Button>
+                                                            </>
+                                                        )}
                                                     </Group>
                                                 </Table.Td>
                                             </Table.Tr>

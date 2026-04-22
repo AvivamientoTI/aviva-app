@@ -13,7 +13,10 @@ import {
     Select,
     Skeleton,
     Button,
-    Alert
+    Alert,
+    ThemeIcon,
+    Divider,
+    Menu
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
@@ -24,9 +27,13 @@ import {
     IconCalendarOff,
     IconAlertCircle,
     IconFileDownload,
-    IconShare
+    IconShare,
+    IconPhoto,
+    IconFileTypePdf,
+    IconChevronDown,
+    IconArrowRight
 } from '@tabler/icons-react';
-import { DonutChart, BarChart } from '@mantine/charts';
+import { DonutChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
 import { getUniformeColor } from '../../utils/calendar/colorMapper';
 import { AiQueryWidget } from './components/AiQueryWidget';
@@ -237,7 +244,7 @@ export default function Dashboard() {
                     <Grid.Col span={{ base: 12, md: 8 }} className="animate-fade-in card-stagger-3">
                         <Card withBorder p="md" radius="md" className="animate-fade-in hover-card">
                             <Group justify="space-between" mb="xl">
-                                <Title order={4} className="text-premium">Mis Próximos Servicios</Title>
+                                <Title order={4}>Mis Próximos Servicios</Title>
                                 <Group gap="xs">
                                     <Button
                                         variant="subtle"
@@ -250,17 +257,30 @@ export default function Dashboard() {
                                     >
                                         Compartir
                                     </Button>
-                                    <Button
-                                        variant="subtle"
-                                        className="btn-glass-subtle"
-                                        size="xs"
-                                        radius="xl"
-                                        leftSection={<IconFileDownload size={16} />}
-                                        loading={exporting}
-                                        onClick={handleExportRole}
-                                    >
-                                        PDF
-                                    </Button>
+                                    <Menu shadow="md" width={180} radius="md" position="bottom-end">
+                                        <Menu.Target>
+                                            <Button
+                                                variant="subtle"
+                                                className="btn-glass-subtle"
+                                                size="xs"
+                                                radius="xl"
+                                                leftSection={<IconFileDownload size={16} />}
+                                                rightSection={<IconChevronDown size={12} />}
+                                                loading={exporting}
+                                            >
+                                                Exportar Rol
+                                            </Button>
+                                        </Menu.Target>
+                                        <Menu.Dropdown>
+                                            <Menu.Label>Formato</Menu.Label>
+                                            <Menu.Item leftSection={<IconPhoto size={14} />} onClick={handleExportRole}>
+                                                Imagen (PNG)
+                                            </Menu.Item>
+                                            <Menu.Item leftSection={<IconFileTypePdf size={14} />} onClick={handleExportRole}>
+                                                Documento PDF
+                                            </Menu.Item>
+                                        </Menu.Dropdown>
+                                    </Menu>
                                 </Group>
                             </Group>
                             {upcoming.length > 0 ? (
@@ -333,16 +353,16 @@ export default function Dashboard() {
                     <Grid.Col span={{ base: 12, md: 4 }} className="animate-fade-in card-stagger-4">
                         <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm">
                             <Group justify="space-between" mb="xl">
-                                <Title order={4} className="text-premium">
+                                <Title order={4}>
                                     {shouldShowDeptStats ? "Estado del Departamento" : "Mi Estado de Asistencia"}
                                 </Title>
                                 {shouldShowDeptStats && <Badge color="orange" variant="light" size="lg" radius="md">Vista Líder</Badge>}
                             </Group>
                             {stats ? (
-                                <Stack align="center">
-                                    <Box w="100%" h={220} style={{ minWidth: 0 }} role="img" aria-label={`Gráfico de donas mostrando: ${stats!.summary.asistio} asistieron, ${stats!.summary.faltoConAviso} faltas con aviso, ${stats!.summary.faltoSinAviso} faltas sin aviso.`}>
+                                <Stack gap="md">
+                                    <Box w="100%" h={200} style={{ minWidth: 0 }}>
                                         <DonutChart
-                                            h={220}
+                                            h={200}
                                             data={[
                                                 { name: 'Asistió', value: stats!.summary.asistio, color: 'teal.6' },
                                                 { name: 'Justificado', value: stats!.summary.faltoConAviso, color: 'yellow.6' },
@@ -353,11 +373,47 @@ export default function Dashboard() {
                                             withLabels
                                         />
                                     </Box>
-                                    <Group gap="xs">
-                                        <Badge color="teal" variant="dot">Asistió</Badge>
-                                        <Badge color="yellow" variant="dot">Justificado</Badge>
-                                        <Badge color="red" variant="dot">Faltó</Badge>
-                                    </Group>
+                                    <Divider />
+                                    <Stack gap={6}>
+                                        <Group justify="space-between">
+                                            <Group gap={6}>
+                                                <ThemeIcon color="teal" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-teal-6)' }} /></ThemeIcon>
+                                                <Text size="sm" fw={600}>Asistió</Text>
+                                            </Group>
+                                            <Badge color="teal" variant="filled" size="md">{stats!.summary.asistio}</Badge>
+                                        </Group>
+                                        <Group justify="space-between">
+                                            <Group gap={6}>
+                                                <ThemeIcon color="yellow" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-yellow-6)' }} /></ThemeIcon>
+                                                <Text size="sm" fw={600}>Justificado</Text>
+                                            </Group>
+                                            <Badge color="yellow" variant="filled" size="md">{stats!.summary.faltoConAviso}</Badge>
+                                        </Group>
+                                        <Group justify="space-between">
+                                            <Group gap={6}>
+                                                <ThemeIcon color="red" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-red-6)' }} /></ThemeIcon>
+                                                <Text size="sm" fw={600}>Faltó (sin aviso)</Text>
+                                            </Group>
+                                            <Badge color="red" variant="filled" size="md">{stats!.summary.faltoSinAviso}</Badge>
+                                        </Group>
+                                        <Group justify="space-between" pt={4}>
+                                            <Text size="xs" c="dimmed" fw={700}>Total registros</Text>
+                                            <Text size="sm" fw={800}>{stats!.summary.total}</Text>
+                                        </Group>
+                                    </Stack>
+                                    <Button
+                                        variant="light"
+                                        color="gold"
+                                        size="xs"
+                                        radius="md"
+                                        rightSection={<IconArrowRight size={14} />}
+                                        component="a"
+                                        href="/estadisticas"
+                                        fullWidth
+                                        mt={4}
+                                    >
+                                        Ver detalle
+                                    </Button>
                                 </Stack>
                             ) : (
                                 <Stack align="center" py="xl" gap="xs">
@@ -368,27 +424,7 @@ export default function Dashboard() {
                         </Card>
                     </Grid.Col>
 
-                    {stats && stats.byMonth && Object.keys(stats.byMonth).length > 0 && (
-                         <Grid.Col span={12} className="animate-fade-in card-stagger-5">
-                            <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm">
-                                <Title order={4} mb="xl" className="text-premium">Tendencia de Asistencia (Últimos Meses)</Title>
-                                <Box w="100%" h={400} style={{ minWidth: 0 }} role="img" aria-label="Gráfico de barras mostrando la tendencia de asistencia y faltas en los últimos meses.">
-                                    <BarChart
-                                        h={400}
-                                        data={Object.values(stats.byMonth)}
-                                        dataKey="month"
-                                        series={[
-                                            { name: 'asistio', color: 'teal.6', label: 'Asistencias' },
-                                            { name: 'faltas', color: 'red.6', label: 'Faltas' },
-                                        ]}
-                                        tickLine="y"
-                                        gridAxis="xy"
-                                        withLegend
-                                    />
-                                </Box>
-                            </Card>
-                        </Grid.Col>
-                    )}
+
                 </Grid>
             </Stack>
 

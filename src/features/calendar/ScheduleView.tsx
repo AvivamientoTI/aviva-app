@@ -30,7 +30,8 @@ import {
     IconBuildingCommunity,
     IconFileTypePdf,
     IconPhoto,
-    IconChevronDown
+    IconChevronDown,
+    IconTrash
 } from '@tabler/icons-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useUser } from '../../contexts/UserContext';
@@ -78,6 +79,7 @@ export default function ScheduleView() {
     const [allAssignedUsersOnDay, setAllAssignedUsersOnDay] = useState<any[]>([]);
     const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
     const [loadingAssignedUsers, setLoadingAssignedUsers] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | number | null>(null);
     const calendarRef = useRef<HTMLDivElement>(null);
     const detailRef = useRef<HTMLDivElement>(null);
 
@@ -107,10 +109,27 @@ export default function ScheduleView() {
 
     const handleExport = useCallback((format: 'png' | 'pdf') => {
         const deptLabel = departments.find(d => d.value === selectedDept)?.label || '';
+        // Usar el mes que el usuario tiene en vista, no el mes actual
         const subtitle = dayjs(currentDate).format('MMMM YYYY');
 
+        // Filtrar asignaciones sólo del mes en vista
+        const monthKey = dayjs(currentDate).format('YYYY-MM');
+        const filteredAssignments = Object.fromEntries(
+            Object.entries(groupedAssignments).filter(([date]) => date.startsWith(monthKey))
+        );
+
+        if (Object.keys(filteredAssignments).length === 0) {
+            notify.warning('No hay asignaciones para el mes en vista.');
+            return;
+        }
+
+        notify.info(
+            format === 'pdf' ? 'Descargando PDF...' : 'Descargando imagen...', 
+            'Exportando'
+        );
+
         if (format === 'pdf') {
-            exportSchedulePdf(groupedAssignments, {
+            exportSchedulePdf(filteredAssignments, {
                 title: 'Programación de Servicios',
                 subtitle,
                 departmentName: deptLabel,
@@ -120,7 +139,7 @@ export default function ScheduleView() {
 
         // Caso PNG
         if (viewMode === 'calendar') {
-            exportCalendarImage(groupedAssignments, deptLabel);
+            exportCalendarImage(filteredAssignments, deptLabel);
         } else {
             exportToPng(detailRef as any, 'detalle-asignaciones.png', {
                 title: 'Detalle de Asignaciones',
@@ -366,7 +385,31 @@ export default function ScheduleView() {
                                                 <Table.Td>
                                                     <Group gap="xs" justify="flex-end">
                                                         <Button size="xs" variant="light" color="blue" onClick={() => handleOpenSwap(event)}>Cambiar</Button>
-                                                        <Button size="xs" variant="subtle" color="gray" onClick={() => { closeDayEvents(); handleSelectEvent(event); }}>Ver</Button>
+                                                        <Button
+                                                            size="xs"
+                                                            variant="light"
+                                                            color="red"
+                                                            leftSection={<IconTrash size={12} />}
+                                                            loading={deletingId === event.id}
+                                                            onClick={() => {
+                                                                if (window.confirm(`¿Eliminar la asignación de ${event.nombre || 'este servidor(a)'}?`)) {
+                                                                    setDeletingId(event.id);
+                                                                    deleteAssignment.mutate(event.id, {
+                                                                        onSuccess: () => {
+                                                                            setSelectedDayEvents(prev => prev.filter(e => e.id !== event.id));
+                                                                            setDeletingId(null);
+                                                                            notify.success('Asignación eliminada');
+                                                                        },
+                                                                        onError: () => {
+                                                                            setDeletingId(null);
+                                                                            notify.error('No se pudo eliminar la asignación');
+                                                                        }
+                                                                    });
+                                                                }
+                                                            }}
+                                                        >
+                                                            Eliminar
+                                                        </Button>
                                                     </Group>
                                                 </Table.Td>
                                             </Table.Tr>
