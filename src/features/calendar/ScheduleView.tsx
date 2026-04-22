@@ -310,7 +310,7 @@ export default function ScheduleView() {
 
                             <Tabs.Panel value="detail">
                                 <Box>
-                                    <DetailedListTab groupedAssignments={groupedAssignments} departmentName={departments.find(d => d.value === selectedDept)?.label} />
+                                    <DetailedListTab groupedAssignments={groupedAssignments} />
                                 </Box>
                             </Tabs.Panel>
                         </Tabs>

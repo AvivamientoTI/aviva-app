@@ -22,10 +22,9 @@ interface DayData {
 
 interface DetailedListTabProps {
     groupedAssignments: Record<string, DayData>;
-    departmentName?: string;
 }
 
-export function DetailedListTab({ groupedAssignments, departmentName = '' }: DetailedListTabProps) {
+export function DetailedListTab({ groupedAssignments }: DetailedListTabProps) {
     // State for current month navigation
     // Initialize to current month to start
     const [currentDate, setCurrentDate] = useState(dayjs());

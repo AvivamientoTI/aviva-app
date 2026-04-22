@@ -19,12 +19,12 @@ export function ServiceUniformRow({ servicio, uniforme }: ServiceUniformRowProps
         >
             <Stack gap="xs">
                 {/* Tipo de Servicio */}
-                <Group gap={6} wrap="nowrap" align="flex-start">
-                    <IconTimeline size={20} color="#64748b" style={{ marginTop: '4px', flexShrink: 0 }} />
-                    <Text fw={900} size="1.1rem" c="slate.9" style={{ 
+                <Group gap={6} wrap="nowrap" align="center" justify="center">
+                    <IconTimeline size={20} color="#64748b" style={{ flexShrink: 0 }} />
+                    <Text fw={900} size="1.1rem" c="slate.9" ta="center" style={{
                         lineHeight: 1.2,
-                        letterSpacing: '-0.025em', 
-                        fontFamily: 'Inter, sans-serif' 
+                        letterSpacing: '-0.025em',
+                        fontFamily: 'Inter, sans-serif'
                     }}>
                         {servicio || 'Sin servicio'}
                     </Text>
