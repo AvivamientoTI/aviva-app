@@ -1,5 +1,4 @@
-import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { FullScreenLoader } from './FullScreenLoader';
@@ -28,7 +27,6 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
     const { loading, userProfile, userMemberships } = useUser();
     const perms = usePermissions();
-    const location = useLocation();
 
     // 1. Mostrar loader si estamos cargando datos
     if (loading) {

@@ -59,8 +59,7 @@ export const SubstituteRecommendationModal = ({
             const results = await recommendationService.getRecommendations(
                 currentAssignment.date,
                 currentAssignment.departmentId,
-                null, // Gender: null for now
-                isLeaderPos
+                { positionRequiresGender: null, positionRequiresLeadership: isLeaderPos }
             );
 
             setCandidates(results);

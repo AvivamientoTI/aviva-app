@@ -105,7 +105,7 @@ describe('suspensionService', () => {
 
     describe('endSuspension', () => {
         it('should call end_suspension RPC', async () => {
-            const rpcSpy = vi.spyOn(supabase, 'rpc').mockResolvedValue({ error: null });
+            const rpcSpy = vi.spyOn(supabase, 'rpc').mockResolvedValue({ error: null } as any);
 
             await suspensionService.endSuspension(1);
             
@@ -113,7 +113,7 @@ describe('suspensionService', () => {
         });
 
         it('should throw error when RPC fails', async () => {
-            vi.spyOn(supabase, 'rpc').mockResolvedValue({ error: { message: 'RPC Error' } });
+            vi.spyOn(supabase, 'rpc').mockResolvedValue({ error: { message: 'RPC Error' } as any } as any);
 
             await expect(suspensionService.endSuspension(1)).rejects.toEqual({ message: 'RPC Error' });
         });

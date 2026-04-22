@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text, ThemeIcon, ActionIcon, Modal, Button, Select, Tooltip } from '@mantine/core';
+import { Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text, ActionIcon, Modal, Button, Select, Tooltip } from '@mantine/core';
 import { IconUser, IconCalendar, IconTrash, IconEdit, IconSparkles, IconAlertTriangle } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';

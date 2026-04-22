@@ -101,7 +101,7 @@ export const attendanceService = {
     /**
      * Obtiene los registros de asistencia existentes para un día de servicio
      */
-    async fetchAttendance(configDiaId: number | string): Promise<AttendanceRecord[]> {
+    async fetchAttendance(configDiaId: number | string): Promise<any[]> {
         const { data, error } = await supabase
             .from('asistencias')
             .select('id, estado, justificacion, hora_registro, usuario_id, configuracion_dia_id, usuario:usuarios(nombre, apellido)')

@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { FullScreenLoader } from './components/FullScreenLoader';
 import { DashboardLayout } from './layouts/DashboardLayout';
-import { RestrictedAccess } from './components/RestrictedAccess';
+
 
 // Lazy Loaded Features
 const Login = lazy(() => import('./features/auth/Login'));

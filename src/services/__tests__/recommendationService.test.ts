@@ -107,7 +107,7 @@ describe('recommendationService', () => {
 
             (suspensionService.getAllSuspensions as any).mockResolvedValue([]);
 
-            const result = await recommendationService.getRecommendations('2026-04-14', 5, 'F');
+            const result = await recommendationService.getRecommendations('2026-04-14', 5, { positionRequiresGender: 'F' });
             const ids = result.map(c => c.id);
 
             expect(ids).toContain(2);
@@ -200,7 +200,7 @@ describe('recommendationService', () => {
 
             (suspensionService.getAllSuspensions as any).mockResolvedValue([]);
 
-            const result = await recommendationService.getRecommendations('2026-04-14', 5, null, true);
+            const result = await recommendationService.getRecommendations('2026-04-14', 5, { positionRequiresLeadership: true });
 
             // Líder should appear before Servidor in results
             const liderIndex = result.findIndex(c => c.id === 1);
