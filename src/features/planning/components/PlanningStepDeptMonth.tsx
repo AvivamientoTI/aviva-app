@@ -1,6 +1,6 @@
 import { Select, Paper, Text, Grid, ThemeIcon, Stack, Group, Alert, Button } from '@mantine/core';
 import { MonthPicker } from '@mantine/dates';
-import { IconBuildingCommunity, IconCalendarEvent, IconInfoCircle, IconCircleCheck, IconCircleDashed } from '@tabler/icons-react';
+import { IconBuildingCommunity, IconCalendarEvent, IconCircleCheck, IconCircleDashed } from '@tabler/icons-react';
 
 interface Props {
     departments: { value: string; label: string }[];

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
     Table, Button, Modal, TextInput, Select, Group, Title, Badge, 
     ActionIcon, Alert, Paper, Avatar, Text, Menu, SimpleGrid, 
-    ThemeIcon, Stack, Container, Box, Center 
+    ThemeIcon, Stack, Container, Center 
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DatePickerInput } from '@mantine/dates';
@@ -38,9 +38,6 @@ export default function UsersList() {
 
   const [opened, { open, close }] = useDisclosure(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [initialPassword, setInitialPassword] = useState('');
-  const [hasAuth, setHasAuth] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -97,51 +94,10 @@ export default function UsersList() {
       telefono: user.telefono,
       fecha_nacimiento: user.fecha_nacimiento ? new Date(user.fecha_nacimiento) : null
     });
-    checkAuthStatus(user.id);
     open();
   };
 
-  const checkAuthStatus = async (usuarioId: number) => {
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('usuario_id', usuarioId)
-      .maybeSingle();
-    setHasAuth(!!data);
-  };
 
-  const handleCreateAuth = async () => {
-    if (!initialPassword || initialPassword.length < 6) {
-      notifications.show({ title: 'Error', message: 'La contraseña debe tener al menos 6 caracteres', color: 'red' });
-      return;
-    }
-
-    setAuthLoading(true);
-    const { data, error } = await (supabase.functions as any).invoke('create-user-auth', {
-      body: { 
-        usuario_id: editingUser.id, 
-        username: formData.username, 
-        password: initialPassword 
-      }
-    });
-
-    if (error || data?.error) {
-      notifications.show({ 
-        title: 'Error al crear acceso', 
-        message: error?.message || data?.error, 
-        color: 'red' 
-      });
-    } else {
-      notifications.show({ 
-        title: 'Éxito', 
-        message: 'Cuenta de acceso creada correctamente', 
-        color: 'green' 
-      });
-      setHasAuth(true);
-      setInitialPassword('');
-    }
-    setAuthLoading(false);
-  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm('¿Estás seguro de eliminar este usuario?')) {

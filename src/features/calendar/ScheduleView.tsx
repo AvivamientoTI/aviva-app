@@ -204,11 +204,6 @@ export default function ScheduleView() {
         );
     };
 
-    const handleSelectEvent = (event: any) => {
-        setSelectedEvent(event);
-        open();
-    };
-
     const handleDeleteAssignment = () => {
         if (!selectedEvent) return;
         deleteAssignment.mutate(selectedEvent.id, {
