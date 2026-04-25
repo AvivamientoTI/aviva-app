@@ -1,6 +1,5 @@
 import { Box, Group, Badge, Text, Stack } from '@mantine/core';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
-import { IconShirt, IconTimeline } from '@tabler/icons-react';
 
 interface ServiceUniformRowProps {
     servicio: string;
@@ -19,20 +18,16 @@ export function ServiceUniformRow({ servicio, uniforme }: ServiceUniformRowProps
         >
             <Stack gap="xs">
                 {/* Tipo de Servicio */}
-                <Group gap={6} wrap="nowrap" align="center" justify="center">
-                    <IconTimeline size={20} color="#64748b" style={{ flexShrink: 0 }} />
-                    <Text fw={900} size="1.1rem" c="slate.9" ta="center" style={{
-                        lineHeight: 1.2,
-                        letterSpacing: '-0.025em',
-                        fontFamily: 'Inter, sans-serif'
-                    }}>
-                        {servicio || 'Sin servicio'}
-                    </Text>
-                </Group>
+                <Text fw={900} size="1.1rem" c="slate.9" ta="center" style={{
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.025em',
+                    fontFamily: 'Inter, sans-serif'
+                }}>
+                    {servicio || 'Sin servicio'}
+                </Text>
 
                 {/* Uniforme */}
                 <Group gap={6} wrap="nowrap" align="center">
-                    <IconShirt size={18} color="#64748b" style={{ flexShrink: 0 }} />
                     <Badge
                         fullWidth
                         size="lg"
