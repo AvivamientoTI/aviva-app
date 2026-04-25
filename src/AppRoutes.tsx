@@ -10,6 +10,7 @@ const Login = lazy(() => import('./features/auth/Login'));
 const Dashboard = lazy(() => import('./features/dashboard/Dashboard'));
 const ScheduleView = lazy(() => import('./features/calendar/ScheduleView'));
 const AttendanceManager = lazy(() => import('./features/attendance/AttendanceManager'));
+const AttendanceRegistry = lazy(() => import('./features/attendance/AttendanceRegistry'));
 const DepartmentsList = lazy(() => import('./features/departments/DepartmentsList'));
 const PlanningWizard = lazy(() => import('./features/planning/PlanningWizard'));
 const UsersList = lazy(() => import('./features/users/UsersList'));
@@ -56,6 +57,12 @@ export function AppRoutes() {
                         </ProtectedRoute>
                     } />
 
+                    <Route path="attendance/registry" element={
+                        <ProtectedRoute requireLider>
+                            <AttendanceRegistry />
+                        </ProtectedRoute>
+                    } />
+
                     <Route path="servers" element={
                         <ProtectedRoute requireLider>
                             <UsersList />
@@ -63,7 +70,7 @@ export function AppRoutes() {
                     } />
 
                     <Route path="suspensions" element={
-                        <ProtectedRoute requireLiderServidores>
+                        <ProtectedRoute requireLider>
                             <SuspensionManager />
                         </ProtectedRoute>
                     } />

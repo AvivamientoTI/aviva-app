@@ -3,7 +3,6 @@ import { analyticsService } from '../services/analyticsService';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from './usePermissions';
 
-// Types derived from what was in Dashboard.tsx
 export interface UpcomingService {
     id: string | number;
     posicion?: {
@@ -41,16 +40,21 @@ export interface StatsData {
 }
 
 export const useDashboardData = (selectedDeptId: number | null) => {
-    const { userProfile, userMemberships } = useUser();
+    const { userProfile, userMemberships, attendanceManagedDepartments } = useUser();
     const permissions = usePermissions();
     const userId = userProfile?.usuario_id;
 
-    // Fallback: if no dept selected yet but user has memberships, use the first one
+    // Servidores dept ID — attendance is always recorded there
+    const servidoresDeptId = userMemberships.find(
+        m => m.departamento?.nombre?.toLowerCase() === 'servidores'
+    )?.departamento?.id ?? null;
+
     const effectiveDeptId = selectedDeptId
         ?? (userMemberships.length > 0 ? userMemberships[0].departamento?.id ?? null : null);
 
-    // Use departmental stats if user is Admin or Leader of the selected department
-    const shouldShowDeptStats = effectiveDeptId ? permissions.canViewReports(effectiveDeptId) : false;
+    // Dept the user leads (for dept stats card)
+    const managedDeptId = attendanceManagedDepartments?.[0]?.id ?? null;
+    const isLeader = permissions.isLiderOrSublider || permissions.isSystemAdmin;
 
     const {
         data: upcoming = [],
@@ -60,7 +64,7 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         queryKey: ['upcomingServices', userId],
         queryFn: () => analyticsService.fetchUpcomingServices(userId!),
         enabled: !!userId,
-        staleTime: 1000 * 30, // 30 seconds
+        staleTime: 1000 * 30,
         select: (data) => data as UpcomingService[]
     });
 
@@ -74,16 +78,27 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         staleTime: 1000 * 30,
     });
 
+    // Personal stats — always shown for all users
     const {
-        data: stats = null,
-        isLoading: loadingStats,
-        error: errorStats
+        data: personalStats = null,
+        isLoading: loadingPersonal,
+        error: errorPersonal
     } = useQuery({
-        queryKey: ['attendanceStats', effectiveDeptId, userId, shouldShowDeptStats],
-        queryFn: () => shouldShowDeptStats
-            ? analyticsService.fetchAttendanceStats(effectiveDeptId!, 'YTD')
-            : analyticsService.fetchUserAttendanceStats(userId!, effectiveDeptId!, 'YTD'),
-        enabled: !!effectiveDeptId && !!userId,
+        queryKey: ['personalStats', userId, servidoresDeptId],
+        queryFn: () => analyticsService.fetchUserAttendanceStats(userId!, servidoresDeptId!, 'YTD'),
+        enabled: !!userId && !!servidoresDeptId,
+        staleTime: 1000 * 30,
+        select: (data) => data as StatsData
+    });
+
+    // Dept stats — only for leaders
+    const {
+        data: deptStats = null,
+        isLoading: loadingDept,
+    } = useQuery({
+        queryKey: ['deptStats', managedDeptId ?? effectiveDeptId],
+        queryFn: () => analyticsService.fetchAttendanceStats((managedDeptId ?? effectiveDeptId)!, 'YTD'),
+        enabled: isLeader && !!(managedDeptId ?? effectiveDeptId),
         staleTime: 1000 * 30,
         select: (data) => data as StatsData
     });
@@ -91,10 +106,11 @@ export const useDashboardData = (selectedDeptId: number | null) => {
     return {
         upcoming,
         upcomingCount,
-        stats,
-        shouldShowDeptStats,
+        personalStats,
+        deptStats,
+        isLeader,
         effectiveDeptId,
-        loading: loadingUpcoming || loadingUpcomingCount || (!!effectiveDeptId && loadingStats),
-        error: errorUpcoming || errorStats
+        loading: loadingUpcoming || loadingUpcomingCount || loadingPersonal || (isLeader && loadingDept),
+        error: errorUpcoming || errorPersonal
     };
 };

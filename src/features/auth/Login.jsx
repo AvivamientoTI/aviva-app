@@ -65,26 +65,16 @@ export default function Login() {
           color: '#1c1917'
         }}>
           <Stack align="center" gap="xs" mb="xl">
-            <div style={{
-              padding: '0px',
-              backgroundColor: '#fffbeb', // Amber 50
-              borderRadius: '50%',
-              border: '4px solid #ffffff',
-              boxShadow: '0 8px 20px rgba(212, 175, 55, 0.15)',
-              width: 140,
-              height: 140,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden'
-            }}>
-              <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.6)' }} />
-            </div>
-            <Title order={2} ta="center" mt="sm" style={{ fontFamily: 'Inter, sans-serif', fontSize: '2.4rem', letterSpacing: '-0.02em', color: '#854d0e' }}>
-              Aviva <Text span c="yellow.7" inherit>App</Text>
+            <img
+              src="/logo-iglesia.png"
+              alt="Iglesia Avivamiento y Poder"
+              style={{ width: 300, height: 300, objectFit: 'contain' }}
+            />
+            <Title order={2} ta="center" mt="sm" style={{ fontFamily: 'Inter, sans-serif', fontSize: '1.6rem', letterSpacing: '-0.01em', color: '#854d0e' }}>
+              Portal de Servidores
             </Title>
-            <Text size="md" ta="center" c="stone.5" fw={600}>
-              Bienvenido al portal de Servidores
+            <Text size="sm" ta="center" c="stone.5" fw={600}>
+              Iglesia Avivamiento y Poder
             </Text>
           </Stack>
 

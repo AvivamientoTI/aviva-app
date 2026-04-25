@@ -71,7 +71,7 @@ export default function Dashboard() {
         }
     }, [attendanceManagedDepartments, userMemberships]);
 
-    const { upcoming, upcomingCount, stats, loading, shouldShowDeptStats, effectiveDeptId } = useDashboardData(selectedDeptId);
+    const { upcoming, upcomingCount, personalStats, deptStats, isLeader, effectiveDeptId, loading } = useDashboardData(selectedDeptId);
 
     const { exporting, exportData, reportRef, handleExportRole } = useRoleExport(userProfile);
     const navigate = useNavigate();
@@ -112,14 +112,18 @@ export default function Dashboard() {
         );
     }
 
-    const attendanceTotal = stats?.summary.total || 0;
-    const attendanceRate = attendanceTotal > 0
-        ? Math.round((stats!.summary.asistio / attendanceTotal) * 100)
+    const personalTotal = personalStats?.summary.total || 0;
+    const personalRate = personalTotal > 0
+        ? Math.round((personalStats!.summary.asistio / personalTotal) * 100)
         : 0;
 
-    // Data for "Mes Pasado"
-    const lastMonthStat = (stats as any)?.lastMonthSummary;
+    const lastMonthStat = (personalStats as any)?.lastMonthSummary;
     const lastMonthTotal = lastMonthStat ? (lastMonthStat.asistio + lastMonthStat.faltas) : 0;
+
+    const deptTotal = deptStats?.summary.total || 0;
+    const deptRate = deptTotal > 0
+        ? Math.round((deptStats!.summary.asistio / deptTotal) * 100)
+        : 0;
 
     const nextService = upcoming.length > 0 ? upcoming[0] : null;
 
@@ -159,11 +163,10 @@ export default function Dashboard() {
         }
     };
 
-    // Preparar datos para Sparklines
-    const attendanceTrend = stats?.byMonth ? 
-        Object.values(stats.byMonth)
+    const attendanceTrend = personalStats?.byMonth ?
+        Object.values(personalStats.byMonth as any)
             .slice(-4)
-            .map(m => (m.asistio / (m.asistio + m.faltas || 1)) * 100) : [];
+            .map((m: any) => (m.asistio / (m.asistio + m.faltas || 1)) * 100) : [];
 
     const upcomingTrend = [2, 4, 3, 5, upcomingCount]; // Mock trend for upcoming
 
@@ -210,12 +213,12 @@ export default function Dashboard() {
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} verticalSpacing="xl">
                     <Box className="animate-fade-in card-stagger-2">
                         <StatCard
-                            title={shouldShowDeptStats ? "Asistencia Departamento" : "Mi Asistencia"}
-                            value={`${attendanceRate}%`}
-                            subtitle={shouldShowDeptStats ? `Promedio del equipo` : `Tu promedio ${dayjs().year()}`}
+                            title="Mi Asistencia"
+                            value={`${personalRate}%`}
+                            subtitle={`Tu promedio ${dayjs().year()}`}
                             icon={<IconTrendingUp size={24} />}
                             color="teal"
-                            trendData={attendanceTrend}
+                            trendData={personalStats?.byMonth ? Object.values(personalStats.byMonth as any).slice(-4).map((m: any) => (m.asistio / (m.asistio + m.faltas || 1)) * 100) : []}
                         />
                     </Box>
                     <Box className="animate-fade-in card-stagger-3">
@@ -231,7 +234,7 @@ export default function Dashboard() {
                         <StatCard
                             title="Mes Pasado"
                             value={lastMonthTotal}
-                            subtitle={(stats as any)?.lastMonthSummary?.month || ''}
+                            subtitle={(personalStats as any)?.lastMonthSummary?.month || ''}
                             icon={<IconChecklist size={24} />}
                             color="stone"
                         />
@@ -359,74 +362,43 @@ export default function Dashboard() {
                         </Grid.Col>
                     )}
 
-                    <Grid.Col span={{ base: 12, md: 4 }} className="animate-fade-in card-stagger-4">
-                        <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm">
+                    {/* Stats personales — siempre visible */}
+                    <Grid.Col span={{ base: 12, md: isLeader ? 6 : 4 }} className="animate-fade-in card-stagger-4">
+                        <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm" h="100%">
                             <Group justify="space-between" mb="xs">
                                 <Title order={4} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, color: 'var(--mantine-color-text)' }}>
-                                    {shouldShowDeptStats ? "Estado del Departamento" : "Mi Estado de Asistencia"}
+                                    Mi Estado de Asistencia
                                 </Title>
-                                {shouldShowDeptStats && <Badge color="orange" variant="light" size="lg" radius="md">Vista Líder</Badge>}
                             </Group>
-                            <Text size="xs" c="dimmed" fw={600} mb="lg">
-                                {shouldShowDeptStats
-                                    ? 'Registros de asistencia del equipo en el período actual'
-                                    : 'Tus registros de asistencia en el período actual'}
-                            </Text>
-                            {stats ? (
+                            <Text size="xs" c="dimmed" fw={600} mb="lg">Tus registros de asistencia en el período actual</Text>
+                            {personalStats ? (
                                 <Stack gap="md">
-                                    <Box w="100%" h={200} style={{ minWidth: 0 }}>
-                                        <DonutChart
-                                            h={200}
-                                            data={[
-                                                { name: 'Asistió', value: stats!.summary.asistio, color: 'teal.6' },
-                                                { name: 'Justificado', value: stats!.summary.faltoConAviso, color: 'yellow.6' },
-                                                { name: 'Faltó', value: stats!.summary.faltoSinAviso, color: 'red.6' },
-                                            ]}
-                                            tooltipDataSource="segment"
-                                            withLabelsLine
-                                            withLabels
-                                        />
+                                    <Box w="100%" h={180} style={{ minWidth: 0 }}>
+                                        <DonutChart h={180} data={[
+                                            { name: 'Asistió', value: personalStats.summary.asistio, color: 'teal.6' },
+                                            { name: 'Justificado', value: personalStats.summary.faltoConAviso, color: 'yellow.6' },
+                                            { name: 'Faltó', value: personalStats.summary.faltoSinAviso, color: 'red.6' },
+                                        ]} tooltipDataSource="segment" withLabelsLine withLabels />
                                     </Box>
                                     <Divider />
                                     <Stack gap={6}>
                                         <Group justify="space-between">
-                                            <Group gap={6}>
-                                                <ThemeIcon color="teal" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-teal-6)' }} /></ThemeIcon>
-                                                <Text size="sm" fw={600}>Asistió</Text>
-                                            </Group>
-                                            <Badge color="teal" variant="filled" size="md">{stats!.summary.asistio}</Badge>
+                                            <Group gap={6}><ThemeIcon color="teal" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-teal-6)' }} /></ThemeIcon><Text size="sm" fw={600}>Asistió</Text></Group>
+                                            <Badge color="teal" variant="filled" size="md">{personalStats.summary.asistio}</Badge>
                                         </Group>
                                         <Group justify="space-between">
-                                            <Group gap={6}>
-                                                <ThemeIcon color="yellow" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-yellow-6)' }} /></ThemeIcon>
-                                                <Text size="sm" fw={600}>Justificado</Text>
-                                            </Group>
-                                            <Badge color="yellow" variant="filled" size="md">{stats!.summary.faltoConAviso}</Badge>
+                                            <Group gap={6}><ThemeIcon color="yellow" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-yellow-6)' }} /></ThemeIcon><Text size="sm" fw={600}>Justificado</Text></Group>
+                                            <Badge color="yellow" variant="filled" size="md">{personalStats.summary.faltoConAviso}</Badge>
                                         </Group>
                                         <Group justify="space-between">
-                                            <Group gap={6}>
-                                                <ThemeIcon color="red" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-red-6)' }} /></ThemeIcon>
-                                                <Text size="sm" fw={600}>Faltó (sin aviso)</Text>
-                                            </Group>
-                                            <Badge color="red" variant="filled" size="md">{stats!.summary.faltoSinAviso}</Badge>
+                                            <Group gap={6}><ThemeIcon color="red" variant="light" size="sm" radius="xl"><Box w={6} h={6} style={{ borderRadius: '50%', background: 'var(--mantine-color-red-6)' }} /></ThemeIcon><Text size="sm" fw={600}>Faltó</Text></Group>
+                                            <Badge color="red" variant="filled" size="md">{personalStats.summary.faltoSinAviso}</Badge>
                                         </Group>
                                         <Group justify="space-between" pt={4}>
                                             <Text size="xs" c="dimmed" fw={700}>Total registros</Text>
-                                            <Text size="sm" fw={800}>{stats!.summary.total}</Text>
+                                            <Text size="sm" fw={800}>{personalStats.summary.total}</Text>
                                         </Group>
                                     </Stack>
-                                    <Button
-                                        variant="light"
-                                        color="gold"
-                                        size="xs"
-                                        radius="md"
-                                        rightSection={<IconArrowRight size={14} />}
-                                        onClick={() => navigate('/analytics')}
-                                        fullWidth
-                                        mt={4}
-                                    >
-                                        Ver detalle
-                                    </Button>
                                 </Stack>
                             ) : (
                                 <Stack align="center" py="xl" gap="xs">
@@ -436,6 +408,51 @@ export default function Dashboard() {
                             )}
                         </Card>
                     </Grid.Col>
+
+                    {/* Stats de departamento — solo para líderes */}
+                    {isLeader && (
+                        <Grid.Col span={{ base: 12, md: 6 }} className="animate-fade-in card-stagger-5">
+                            <Card withBorder p="xl" radius="lg" className="hover-card shadow-sm" h="100%">
+                                <Group justify="space-between" mb="xs">
+                                    <Title order={4} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, color: 'var(--mantine-color-text)' }}>
+                                        Estado del Departamento
+                                    </Title>
+                                    <Badge color="orange" variant="light" size="lg" radius="md">Vista Líder</Badge>
+                                </Group>
+                                <Text size="xs" c="dimmed" fw={600} mb="lg">Registros de asistencia del equipo en el período actual</Text>
+                                {deptStats ? (
+                                    <Stack gap="md">
+                                        <Box w="100%" h={180} style={{ minWidth: 0 }}>
+                                            <DonutChart h={180} data={[
+                                                { name: 'Asistió', value: deptStats.summary.asistio, color: 'teal.6' },
+                                                { name: 'Justificado', value: deptStats.summary.faltoConAviso, color: 'yellow.6' },
+                                                { name: 'Faltó', value: deptStats.summary.faltoSinAviso, color: 'red.6' },
+                                            ]} tooltipDataSource="segment" withLabelsLine withLabels />
+                                        </Box>
+                                        <Divider />
+                                        <Stack gap={6}>
+                                            <Group justify="space-between">
+                                                <Text size="xs" c="dimmed" fw={700}>Tasa general</Text>
+                                                <Badge color="teal" variant="light" size="md">{deptRate}%</Badge>
+                                            </Group>
+                                            <Group justify="space-between">
+                                                <Text size="xs" c="dimmed" fw={700}>Total registros</Text>
+                                                <Text size="sm" fw={800}>{deptStats.summary.total}</Text>
+                                            </Group>
+                                        </Stack>
+                                        <Button variant="light" color="gold" size="xs" radius="md" rightSection={<IconArrowRight size={14} />} onClick={() => navigate('/analytics')} fullWidth mt={4}>
+                                            Ver detalle
+                                        </Button>
+                                    </Stack>
+                                ) : (
+                                    <Stack align="center" py="xl" gap="xs">
+                                        <IconUsers size={40} color="var(--mantine-color-dimmed)" stroke={1.5} />
+                                        <Text ta="center" c="dimmed">No hay datos del departamento todavía.</Text>
+                                    </Stack>
+                                )}
+                            </Card>
+                        </Grid.Col>
+                    )}
 
 
                 </Grid>

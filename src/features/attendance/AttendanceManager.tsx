@@ -15,7 +15,8 @@ import {
     Paper,
     SimpleGrid,
     ThemeIcon,
-    Avatar
+    Avatar,
+    Textarea
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
@@ -46,7 +47,6 @@ export default function AttendanceManager() {
     const [attendance, setAttendance] = useState<AttendanceRecordWithDetails[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    // Mapa turno culto por record.id (solo domingos cuando asistio)
     const [cultosTime, setCultosTime] = useState<Record<string | number, string>>({});
 
     const permissions = usePermissions();
@@ -90,13 +90,21 @@ export default function AttendanceManager() {
     }, [selectedService]);
 
     function handleAttendanceChange(recordId: string | number, newState: string) {
+        const now = new Date().toISOString();
         setAttendance(prev => prev.map(rec =>
-            String(rec.id) === String(recordId) ? { ...rec, estado: newState } : rec
+            String(rec.id) === String(recordId)
+                ? { ...rec, estado: newState, hora_registro: now }
+                : rec
         ));
-        // Limpiar turno culto si ya no está Presente
         if (newState !== ATTENDANCE_STATES.ASISTIO) {
             setCultosTime(prev => { const n = { ...prev }; delete n[recordId]; return n; });
         }
+    }
+
+    function handleJustificationChange(recordId: string | number, text: string) {
+        setAttendance(prev => prev.map(rec =>
+            String(rec.id) === String(recordId) ? { ...rec, justificacion: text } : rec
+        ));
     }
 
     async function fetchData() {
@@ -167,7 +175,7 @@ export default function AttendanceManager() {
                 estado: rec.estado,
                 justificacion: rec.justificacion || '',
                 turno_dominical: cultosTime[rec.id] || null,
-                hora_registro: rec.estado === ATTENDANCE_STATES.ASISTIO && !rec.hora_registro ? new Date().toISOString() : rec.hora_registro
+                hora_registro: rec.hora_registro ?? null
             }));
             await attendanceService.updateAttendanceRecords(recordsToUpdate);
             notifications.show({ title: '¡Éxito!', message: 'Asistencia guardada.', color: 'green' });
@@ -318,7 +326,11 @@ export default function AttendanceManager() {
                                         {loading ? (
                                             <Table.Tr><Table.Td colSpan={3}><Center py="xl"><Loader color="gold" type="dots" /></Center></Table.Td></Table.Tr>
                                         ) : attendance.length > 0 ? (
-                                            attendance.map((record) => (
+                                            [...attendance].sort((a, b) => {
+                                                const nameA = `${a.usuario?.nombre || ''} ${a.usuario?.apellido || ''}`.toLowerCase();
+                                                const nameB = `${b.usuario?.nombre || ''} ${b.usuario?.apellido || ''}`.toLowerCase();
+                                                return nameA.localeCompare(nameB);
+                                            }).map((record) => (
                                                 <Table.Tr key={record.id}>
                                                     <Table.Td style={{ paddingLeft: '24px' }}>
                                                         <Group gap="sm">
@@ -350,7 +362,20 @@ export default function AttendanceManager() {
                                                                         label: { fontWeight: 700 }
                                                                     }}
                                                                 />
-                                                                {/* Culto dominical: solo si es domingo y marcó Presente */}
+                                                                {record.estado === ATTENDANCE_STATES.CON_JUSTIFICACION && (
+                                                                    <Textarea
+                                                                        placeholder="Motivo de la justificación..."
+                                                                        value={record.justificacion || ''}
+                                                                        onChange={(e) => handleJustificationChange(record.id, e.currentTarget.value)}
+                                                                        size="xs"
+                                                                        radius="md"
+                                                                        autosize
+                                                                        minRows={2}
+                                                                        maxRows={3}
+                                                                        style={{ width: '100%', minWidth: 180 }}
+                                                                        styles={{ input: { fontSize: '12px' } }}
+                                                                    />
+                                                                )}
                                                                 {selectedDate && dayjs(selectedDate).day() === 0 && record.estado === ATTENDANCE_STATES.ASISTIO && (
                                                                     <SegmentedControl
                                                                         value={cultosTime[record.id] || ''}

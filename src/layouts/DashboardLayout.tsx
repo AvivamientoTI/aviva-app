@@ -1,6 +1,6 @@
 import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme, ThemeIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel, IconTrendingUp } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel, IconTrendingUp, IconClipboardList } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
@@ -44,11 +44,14 @@ export function DashboardLayout() {
         ...(isSystemAdmin || isLiderOrSublider ? [
             { label: 'Servidores', path: '/servers', icon: <IconUsers size={20} stroke={1.5} /> },
         ] : []),
-        ...(isSystemAdmin || isLiderOrSubliderServidores ? [
-            { label: 'Suspensiones', path: '/suspensions', icon: <IconCalendarCancel size={20} stroke={1.5} /> },
+        ...(isSystemAdmin || isLiderOrSublider || isLiderOrSubliderServidores ? [
+            { label: 'Suspensiones e Inactividad', path: '/suspensions', icon: <IconCalendarCancel size={20} stroke={1.5} /> },
         ] : []),
         ...(isSystemAdmin || isLiderSubliderEncargadoServidores ? [
             { label: 'Asistencia', path: '/attendance', icon: <IconChartBar size={20} stroke={1.5} /> },
+        ] : []),
+        ...(isSystemAdmin || isLiderOrSublider ? [
+            { label: 'Registro de Asistencia', path: '/attendance/registry', icon: <IconClipboardList size={20} stroke={1.5} /> },
         ] : []),
     ];
 
