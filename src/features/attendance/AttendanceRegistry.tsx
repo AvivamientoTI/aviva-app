@@ -331,7 +331,7 @@ export default function AttendanceRegistry() {
                                                 </Table.Td>
                                                 <Table.Td style={{ paddingRight: 24, textAlign: 'right' }}>
                                                     <Text size="xs" fw={700} c="dimmed">
-                                                        {r.hora_registro ? dayjs(r.hora_registro).format('HH:mm') : '—'}
+                                                        {r.hora_registro ? dayjs(r.hora_registro).format('h:mm A') : '—'}
                                                     </Text>
                                                 </Table.Td>
                                             </Table.Tr>

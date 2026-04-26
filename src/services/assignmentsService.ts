@@ -42,12 +42,16 @@ export const assignmentsService = {
             .select(`
         id,
         usuario_id,
+        configuracion_dia_id,
         usuario:usuarios (nombre, apellido),
         posicion:posiciones_departamento (nombre, genero_requerido, orden),
         configuracion_dia!inner (
+          id,
           fecha,
           tipo_servicio,
           color_uniforme,
+          hora_llegada,
+          service_index,
           encargado:usuarios!configuracion_dia_encargado_id_fkey (id, nombre, apellido),
           roles_cabecera!inner (
             departamento_id

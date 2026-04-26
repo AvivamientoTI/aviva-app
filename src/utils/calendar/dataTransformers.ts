@@ -93,40 +93,65 @@ const removeDuplicateUsersByDay = (assignments: TransformerAssignment[]): Transf
     return unique;
 };
 
-interface GroupedAssignment {
+export interface ServiceGroup {
+    configuracion_dia_id: number | string;
+    service_index: number;
     assignments: CalendarAssignment[];
     encargado: string | null;
     encargado_id: string | number | null;
     servicio: string;
     uniforme: string;
+    hora_llegada: string | null;
 }
 
-export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Record<string, GroupedAssignment> => {
+export interface DayGroup {
+    services: ServiceGroup[];
+    // convenience: all assignments flattened (used for day-click)
+    allAssignments: CalendarAssignment[];
+}
+
+export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Record<string, DayGroup> => {
     if (!assignments || assignments.length === 0) return {};
 
     const cleanedAssignments = removeDuplicateUsersByDay(assignments);
 
-    return cleanedAssignments.reduce((acc, item) => {
-        const fecha = item.configuracion_dia?.fecha;
-        if (!fecha) return acc;
+    const acc: Record<string, DayGroup> = {};
+    // Map from configuracion_dia_id → ServiceGroup (to build per service)
+    const serviceMap: Record<string | number, ServiceGroup> = {};
 
-        if (!acc[fecha]) {
-            acc[fecha] = {
+    cleanedAssignments.forEach(item => {
+        const fecha = item.configuracion_dia?.fecha;
+        if (!fecha) return;
+
+        const configId = item.configuracion_dia?.id ?? item.configuracion_dia_id ?? `${fecha}-0`;
+        const serviceIndex = item.configuracion_dia?.service_index ?? 0;
+
+        if (!serviceMap[configId]) {
+            serviceMap[configId] = {
+                configuracion_dia_id: configId,
+                service_index: serviceIndex,
                 assignments: [],
-                encargado: item.configuracion_dia?.encargado ?
-                    `${item.configuracion_dia.encargado.nombre} ${item.configuracion_dia.encargado.apellido}` : null,
+                encargado: item.configuracion_dia?.encargado
+                    ? `${item.configuracion_dia.encargado.nombre} ${item.configuracion_dia.encargado.apellido}` : null,
                 encargado_id: item.configuracion_dia?.encargado?.id || null,
                 servicio: item.configuracion_dia?.tipo_servicio || 'N/A',
-                uniforme: item.configuracion_dia?.color_uniforme || 'N/A'
+                uniforme: item.configuracion_dia?.color_uniforme || 'N/A',
+                hora_llegada: item.configuracion_dia?.hora_llegada || null,
             };
         }
 
-        const nombreCompleto = item.usuario ? `${item.usuario.nombre} ${item.usuario.apellido}` : 'Usuario desconocido';
+        if (!acc[fecha]) {
+            acc[fecha] = { services: [], allAssignments: [] };
+        }
 
-        const posName = item.posicion && typeof item.posicion === 'object' && !Array.isArray(item.posicion) ? (item.posicion as { nombre?: string }).nombre :
-            Array.isArray(item.posicion) ? item.posicion[0]?.nombre : item.posicion;
+        const nombreCompleto = item.usuario
+            ? `${item.usuario.nombre} ${item.usuario.apellido}` : 'Usuario desconocido';
 
-        acc[fecha].assignments.push({
+        const posName = item.posicion && typeof item.posicion === 'object' && !Array.isArray(item.posicion)
+            ? (item.posicion as { nombre?: string }).nombre
+            : Array.isArray(item.posicion) ? item.posicion[0]?.nombre : item.posicion;
+
+        const calAssignment: CalendarAssignment = {
             id: item.id,
             usuario_id: item.usuario_id,
             nombre: nombreCompleto,
@@ -134,6 +159,7 @@ export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Re
             posicionObj: item.posicion,
             uniforme: item.configuracion_dia?.color_uniforme || 'N/A',
             servicio: item.configuracion_dia?.tipo_servicio || 'N/A',
+            hora_llegada: item.configuracion_dia?.hora_llegada || null,
             usuario: {
                 nombre: item.usuario?.nombre,
                 apellido: item.usuario?.apellido,
@@ -141,17 +167,40 @@ export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Re
             },
             orden: getSafeOrder(item),
             departamento_id: item.configuracion_dia?.roles_cabecera?.[0]?.departamento_id
-        });
+        };
 
-        acc[fecha].assignments.sort((a, b) => {
+        serviceMap[configId].assignments.push(calAssignment);
+        acc[fecha].allAssignments.push(calAssignment);
+    });
+
+    // Sort assignments within each service and attach services to days in order
+    Object.values(serviceMap).forEach(sg => {
+        sg.assignments.sort((a, b) => {
             const o1 = a.orden ?? 999;
             const o2 = b.orden ?? 999;
             if (o1 !== o2) return o1 - o2;
             return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' });
         });
+    });
 
-        return acc;
-    }, {} as Record<string, GroupedAssignment>);
+    // Attach services to each date, sorted by service_index
+    Object.entries(serviceMap).forEach(([, sg]) => {
+        // Find which fecha this service belongs to (look up from first assignment's service data)
+        // We need to back-reference fecha from assignments — use the acc we built
+        Object.entries(acc).forEach(([fecha, dayGroup]) => {
+            if (dayGroup.allAssignments.some(a => sg.assignments.some(sa => sa.id === a.id))) {
+                if (!dayGroup.services.find(s => s.configuracion_dia_id === sg.configuracion_dia_id)) {
+                    dayGroup.services.push(sg);
+                }
+            }
+        });
+    });
+
+    Object.values(acc).forEach(dayGroup => {
+        dayGroup.services.sort((a, b) => a.service_index - b.service_index);
+    });
+
+    return acc;
 };
 
 export const transformToCalendarEvents = (assignments: TransformerAssignment[]): CalendarEvent[] => {

@@ -292,7 +292,7 @@ export default function ScheduleView() {
                                                 resource: {
                                                     usuario: { nombre: asig.nombre, apellido: '' },
                                                     posicion: { nombre: asig.posicion },
-                                                    configuracion_dia: { color_uniforme: asig.uniforme, tipo_servicio: asig.servicio }
+                                                    configuracion_dia: { color_uniforme: asig.uniforme, tipo_servicio: asig.servicio, hora_llegada: asig.hora_llegada || null, service_index: 0 }
                                                 }
                                             })));
                                             try {

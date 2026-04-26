@@ -13,6 +13,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agendaService, type AgendaEvento } from '../../services/agendaService';
+import { formatTime12h } from '../../utils/timeFormat';
 import { usePermissions } from '../../hooks/usePermissions';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -105,7 +106,7 @@ export default function Agenda() {
                                 {e.hora && (
                                     <Group gap="xs">
                                         <IconClock size={14} color="var(--mantine-color-dimmed)" />
-                                        <Text size="xs" fw={600} c="dimmed">{e.hora.slice(0, 5)}</Text>
+                                        <Text size="xs" fw={600} c="dimmed">{formatTime12h(e.hora)}</Text>
                                     </Group>
                                 )}
                                 {e.lugar && (

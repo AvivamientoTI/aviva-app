@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { DatePicker } from '@mantine/dates';
 import { Accordion, Alert, Autocomplete, Badge, Button, Grid, Group, Menu, NumberInput, Paper, ScrollArea, Stack, Text, ThemeIcon, ActionIcon, Loader } from '@mantine/core';
-import { IconCalendar, IconApps, IconCheck, IconTrash, IconInfoCircle, IconShirt } from '@tabler/icons-react';
+import { TimeInput } from '@mantine/dates';
+import { IconCalendar, IconApps, IconCheck, IconTrash, IconInfoCircle, IconShirt, IconClock } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 
@@ -12,6 +13,7 @@ import { useUniforms } from '../../../hooks/queries/useUniforms';
 export interface ServiceDateConfig {
     type: string;
     uniform: string;
+    hora: string;
     encargado_id: string | number | null;
     positionQuotas: Record<string, number>;
 }
@@ -190,17 +192,17 @@ export const PlanningStepServiceDates = ({
                                                         )}
 
                                                         <Grid gutter="xs">
-                                                            <Grid.Col span={{ base: 12, sm: 6 }}>
+                                                            <Grid.Col span={{ base: 12, sm: 4 }}>
                                                                 <Autocomplete
                                                                     label="Tipo de Servicio"
                                                                     placeholder="Selecciona o escribe"
-                                                                    data={['Culto General', 'Culto de Mujeres', 'Culto de Varones', 'Culto de Jovenes', 'Culto de Niños', 'Culto de Matrimonios', 'Culto Empresarial',]}
+                                                                    data={['Culto General', 'Culto de Mujeres', 'Culto de Varones', 'Culto de Jovenes', 'Culto de Niños', 'Culto de Matrimonios', 'Culto Empresarial']}
                                                                     value={config.type}
                                                                     onChange={(value) => updateServiceConfig(dateStr, idx, 'type', value)}
                                                                     size="sm"
                                                                 />
                                                             </Grid.Col>
-                                                            <Grid.Col span={{ base: 12, sm: 6 }}>
+                                                            <Grid.Col span={{ base: 12, sm: 4 }}>
                                                                 <Autocomplete
                                                                     label="Uniforme"
                                                                     placeholder="Selecciona o escribe"
@@ -209,6 +211,23 @@ export const PlanningStepServiceDates = ({
                                                                     onChange={(value) => updateServiceConfig(dateStr, idx, 'uniform', value)}
                                                                     size="sm"
                                                                     leftSection={loadingUniforms ? <Loader size={12} /> : <IconShirt size={16} />}
+                                                                />
+                                                            </Grid.Col>
+                                                            <Grid.Col span={{ base: 12, sm: 4 }}>
+                                                                <TimeInput
+                                                                    label="Hora de llegada"
+                                                                    placeholder="ej. 08:00"
+                                                                    value={config.hora || ''}
+                                                                    onChange={(e) => updateServiceConfig(dateStr, idx, 'hora', e.target.value)}
+                                                                    leftSection={<IconClock size={16} />}
+                                                                    size="sm"
+                                                                    description={
+                                                                        config.hora
+                                                                            ? config.hora < '12:00' ? '☀️ Mañana'
+                                                                            : config.hora < '17:00' ? '🌤 Tarde'
+                                                                            : '🌙 Noche'
+                                                                            : idx > 0 ? 'Heredada del servicio anterior' : undefined
+                                                                    }
                                                                 />
                                                             </Grid.Col>
                                                         </Grid>
@@ -237,17 +256,15 @@ export const PlanningStepServiceDates = ({
                                                     </Paper>
                                                 ))}
 
-                                                {isSunday && configs.length < 2 && (
-                                                    <Button
-                                                        variant="light"
-                                                        color="orange"
-                                                        fullWidth
-                                                        leftSection={<IconApps size={16} />}
-                                                        onClick={() => addServiceToDate(dateStr)}
-                                                    >
-                                                        Añadir otro servicio
-                                                    </Button>
-                                                )}
+                                                <Button
+                                                    variant="light"
+                                                    color="orange"
+                                                    fullWidth
+                                                    leftSection={<IconApps size={16} />}
+                                                    onClick={() => addServiceToDate(dateStr)}
+                                                >
+                                                    {isSunday ? 'Añadir segundo culto / evento especial' : 'Añadir otro servicio'}
+                                                </Button>
                                             </Stack>
                                         </Accordion.Panel>
                                     </Accordion.Item>

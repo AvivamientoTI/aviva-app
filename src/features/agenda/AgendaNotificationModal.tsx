@@ -3,6 +3,7 @@ import { Modal, Stack, Text, Group, ThemeIcon, Button, Badge, Divider, Box } fro
 import { IconCalendarEvent, IconClock, IconMapPin, IconCheck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { agendaService, type AgendaEvento } from '../../services/agendaService';
+import { formatTime12h } from '../../utils/timeFormat';
 import { supabase } from '../../services/supabaseClient';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
@@ -85,7 +86,7 @@ export function AgendaNotificationModal() {
                                 {e.hora && (
                                     <Group gap="xs">
                                         <IconClock size={13} color="var(--mantine-color-dimmed)" />
-                                        <Text size="xs" fw={600} c="dimmed">{e.hora.slice(0, 5)}</Text>
+                                        <Text size="xs" fw={600} c="dimmed">{formatTime12h(e.hora)}</Text>
                                     </Group>
                                 )}
                                 {e.lugar && (

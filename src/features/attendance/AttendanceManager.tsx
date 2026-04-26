@@ -398,7 +398,7 @@ export default function AttendanceManager() {
                                                     </Table.Td>
                                                     <Table.Td style={{ paddingRight: '24px' }} align="right">
                                                         <Text size="xs" fw={700} c="dimmed">
-                                                            {record.hora_registro ? dayjs(record.hora_registro).format('HH:mm') : '--:--'}
+                                                            {record.hora_registro ? dayjs(record.hora_registro).format('h:mm A') : '--'}
                                                         </Text>
                                                     </Table.Td>
                                                 </Table.Tr>

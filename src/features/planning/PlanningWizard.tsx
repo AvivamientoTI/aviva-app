@@ -133,6 +133,7 @@ function PlanningWizardContent() {
         newServiceConfigs[config.fecha][sIdx] = {
           type: config.tipo_servicio || 'Culto General',
           uniform: config.color_uniforme || '',
+          hora: config.hora_llegada ? config.hora_llegada.slice(0, 5) : '',
           encargado_id: config.encargado_id,
           encargado_2_id: config.encargado_2_id,
           positionQuotas: posQuotas
@@ -363,6 +364,7 @@ function PlanningWizardContent() {
             service_index: idx,
             tipo_servicio: config.type,
             color_uniforme: config.uniform,
+            hora_llegada: config.hora || null,
             encargado_id: encargados[0] || null,
             encargado_2_id: encargados[1] || null,
             cupo_hombres: cupoH,

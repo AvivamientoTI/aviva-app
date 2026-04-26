@@ -1,5 +1,7 @@
-import { Modal, Text, Group, Button, Badge } from '@mantine/core';
+import { Modal, Text, Group, Button, Badge, Stack } from '@mantine/core';
+import { IconClock } from '@tabler/icons-react';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
+import { formatTime12h } from '../../../utils/timeFormat';
 import dayjs from 'dayjs';
 
 interface AssignmentDetailModalProps {
@@ -25,11 +27,24 @@ export function AssignmentDetailModal({
                     <Text size="sm" c="dimmed" mb="xs">
                         Fecha: {dayjs(selectedEvent.start).format('DD/MM/YYYY')}
                     </Text>
-                    <Group mb="xs">
-                        <Text size="sm" fw={800} c="slate.6" tt="uppercase">Tipo:</Text>
-                        <Text size="md" fw={700} c="blue.7">{selectedEvent.resource?.configuracion_dia?.tipo_servicio || 'N/A'}</Text>
-                    </Group>
-                    <Group mb="md">
+                    <Stack gap="xs" mb="md">
+                        <Group>
+                            <Text size="sm" fw={800} c="slate.6" tt="uppercase">Tipo:</Text>
+                            <Text size="md" fw={700} c="blue.7">{selectedEvent.resource?.configuracion_dia?.tipo_servicio || 'N/A'}</Text>
+                        </Group>
+                        {selectedEvent.resource?.configuracion_dia?.hora_llegada && (
+                            <Group gap="xs">
+                                <IconClock size={16} color="var(--mantine-color-gold-6)" />
+                                <Text size="sm" fw={700} c="gold.7">
+                                    Llegada: {formatTime12h(selectedEvent.resource.configuracion_dia.hora_llegada)}
+                                </Text>
+                                <Badge size="sm" variant="light" color="gold" radius="sm">
+                                    {selectedEvent.resource.configuracion_dia.hora_llegada < '12:00' ? 'Mañana'
+                                        : selectedEvent.resource.configuracion_dia.hora_llegada < '17:00' ? 'Tarde'
+                                        : 'Noche'}
+                                </Badge>
+                            </Group>
+                        )}
                         <Badge
                             color={getUniformeColor(selectedEvent.resource?.configuracion_dia?.color_uniforme)}
                             variant="filled"
@@ -39,7 +54,7 @@ export function AssignmentDetailModal({
                         >
                             Uniforme: {selectedEvent.resource?.configuracion_dia?.color_uniforme || 'Sin uniforme'}
                         </Badge>
-                    </Group>
+                    </Stack>
                     <Group justify="flex-end">
                         <Button variant="default" onClick={onClose}>Cerrar</Button>
                         <Button color="red" onClick={onDelete} disabled={!canModify}>

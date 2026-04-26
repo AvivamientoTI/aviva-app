@@ -13,6 +13,7 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { notify } from '../../../utils/notificationsHelper';
+import { formatTime12h } from '../../../utils/timeFormat';
 
 dayjs.locale('es');
 
@@ -171,9 +172,16 @@ function px(v: number, S: number) { return Math.round(v * S); }
 // ─── Cell row count ────────────────────────────────────────────────────────────
 
 function rowCount(group: any): number {
-    const encs = (group.assignments || []).filter((sv: any) => (sv.posicion || '').toUpperCase().includes('ENCARGAD')).length;
-    const srvs = (group.assignments || []).filter((sv: any) => !(sv.posicion || '').toUpperCase().includes('ENCARGAD')).length;
-    return encs + srvs + 1; // +1 row reservada para el uniforme al pie
+    const services: any[] = group.services || [];
+    if (services.length === 0) return 0;
+    return services.reduce((total: number, svc: any, idx: number) => {
+        const assignments = svc.assignments || [];
+        const encs = assignments.filter((sv: any) => (sv.posicion || '').toUpperCase().includes('ENCARGAD')).length;
+        const srvs = assignments.filter((sv: any) => !(sv.posicion || '').toUpperCase().includes('ENCARGAD')).length;
+        const serviceRows = encs + srvs + 1; // +1 for uniforme footer
+        const separatorRows = idx > 0 ? 1 : 0; // divider between services
+        return total + serviceRows + separatorRows;
+    }, 0);
 }
 
 // ─── Build week/column maps ────────────────────────────────────────────────────
@@ -282,93 +290,155 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
             // ── Cell ────────────────────────────────────────────────────
             if (!dateStr || !grouped[dateStr]) continue;
 
-            const group  = grouped[dateStr];
-            const cellY  = y + WHH + GAP;
-            const us     = uStyle(group.uniforme, group.servicio);
-            const encargados = (group.assignments || []).filter((sv: any) =>
-                (sv.posicion || '').toUpperCase().includes('ENCARGAD')
-            );
-            const servers = (group.assignments || []).filter((sv: any) =>
-                !(sv.posicion || '').toUpperCase().includes('ENCARGAD')
-            );
+            const group    = grouped[dateStr];
+            const services: any[] = group.services || [];
+            if (services.length === 0) continue;
 
-            // Shadow
+            const cellY    = y + WHH + GAP;
+            const firstSvc = services[0];
+            const us       = uStyle(firstSvc.uniforme, firstSvc.servicio);
+
+            // Shadow + body bg + border (use first service style for card frame)
             ctx.fillStyle = '#0000001A';
             fillRR(ctx, x + px(1, S), cellY + px(1, S), cellW, cellTotalH, px(L.R, S), '#0000001A');
-            // Body bg + border
             fillRR(ctx, x, cellY, cellW, cellTotalH, px(L.R, S), us.cellBg);
             strokeRR(ctx, x, cellY, cellW, cellTotalH, px(L.R, S), us.accent + '70', Math.round(S * 0.8));
 
-            // ── Cell header: muestra tipo de culto (servicio) ─────────────
+            // ── Cell header (first service label + hora_llegada) ──────────
             fillTopRR(ctx, x, cellY, cellW, CHH, px(L.R, S), us.bg);
-            // Línea 1: tipo de culto (servicio) — más prominente
-            const servicioLabel = (group.servicio || us.label).toUpperCase();
-            ctx.font = `900 ${px(9, S)}px Arial,Helvetica,sans-serif`;
+            const firstLabel = (firstSvc.servicio || us.label).toUpperCase();
+            const firstHora = firstSvc.hora_llegada ? formatTime12h(firstSvc.hora_llegada) : '';
             ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(fit(ctx, servicioLabel, cellW - px(6, S)), x + cellW / 2, cellY + CHH / 2);
+            if (firstHora) {
+                // Service name left, hora right
+                ctx.font = `900 ${px(9, S)}px Arial,Helvetica,sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.fillText(fit(ctx, firstLabel, cellW - px(40, S)), x + px(L.PX, S), cellY + CHH / 2);
+                ctx.font = `700 ${px(7.5, S)}px Arial,Helvetica,sans-serif`;
+                ctx.fillStyle = '#fef3c7';
+                ctx.textAlign = 'right';
+                ctx.fillText(firstHora, x + cellW - px(L.PX, S), cellY + CHH / 2);
+            } else {
+                ctx.font = `900 ${px(9, S)}px Arial,Helvetica,sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText(fit(ctx, firstLabel, cellW - px(6, S)), x + cellW / 2, cellY + CHH / 2);
+            }
             ctx.textAlign = 'left';
 
             let cy = cellY + CHH + px(2, S);
             ctx.textBaseline = 'middle';
 
-            // Encargado rows — one per person with encargado position
-            for (const enc of encargados) {
-                const midY = cy + px(L.ROW_H, S) / 2;
-                ctx.fillStyle = us.accent + '1A';
-                ctx.fillRect(x, cy, cellW, px(L.ROW_H, S));
-                ctx.fillStyle = us.accent;
-                ctx.fillRect(x, cy, px(2.5, S), px(L.ROW_H, S));
-                ctx.font = `700 ${px(7.5, S)}px Arial,Helvetica,sans-serif`;
-                ctx.fillStyle = us.accent;
-                ctx.fillText('ENCAR:', x + px(L.PX, S) + px(3, S), midY);
-                const lw = ctx.measureText('ENCAR:').width + px(3, S);
-                ctx.font = `600 ${px(8, S)}px Arial,Helvetica,sans-serif`;
-                ctx.fillStyle = '#0f172a';
-                ctx.fillText(
-                    fit(ctx, shortName(enc.nombre || ''), cellW - px(L.PX, S) * 2 - px(3, S) - lw),
-                    x + px(L.PX, S) + px(3, S) + lw,
-                    midY
-                );
-                cy += px(L.ROW_H, S);
-            }
+            // ── Per-service blocks ─────────────────────────────────────────
+            const SERVICE_COLORS = ['#1d4ed8', '#c2410c', '#6d28d9', '#047857'];
 
-            // Server rows — nombre corto (primer nombre + primer apellido)
-            for (let j = 0; j < servers.length; j++) {
-                const sv   = servers[j];
-                const rowY = cy + j * px(L.ROW_H, S);
-                const midY = rowY + px(L.ROW_H, S) / 2;
-                if (j % 2 !== 0) {
-                    ctx.fillStyle = '#00000009';
-                    ctx.fillRect(x, rowY, cellW, px(L.ROW_H, S));
+            for (let svcIdx = 0; svcIdx < services.length; svcIdx++) {
+                const svc = services[svcIdx];
+                const svcUs = uStyle(svc.uniforme, svc.servicio);
+                const encargados = (svc.assignments || []).filter((sv: any) =>
+                    (sv.posicion || '').toUpperCase().includes('ENCARGAD')
+                );
+                const servers = (svc.assignments || []).filter((sv: any) =>
+                    !(sv.posicion || '').toUpperCase().includes('ENCARGAD')
+                );
+
+                // Separator between services
+                if (svcIdx > 0) {
+                    const sepColor = SERVICE_COLORS[svcIdx] || '#94a3b8';
+                    const sepMidY = cy + px(L.ROW_H / 2, S);
+
+                    // Tinted background for the separator row
+                    ctx.fillStyle = sepColor + '18';
+                    ctx.fillRect(x, cy, cellW, px(L.ROW_H, S));
+
+                    ctx.save();
+                    ctx.strokeStyle = sepColor;
+                    ctx.lineWidth = px(0.8, S);
+                    ctx.setLineDash([px(2, S), px(2, S)]);
+                    ctx.beginPath();
+                    ctx.moveTo(x + px(4, S), sepMidY);
+                    ctx.lineTo(x + cellW - px(4, S), sepMidY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+
+                    // Service number on left, hora on right
+                    const svcNumLabel = svcIdx === 1 ? '2DO SERVICIO' : `SERV. ${svcIdx + 1}`;
+                    ctx.font = `800 ${px(6, S)}px Arial,Helvetica,sans-serif`;
+                    ctx.fillStyle = sepColor;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(svcNumLabel, x + px(L.PX, S), sepMidY - px(1, S));
+
+                    if (svc.hora_llegada) {
+                        ctx.font = `700 ${px(6.5, S)}px Arial,Helvetica,sans-serif`;
+                        ctx.fillStyle = sepColor;
+                        ctx.textAlign = 'right';
+                        ctx.fillText(formatTime12h(svc.hora_llegada), x + cellW - px(L.PX, S), sepMidY - px(1, S));
+                    }
+                    ctx.textAlign = 'left';
+                    cy += px(L.ROW_H, S);
                 }
-                ctx.font = `700 ${px(7.5, S)}px Arial,Helvetica,sans-serif`;
-                ctx.fillStyle = us.accent;
-                ctx.fillText(abbrev(sv.posicion), x + px(L.PX, S), midY);
-                ctx.fillStyle = '#cbd5e1';
-                ctx.font = `400 ${px(7, S)}px Arial,Helvetica,sans-serif`;
-                ctx.fillText('·', x + px(L.PX, S) + px(L.POS_W, S) - px(5, S), midY);
-                ctx.font = `400 ${px(8, S)}px Arial,Helvetica,sans-serif`;
-                ctx.fillStyle = '#1e293b';
-                ctx.fillText(
-                    fit(ctx, shortName(sv.nombre || ''), cellW - px(L.PX, S) * 2 - px(L.POS_W, S)),
-                    x + px(L.PX, S) + px(L.POS_W, S),
-                    midY
-                );
-            }
 
-            // ── Uniforme al pie de la celda ───────────────────────────────
-            if (us.label) {
-                const uY = cellY + cellTotalH - px(L.ROW_H, S);
-                ctx.fillStyle = us.accent + '28';
-                ctx.fillRect(x, uY, cellW, px(L.ROW_H, S));
-                ctx.font = `600 ${px(7, S)}px Arial,Helvetica,sans-serif`;
-                ctx.fillStyle = us.accent;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(fit(ctx, us.label, cellW - px(6, S)), x + cellW / 2, uY + px(L.ROW_H, S) / 2);
-                ctx.textAlign = 'left';
+                // Encargado rows
+                for (const enc of encargados) {
+                    const midY = cy + px(L.ROW_H, S) / 2;
+                    ctx.fillStyle = svcUs.accent + '1A';
+                    ctx.fillRect(x, cy, cellW, px(L.ROW_H, S));
+                    ctx.fillStyle = svcUs.accent;
+                    ctx.fillRect(x, cy, px(2.5, S), px(L.ROW_H, S));
+                    ctx.font = `700 ${px(7.5, S)}px Arial,Helvetica,sans-serif`;
+                    ctx.fillStyle = svcUs.accent;
+                    ctx.fillText('ENCAR:', x + px(L.PX, S) + px(3, S), midY);
+                    const lw = ctx.measureText('ENCAR:').width + px(3, S);
+                    ctx.font = `600 ${px(8, S)}px Arial,Helvetica,sans-serif`;
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(
+                        fit(ctx, shortName(enc.nombre || ''), cellW - px(L.PX, S) * 2 - px(3, S) - lw),
+                        x + px(L.PX, S) + px(3, S) + lw,
+                        midY
+                    );
+                    cy += px(L.ROW_H, S);
+                }
+
+                // Server rows
+                for (let j = 0; j < servers.length; j++) {
+                    const sv   = servers[j];
+                    const rowY = cy + j * px(L.ROW_H, S);
+                    const midY = rowY + px(L.ROW_H, S) / 2;
+                    if (j % 2 !== 0) {
+                        ctx.fillStyle = '#00000009';
+                        ctx.fillRect(x, rowY, cellW, px(L.ROW_H, S));
+                    }
+                    ctx.font = `700 ${px(7.5, S)}px Arial,Helvetica,sans-serif`;
+                    ctx.fillStyle = svcUs.accent;
+                    ctx.fillText(abbrev(sv.posicion), x + px(L.PX, S), midY);
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.font = `400 ${px(7, S)}px Arial,Helvetica,sans-serif`;
+                    ctx.fillText('·', x + px(L.PX, S) + px(L.POS_W, S) - px(5, S), midY);
+                    ctx.font = `400 ${px(8, S)}px Arial,Helvetica,sans-serif`;
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillText(
+                        fit(ctx, shortName(sv.nombre || ''), cellW - px(L.PX, S) * 2 - px(L.POS_W, S)),
+                        x + px(L.PX, S) + px(L.POS_W, S),
+                        midY
+                    );
+                }
+                cy += servers.length * px(L.ROW_H, S);
+
+                // Uniforme footer for this service
+                if (svcUs.label) {
+                    const uY = cy;
+                    ctx.fillStyle = svcUs.accent + '28';
+                    ctx.fillRect(x, uY, cellW, px(L.ROW_H, S));
+                    ctx.font = `600 ${px(7, S)}px Arial,Helvetica,sans-serif`;
+                    ctx.fillStyle = svcUs.accent;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(fit(ctx, svcUs.label, cellW - px(6, S)), x + cellW / 2, uY + px(L.ROW_H, S) / 2);
+                    ctx.textAlign = 'left';
+                    cy += px(L.ROW_H, S);
+                }
             }
         }
 
