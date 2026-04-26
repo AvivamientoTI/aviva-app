@@ -129,10 +129,11 @@ describe('suspensionService', () => {
                 usuario_id: 3,
                 fecha_inicio: '2026-05-01',
                 fecha_fin: '2026-05-31',
+                tipo: 'suspension',
                 motivo: 'Test'
-            });
+            } as any);
 
-            expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ 
+            expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
                 usuario_id: 3,
                 created_by: 'user-1'
             }));
@@ -148,8 +149,9 @@ describe('suspensionService', () => {
                 usuario_id: 3,
                 fecha_inicio: '2026-05-01',
                 fecha_fin: '2026-05-31',
+                tipo: 'suspension',
                 motivo: 'Test'
-            })).rejects.toEqual({ message: 'Insert failed' });
+            } as any)).rejects.toEqual({ message: 'Insert failed' });
         });
     });
 });

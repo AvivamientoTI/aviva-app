@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { suspensionService, type Suspension } from '../../services/suspensionService';
-import { useUser } from '../../contexts/UserContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import {
     Container,

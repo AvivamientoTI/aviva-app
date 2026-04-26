@@ -18,12 +18,10 @@ import { BarChart } from '@mantine/charts';
 import {
     IconTrendingUp,
     IconAlertTriangle,
-    IconBuildingCommunity,
     IconInfoCircle,
     IconUsers,
     IconCheck,
-    IconStar,
-    IconChartBar
+    IconStar
 } from '@tabler/icons-react';
 import { analyticsService } from '../../services/analyticsService';
 import { useQuery } from '@tanstack/react-query';

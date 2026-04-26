@@ -163,11 +163,6 @@ export default function Dashboard() {
         }
     };
 
-    const attendanceTrend = personalStats?.byMonth ?
-        Object.values(personalStats.byMonth as any)
-            .slice(-4)
-            .map((m: any) => (m.asistio / (m.asistio + m.faltas || 1)) * 100) : [];
-
     const upcomingTrend = [2, 4, 3, 5, upcomingCount]; // Mock trend for upcoming
 
     return (
