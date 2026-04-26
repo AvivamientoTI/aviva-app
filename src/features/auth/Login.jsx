@@ -71,7 +71,7 @@ export default function Login() {
               style={{ width: 300, height: 300, objectFit: 'contain' }}
             />
             <Title order={2} ta="center" mt="sm" style={{ fontFamily: 'Inter, sans-serif', fontSize: '1.6rem', letterSpacing: '-0.01em', color: '#854d0e' }}>
-              Portal de Servidores
+              Aviva App
             </Title>
             <Text size="sm" ta="center" c="stone.5" fw={600}>
               Iglesia Avivamiento y Poder

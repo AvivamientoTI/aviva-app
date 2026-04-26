@@ -1,12 +1,13 @@
 import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme, ThemeIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel, IconTrendingUp, IconClipboardList } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel, IconTrendingUp, IconClipboardList, IconCalendarEvent } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { PasswordChangeModal } from '../features/auth/components/PasswordChangeModal';
 import { useQueryClient } from '@tanstack/react-query';
+import { AgendaNotificationModal } from '../features/agenda/AgendaNotificationModal';
 
 export function DashboardLayout() {
     const [opened, { toggle }] = useDisclosure();
@@ -32,6 +33,7 @@ export function DashboardLayout() {
     // Opciones visibles según rol con iconos
     const links = [
         { label: 'Dashboard', path: '/', icon: <IconLayoutDashboard size={20} stroke={1.5} /> },
+        { label: 'Agenda', path: '/agenda', icon: <IconCalendarEvent size={20} stroke={1.5} /> },
         { label: 'Calendario', path: '/calendar', icon: <IconCalendar size={20} stroke={1.5} /> },
         ...(isSystemAdmin || isLiderOrSublider ? [
             { label: 'Planificación', path: '/planning', icon: <IconCalendarStats size={20} stroke={1.5} /> },
@@ -162,6 +164,7 @@ export function DashboardLayout() {
                     }}
                 />
                 <PasswordChangeModal opened={pwdModalOpened} onClose={closePwd} />
+                <AgendaNotificationModal />
             </AppShell.Navbar>
 
             <AppShell.Main className="animate-fade-in">

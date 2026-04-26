@@ -15,6 +15,7 @@ const DepartmentsList = lazy(() => import('./features/departments/DepartmentsLis
 const PlanningWizard = lazy(() => import('./features/planning/PlanningWizard'));
 const UsersList = lazy(() => import('./features/users/UsersList'));
 const SuspensionManager = lazy(() => import('./features/users/SuspensionManager'));
+const Agenda = lazy(() => import('./features/agenda/Agenda'));
 const AnalyticsDashboard = lazy(() => import('./features/analytics/AnalyticsDashboard'));
 const AdminAnalytics = lazy(() => import('./features/analytics/AdminAnalytics'));
 
@@ -33,6 +34,12 @@ export function AppRoutes() {
                         </ProtectedRoute>
                     } />
                     
+                    <Route path="agenda" element={
+                        <ProtectedRoute>
+                            <Agenda />
+                        </ProtectedRoute>
+                    } />
+
                     <Route path="calendar" element={
                         <ProtectedRoute>
                             <ScheduleView />
