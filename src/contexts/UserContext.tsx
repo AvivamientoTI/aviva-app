@@ -17,6 +17,7 @@ export interface UserProfileData {
     usuario?: {
         nombre: string;
         apellido: string;
+        etiqueta?: string | null;
         // otros campos de usuario
     };
     // otros campos de user_profiles

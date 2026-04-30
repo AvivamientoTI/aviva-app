@@ -2,9 +2,10 @@ import { Card, Box, Stack, Badge, Title, Text, Group } from '@mantine/core';
 
 interface WelcomeCardProps {
     userName: string;
+    membershipLabel?: string;
 }
 
-export function WelcomeCard({ userName }: WelcomeCardProps) {
+export function WelcomeCard({ userName, membershipLabel }: WelcomeCardProps) {
     return (
         <Box className="mesh-gradient" style={{
             borderRadius: 'var(--mantine-radius-lg)',
@@ -73,6 +74,28 @@ export function WelcomeCard({ userName }: WelcomeCardProps) {
                                 {userName}
                             </Text>
                         </Title>
+                        {membershipLabel && (
+                            <Box mt={10}>
+                                <Badge
+                                    variant="gradient"
+                                    gradient={{ from: 'rgba(255,255,255,0.25)', to: 'rgba(255,255,255,0.1)' }}
+                                    size="lg"
+                                    radius="sm"
+                                    style={{
+                                        border: '1px solid rgba(255,255,255,0.35)',
+                                        color: 'white',
+                                        fontWeight: 800,
+                                        fontSize: '0.78rem',
+                                        letterSpacing: '0.08em',
+                                        backdropFilter: 'blur(6px)',
+                                        textTransform: 'uppercase',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                    }}
+                                >
+                                    ✦ {membershipLabel}
+                                </Badge>
+                            </Box>
+                        )}
                     </Stack>
 
                     <Box style={{

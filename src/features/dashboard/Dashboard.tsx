@@ -43,6 +43,7 @@ import { useRoleExport } from './hooks/useRoleExport';
 import { StatCard } from './components/StatCard';
 import { WelcomeCard } from './components/WelcomeCard';
 import { UpcomingServiceCard } from './components/UpcomingServiceCard';
+import { parseRoles } from '../../utils/roleUtils';
 import dayjs from 'dayjs';
 import calendar from 'dayjs/plugin/calendar';
 import 'dayjs/locale/es';
@@ -165,16 +166,53 @@ export default function Dashboard() {
 
     const upcomingTrend = [2, 4, 3, 5, upcomingCount]; // Mock trend for upcoming
 
+    // Calcular la etiqueta de membresía de mayor rango
+    const getMembershipLabel = (): string | undefined => {
+        // Prioridad 1: etiqueta especial personalizada (ej. "Pastora")
+        const etiqueta = (userProfile?.usuario as any)?.etiqueta;
+        if (etiqueta) return etiqueta;
+
+        // Prioridad 2: rol jerárquico de mayor rango en sus membresías
+        const roleOrder = ['líder', 'sublíder', 'encargado', 'encargada', 'servidor', 'servidora'];
+        let topLabel: string | undefined;
+        let topIndex = roleOrder.length;
+
+        for (const m of (userMemberships || [])) {
+            const { isLider, isSublider, isEncargado, isServidor } = parseRoles(m.rol_jerarquico);
+            let label: string | undefined;
+            let idx = topIndex;
+
+            if (isLider)       { label = 'Líder';        idx = 0; }
+            else if (isSublider)   { label = 'Sublíder';     idx = 1; }
+            else if (isEncargado)  {
+                label = m.rol_jerarquico || 'Encargado';
+                idx = 2;
+            }
+            else if (isServidor)   {
+                label = m.rol_jerarquico || 'Servidor';
+                idx = 4;
+            }
+
+            if (label && idx < topIndex) {
+                topLabel = label;
+                topIndex = idx;
+            }
+        }
+        return topLabel;
+    };
+
+    const membershipLabel = getMembershipLabel();
+
     return (
         <Container size="xl" py="md">
             <Stack gap="lg">
-                {/* AI Conversational Widget */}
-                {effectiveDeptId && <AiQueryWidget departmentId={effectiveDeptId} />}
+                {/* AI Conversational Widget — temporalmente oculto */}
+                {/* {effectiveDeptId && <AiQueryWidget departmentId={effectiveDeptId} />} */}
 
                 <Grid gutter="xl" align="stretch">
                     <Grid.Col span={{ base: 12, lg: 7 }} className="animate-fade-in card-stagger-1">
                         <Stack gap="lg" h="100%">
-                            <WelcomeCard userName={userProfile?.usuario?.nombre || 'Servidor'} />
+                            <WelcomeCard userName={userProfile?.usuario?.nombre || 'Servidor'} membershipLabel={membershipLabel} />
                             {nextService && dayjs(getSingle(nextService.configuracion_dia)?.fecha).isBefore(dayjs().add(2, 'day')) && (
                                 <Alert
                                     variant="light"

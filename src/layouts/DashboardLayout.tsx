@@ -130,8 +130,9 @@ export function DashboardLayout() {
                 </Group>
             </AppShell.Header>
 
-            <AppShell.Navbar p="md" className="sidebar-glass">
-                <Stack gap="xs" mt="md">
+            <AppShell.Navbar p="md" className="sidebar-glass" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {/* Links con scroll */}
+                <Stack gap="xs" mt="md" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingBottom: '8px' }}>
                     {links.map((link) => (
                         <NavLink
                             key={link.path}
@@ -146,26 +147,31 @@ export function DashboardLayout() {
                         />
                     ))}
                 </Stack>
-                <Divider my="sm" />
-                <NavLink
-                    label="Cambiar Contraseña"
-                    leftSection={<IconShieldLock size={18} />}
-                    onClick={openPwd}
-                    styles={{
-                        root: { borderRadius: '8px', fontWeight: 600, color: dark ? 'gold.4' : 'gold.9' }
-                    }}
-                />
-                <NavLink
-                    label="Cerrar Sesión"
-                    color="red.7"
-                    onClick={handleLogout}
-                    styles={{
-                        root: { borderRadius: '8px', fontWeight: 700 }
-                    }}
-                />
+
+                {/* Acciones fijas al fondo */}
+                <div style={{ flexShrink: 0 }}>
+                    <Divider my="sm" />
+                    <NavLink
+                        label="Cambiar Contraseña"
+                        leftSection={<IconShieldLock size={18} />}
+                        onClick={openPwd}
+                        styles={{
+                            root: { borderRadius: '8px', fontWeight: 600, color: dark ? 'gold.4' : 'gold.9' }
+                        }}
+                    />
+                    <NavLink
+                        label="Cerrar Sesión"
+                        color="red.7"
+                        onClick={handleLogout}
+                        styles={{
+                            root: { borderRadius: '8px', fontWeight: 700 }
+                        }}
+                    />
+                </div>
                 <PasswordChangeModal opened={pwdModalOpened} onClose={closePwd} />
                 <AgendaNotificationModal />
             </AppShell.Navbar>
+
 
             <AppShell.Main className="animate-fade-in">
                 <Outlet />
