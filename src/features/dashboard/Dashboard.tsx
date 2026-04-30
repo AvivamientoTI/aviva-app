@@ -37,7 +37,7 @@ import {
 import { DonutChart } from '@mantine/charts';
 import { useUser } from '../../contexts/UserContext';
 import { getUniformeColor } from '../../utils/calendar/colorMapper';
-import { AiQueryWidget } from './components/AiQueryWidget';
+// import { AiQueryWidget } from './components/AiQueryWidget';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { useRoleExport } from './hooks/useRoleExport';
 import { StatCard } from './components/StatCard';
@@ -72,7 +72,7 @@ export default function Dashboard() {
         }
     }, [attendanceManagedDepartments, userMemberships]);
 
-    const { upcoming, upcomingCount, personalStats, deptStats, isLeader, effectiveDeptId, loading } = useDashboardData(selectedDeptId);
+    const { upcoming, upcomingCount, personalStats, deptStats, isLeader, loading } = useDashboardData(selectedDeptId);
 
     const { exporting, exportData, reportRef, handleExportRole } = useRoleExport(userProfile);
     const navigate = useNavigate();
