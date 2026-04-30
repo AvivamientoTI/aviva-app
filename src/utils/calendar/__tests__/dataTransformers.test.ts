@@ -2,190 +2,216 @@ import { describe, it, expect } from 'vitest';
 import { groupAssignmentsByDate, transformToCalendarEvents } from '../dataTransformers';
 import type { TransformerAssignment } from '../transformerTypes';
 
-// Minimal factory for TransformerAssignment
-const makeAssignment = (
-    overrides: Partial<TransformerAssignment> & { fecha?: string; userId?: number; positionName?: string; orden?: number }
-): TransformerAssignment => {
-    const {
-        fecha = '2026-05-04',
-        userId = 1,
-        positionName = 'Ujier',
-        orden,
-        ...rest
-    } = overrides as any;
+// ── Factory ──────────────────────────────────────────────────────────────────
 
+function makeAssignment(
+    overrides: Partial<TransformerAssignment> & {
+        fecha?: string; userId?: number; configId?: number;
+        positionName?: string | null; orden?: number; serviceIndex?: number;
+    } = {}
+): TransformerAssignment {
+    const { fecha = '2026-05-04', userId = 1, configId = 100, positionName = 'Ujier', orden = 10, serviceIndex = 0, ...rest } = overrides as any;
     return {
-        id: userId * 100,
+        id: userId * 100 + configId,
         usuario_id: userId,
-        posicion: positionName ? { nombre: positionName, orden: orden ?? 10 } : null,
+        configuracion_dia_id: configId,
+        posicion: positionName ? { nombre: positionName, orden } : null,
         usuario: { nombre: `User${userId}`, apellido: 'Test', genero: 'M' },
         configuracion_dia: {
+            id: configId,
             fecha,
             tipo_servicio: 'Dominical',
             color_uniforme: 'Negro',
+            hora_llegada: '08:00',
+            service_index: serviceIndex,
             encargado: null,
-            roles_cabecera: [{ departamento_id: 5 }]
         },
         roles_cabecera: [{ departamento_id: 5, departamento: { nombre: 'Servidores' } }],
-        ...rest
+        ...rest,
     } as any;
-};
+}
+
+// ── groupAssignmentsByDate ───────────────────────────────────────────────────
 
 describe('groupAssignmentsByDate', () => {
-    it('should return empty object for empty array', () => {
+    it('returns empty object for empty array', () => {
         expect(groupAssignmentsByDate([])).toEqual({});
     });
 
-    it('should return empty object for null/undefined', () => {
+    it('returns empty object for null/undefined', () => {
         expect(groupAssignmentsByDate(null as any)).toEqual({});
         expect(groupAssignmentsByDate(undefined as any)).toEqual({});
     });
 
-    it('should group assignments by their date', () => {
-        const assignments = [
+    it('groups assignments by date key', () => {
+        const result = groupAssignmentsByDate([
             makeAssignment({ fecha: '2026-05-04', userId: 1 }),
-            makeAssignment({ fecha: '2026-05-11', userId: 2 }),
-            makeAssignment({ fecha: '2026-05-04', userId: 3 })
-        ];
-
-        const result = groupAssignmentsByDate(assignments);
-
+            makeAssignment({ fecha: '2026-05-11', userId: 2, configId: 200 }),
+            makeAssignment({ fecha: '2026-05-04', userId: 3 }),
+        ]);
         expect(Object.keys(result)).toHaveLength(2);
-        expect(result['2026-05-04'].assignments).toHaveLength(2);
-        expect(result['2026-05-11'].assignments).toHaveLength(1);
+        expect(result['2026-05-04'].allAssignments).toHaveLength(2);
+        expect(result['2026-05-11'].allAssignments).toHaveLength(1);
     });
 
-    it('should include service type and uniform color in group metadata', () => {
-        const assignment = makeAssignment({ fecha: '2026-05-04', userId: 1 });
-
-        const result = groupAssignmentsByDate([assignment]);
-
-        expect(result['2026-05-04'].servicio).toBe('Dominical');
-        expect(result['2026-05-04'].uniforme).toBe('Negro');
+    it('produces one ServiceGroup per configuracion_dia_id', () => {
+        const result = groupAssignmentsByDate([
+            makeAssignment({ userId: 1, configId: 100 }),
+            makeAssignment({ userId: 2, configId: 100 }),
+        ]);
+        expect(result['2026-05-04'].services).toHaveLength(1);
     });
 
-    it('should include encargado name when present', () => {
-        const assignment = makeAssignment({ fecha: '2026-05-04', userId: 1 });
-        (assignment.configuracion_dia as any).encargado = { id: 99, nombre: 'Pedro', apellido: 'López' };
-
-        const result = groupAssignmentsByDate([assignment]);
-
-        expect(result['2026-05-04'].encargado).toBe('Pedro López');
-        expect(result['2026-05-04'].encargado_id).toBe(99);
+    it('separates two services on the same date into separate ServiceGroups', () => {
+        const result = groupAssignmentsByDate([
+            makeAssignment({ userId: 1, configId: 100, serviceIndex: 0 }),
+            makeAssignment({ userId: 2, configId: 101, serviceIndex: 1 }),
+        ]);
+        expect(result['2026-05-04'].services).toHaveLength(2);
     });
 
-    it('should set encargado to null when not present', () => {
-        const result = groupAssignmentsByDate([makeAssignment({ fecha: '2026-05-04', userId: 1 })]);
-        expect(result['2026-05-04'].encargado).toBeNull();
+    it('sorts services by service_index ascending', () => {
+        const result = groupAssignmentsByDate([
+            makeAssignment({ userId: 2, configId: 101, serviceIndex: 1 }),
+            makeAssignment({ userId: 1, configId: 100, serviceIndex: 0 }),
+        ]);
+        expect(result['2026-05-04'].services[0].service_index).toBe(0);
+        expect(result['2026-05-04'].services[1].service_index).toBe(1);
     });
 
-    it('should sort assignments by orden within each date', () => {
-        const a1 = makeAssignment({ fecha: '2026-05-04', userId: 1, positionName: 'Ujier', orden: 5 });
-        const a2 = makeAssignment({ fecha: '2026-05-04', userId: 2, positionName: 'Encargado', orden: 1 });
-        const a3 = makeAssignment({ fecha: '2026-05-04', userId: 3, positionName: 'Monitor', orden: 3 });
-
-        // Override posicion for specific orders
-        (a1.posicion as any).orden = 5;
-        (a2.posicion as any).orden = 1;
-        (a3.posicion as any).orden = 3;
-
-        const result = groupAssignmentsByDate([a1, a2, a3]);
-        const sorted = result['2026-05-04'].assignments.map(a => a.usuario_id);
-
-        expect(sorted[0]).toBe(2); // orden 1
-        expect(sorted[1]).toBe(3); // orden 3
-        expect(sorted[2]).toBe(1); // orden 5
+    it('sorts assignments within a service by orden', () => {
+        const result = groupAssignmentsByDate([
+            makeAssignment({ userId: 1, orden: 5 }),
+            makeAssignment({ userId: 2, orden: 1 }),
+            makeAssignment({ userId: 3, orden: 3 }),
+        ]);
+        const ids = result['2026-05-04'].services[0].assignments.map(a => a.usuario_id);
+        expect(ids).toEqual([2, 3, 1]);
     });
 
-    it('should keep only the higher-priority dept assignment when same user appears in multiple depts', () => {
-        // User7 appears in two depts: Servicio General (priority 1) and Servidores (priority 2)
-        const a1 = makeAssignment({ fecha: '2026-05-04', userId: 7 });
+    it('includes servicio, uniforme and hora_llegada on each ServiceGroup', () => {
+        const result = groupAssignmentsByDate([makeAssignment()]);
+        const svc = result['2026-05-04'].services[0];
+        expect(svc.servicio).toBe('Dominical');
+        expect(svc.uniforme).toBe('Negro');
+        expect(svc.hora_llegada).toBe('08:00');
+    });
+
+    it('includes encargado name when present', () => {
+        const a = makeAssignment();
+        (a.configuracion_dia as any).encargado = { id: 99, nombre: 'Pedro', apellido: 'López' };
+        const result = groupAssignmentsByDate([a]);
+        expect(result['2026-05-04'].services[0].encargado).toBe('Pedro López');
+        expect(result['2026-05-04'].services[0].encargado_id).toBe(99);
+    });
+
+    it('sets encargado to null when absent', () => {
+        const result = groupAssignmentsByDate([makeAssignment()]);
+        expect(result['2026-05-04'].services[0].encargado).toBeNull();
+    });
+
+    it('skips assignments without fecha', () => {
+        const a = makeAssignment();
+        (a.configuracion_dia as any).fecha = undefined;
+        expect(Object.keys(groupAssignmentsByDate([a]))).toHaveLength(0);
+    });
+
+    it('handles posicion as array', () => {
+        const a = makeAssignment({ positionName: null });
+        (a as any).posicion = [{ nombre: 'Portero', orden: 2 }];
+        const result = groupAssignmentsByDate([a]);
+        expect(result['2026-05-04'].services[0].assignments[0].posicion).toBe('Portero');
+    });
+
+    it('uses "Sin posición" when posicion is null', () => {
+        const a = makeAssignment({ positionName: null });
+        (a as any).posicion = null;
+        const result = groupAssignmentsByDate([a]);
+        expect(result['2026-05-04'].services[0].assignments[0].posicion).toBe('Sin posición');
+    });
+
+    it('keeps both entries when same user appears twice in same department (different positions)', () => {
+        // Same user, same dept, different positions — both are valid assignments
+        const a1 = makeAssignment({ userId: 7, positionName: 'Puerta' });
+        const a2 = { ...makeAssignment({ userId: 7, positionName: 'Altar' }), id: 702 };
+        const result = groupAssignmentsByDate([a1, a2 as any]);
+        const user7Count = result['2026-05-04'].allAssignments.filter(a => a.usuario_id === 7).length;
+        expect(user7Count).toBe(2);
+    });
+
+    it('prefers higher-priority department (Servicio General > Servidores) for same user', () => {
+        const a1 = makeAssignment({ userId: 7, configId: 100 });
         (a1 as any).roles_cabecera = [{ departamento_id: 10, departamento: { nombre: 'Servidores' } }];
 
-        const a2 = makeAssignment({ fecha: '2026-05-04', userId: 7 });
-        a2.id = 702;
+        const a2 = makeAssignment({ userId: 7, configId: 100 });
+        (a2 as any).id = 702;
         (a2 as any).roles_cabecera = [{ departamento_id: 20, departamento: { nombre: 'Servicio General' } }];
 
         const result = groupAssignmentsByDate([a1, a2 as any]);
-        // The higher-priority (Servicio General) should win — still 1 entry for User7
-        expect(result['2026-05-04'].assignments).toHaveLength(1);
+        expect(result['2026-05-04'].allAssignments).toHaveLength(1);
     });
 
-    it('should skip assignment entries with no date', () => {
-        const a = makeAssignment({ fecha: undefined as any, userId: 1 });
-        (a.configuracion_dia as any).fecha = undefined;
-
-        const result = groupAssignmentsByDate([a]);
-        expect(Object.keys(result)).toHaveLength(0);
-    });
-
-    it('should handle posicion as array', () => {
-        const a = makeAssignment({ fecha: '2026-05-04', userId: 5, positionName: 'Portero' });
-        (a as any).posicion = [{ nombre: 'Portero', orden: 2 }];
-
-        const result = groupAssignmentsByDate([a]);
-        expect(result['2026-05-04'].assignments[0].posicion).toBe('Portero');
-    });
-
-    it('should use "Sin posición" when posicion is missing', () => {
-        const a = makeAssignment({ fecha: '2026-05-04', userId: 6, positionName: null as any });
-        (a as any).posicion = null;
-
-        const result = groupAssignmentsByDate([a]);
-        expect(result['2026-05-04'].assignments[0].posicion).toBe('Sin posición');
+    it('builds correct CalendarAssignment fields', () => {
+        const result = groupAssignmentsByDate([makeAssignment({ userId: 5 })]);
+        const asig = result['2026-05-04'].allAssignments[0];
+        expect(asig.nombre).toBe('User5 Test');
+        expect(asig.posicion).toBe('Ujier');
+        expect(asig.uniforme).toBe('Negro');
+        expect(asig.servicio).toBe('Dominical');
+        expect(asig.hora_llegada).toBe('08:00');
     });
 });
 
+// ── transformToCalendarEvents ────────────────────────────────────────────────
+
 describe('transformToCalendarEvents', () => {
-    it('should return empty array for empty input', () => {
+    it('returns empty array for empty input', () => {
         expect(transformToCalendarEvents([])).toEqual([]);
     });
 
-    it('should map each assignment to a calendar event', () => {
-        const assignments = [
-            makeAssignment({ fecha: '2026-05-04', userId: 1, positionName: 'Ujier' }),
-            makeAssignment({ fecha: '2026-05-11', userId: 2, positionName: 'Monitor' })
-        ];
-
-        const events = transformToCalendarEvents(assignments);
-
+    it('maps each assignment to a CalendarEvent', () => {
+        const events = transformToCalendarEvents([
+            makeAssignment({ userId: 1, positionName: 'Ujier' }),
+            makeAssignment({ userId: 2, configId: 200, positionName: 'Monitor' }),
+        ]);
         expect(events).toHaveLength(2);
         expect(events[0].title).toContain('User1');
         expect(events[0].title).toContain('Ujier');
-        expect(events[1].title).toContain('User2');
     });
 
-    it('should set allDay to true on every event', () => {
-        const events = transformToCalendarEvents([makeAssignment({ fecha: '2026-05-04', userId: 1 })]);
+    it('sets allDay to true', () => {
+        const events = transformToCalendarEvents([makeAssignment()]);
         expect(events[0].allDay).toBe(true);
     });
 
-    it('should build start/end dates from configuracion_dia.fecha', () => {
-        const events = transformToCalendarEvents([makeAssignment({ fecha: '2026-05-04', userId: 1 })]);
+    it('builds start/end Dates from fecha', () => {
+        const events = transformToCalendarEvents([makeAssignment({ fecha: '2026-05-04' })]);
         expect(events[0].start).toBeInstanceOf(Date);
-        expect(events[0].end).toBeInstanceOf(Date);
         expect(events[0].start.toISOString()).toContain('2026-05-04');
     });
 
-    it('should preserve original assignment in resource field', () => {
-        const assignment = makeAssignment({ fecha: '2026-05-04', userId: 1 });
-        const events = transformToCalendarEvents([assignment]);
-        expect(events[0].resource).toBe(assignment);
+    it('preserves original assignment in resource', () => {
+        const a = makeAssignment();
+        expect(transformToCalendarEvents([a])[0].resource).toBe(a);
     });
 
-    it('should handle missing usuario gracefully', () => {
-        const a = makeAssignment({ fecha: '2026-05-04', userId: 1 });
+    it('handles missing usuario gracefully', () => {
+        const a = makeAssignment();
         (a as any).usuario = null;
-
         const events = transformToCalendarEvents([a]);
         expect(events[0].title).toBeDefined();
     });
 
-    it('should handle posicion as array in title', () => {
-        const a = makeAssignment({ fecha: '2026-05-04', userId: 1 });
+    it('includes position from posicion array in title', () => {
+        const a = makeAssignment({ positionName: null });
         (a as any).posicion = [{ nombre: 'Portero', orden: 1 }];
+        expect(transformToCalendarEvents([a])[0].title).toContain('Portero');
+    });
 
+    it('falls back to current date when fecha is missing', () => {
+        const a = makeAssignment();
+        (a.configuracion_dia as any).fecha = undefined;
         const events = transformToCalendarEvents([a]);
-        expect(events[0].title).toContain('Portero');
+        expect(events[0].start).toBeInstanceOf(Date);
     });
 });

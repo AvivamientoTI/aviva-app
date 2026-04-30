@@ -97,7 +97,7 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
                             isToday={cell.isToday}
                             onClick={() => onDayClick(cell.date.toDate(), cell.allAssignments)}
                         >
-                            {cell.services.map((svc, svcIdx) => (
+                            {cell.services.map((svc: import('../../utils/calendar/dataTransformers').ServiceGroup, svcIdx: number) => (
                                 <Box key={svc.configuracion_dia_id} style={{
                                     borderTop: svcIdx > 0 ? '3px dashed var(--mantine-color-orange-3)' : undefined,
                                 }}>
@@ -137,7 +137,7 @@ export function CustomCalendar({ currentDate, onDateChange, groupedAssignments, 
                                         </Box>
                                     )}
                                     <ServiceUniformRow servicio={svc.servicio} uniforme={svc.uniforme} hora_llegada={cell.services.length === 1 ? svc.hora_llegada : null} />
-                                    <ServersList assignments={svc.assignments} />
+                                    <ServersList assignments={svc.assignments as any} />
                                 </Box>
                             ))}
                         </CalendarCard>

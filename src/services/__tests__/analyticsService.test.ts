@@ -91,13 +91,26 @@ describe('analyticsService', () => {
 
     describe('fetchChurnRisk', () => {
         it('should filter and map users with risk >= 50% and at least 2 records', async () => {
-            const mockRiskData = [
-                { id: 1, nombre: 'Alto', apellido: 'Riesgo', asistencias: 1, faltas: 3 },  // 75% → included
-                { id: 2, nombre: 'Bajo', apellido: 'Riesgo', asistencias: 9, faltas: 1 },   // 10% → excluded
-                { id: 3, nombre: 'Solo', apellido: 'Una', asistencias: 0, faltas: 1 },       // <2 total → excluded
+            // Raw attendance records: user 1 has 1 present + 3 absent = 75% risk
+            const mockAttendance = [
+                { usuario_id: 1, estado: 'Asistió', usuario: { nombre: 'Alto', apellido: 'Riesgo' }, configuracion_dia: { fecha: '2026-01-01', roles_cabecera: [{ departamento_id: 1 }] } },
+                { usuario_id: 1, estado: 'Faltó sin Aviso', usuario: { nombre: 'Alto', apellido: 'Riesgo' }, configuracion_dia: { fecha: '2026-01-08', roles_cabecera: [{ departamento_id: 1 }] } },
+                { usuario_id: 1, estado: 'Faltó sin Aviso', usuario: { nombre: 'Alto', apellido: 'Riesgo' }, configuracion_dia: { fecha: '2026-01-15', roles_cabecera: [{ departamento_id: 1 }] } },
+                { usuario_id: 1, estado: 'Faltó sin Aviso', usuario: { nombre: 'Alto', apellido: 'Riesgo' }, configuracion_dia: { fecha: '2026-01-22', roles_cabecera: [{ departamento_id: 1 }] } },
+                // User 2: 9 present + 1 absent = 10% risk (excluded)
+                ...Array.from({ length: 9 }, (_, i) => ({ usuario_id: 2, estado: 'Asistió', usuario: { nombre: 'Bajo', apellido: 'Riesgo' }, configuracion_dia: { fecha: `2026-01-0${i + 1}`, roles_cabecera: [{ departamento_id: 1 }] } })),
+                { usuario_id: 2, estado: 'Faltó sin Aviso', usuario: { nombre: 'Bajo', apellido: 'Riesgo' }, configuracion_dia: { fecha: '2026-02-01', roles_cabecera: [{ departamento_id: 1 }] } },
+                // User 3: only 1 record (excluded, < 2 total)
+                { usuario_id: 3, estado: 'Faltó sin Aviso', usuario: { nombre: 'Solo', apellido: 'Una' }, configuracion_dia: { fecha: '2026-01-01', roles_cabecera: [{ departamento_id: 1 }] } },
             ];
 
-            (supabase.rpc as any).mockResolvedValue({ data: mockRiskData, error: null });
+            (supabase.from as any).mockReturnValueOnce({
+                select: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockReturnValue({
+                        gte: vi.fn().mockResolvedValue({ data: mockAttendance, error: null })
+                    })
+                })
+            });
 
             const result = await analyticsService.fetchChurnRisk(1);
 
@@ -106,47 +119,85 @@ describe('analyticsService', () => {
             expect(result[0].riskScore).toBe(75);
         });
 
-        it('should return empty array on RPC error', async () => {
-            (supabase.rpc as any).mockResolvedValue({ data: null, error: { message: 'RPC Error' } });
+        it('should throw on query error', async () => {
+            (supabase.from as any).mockReturnValueOnce({
+                select: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockReturnValue({
+                        gte: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB Error' } })
+                    })
+                })
+            });
 
             await expect(analyticsService.fetchChurnRisk(1)).rejects.toBeDefined();
         });
     });
 
     describe('fetchPunctualityTrends', () => {
-        it('should call get_punctuality_stats RPC and return mapped data', async () => {
-            const mockData = [
-                { label: 'Temprano', count: 10 },
-                { label: 'A tiempo', count: 5 }
+        it('should group attendance records by estado and return counts', async () => {
+            const mockAttendance = [
+                { estado: 'Asistió', configuracion_dia: { fecha: '2026-01-01', roles_cabecera: [{ departamento_id: 1 }] } },
+                { estado: 'Asistió', configuracion_dia: { fecha: '2026-01-08', roles_cabecera: [{ departamento_id: 1 }] } },
+                { estado: 'Faltó sin Aviso', configuracion_dia: { fecha: '2026-01-15', roles_cabecera: [{ departamento_id: 1 }] } },
             ];
-            (supabase.rpc as any).mockResolvedValue({ data: mockData, error: null });
+
+            (supabase.from as any).mockReturnValueOnce({
+                select: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockReturnValue({
+                        gte: vi.fn().mockResolvedValue({ data: mockAttendance, error: null })
+                    })
+                })
+            });
 
             const result = await analyticsService.fetchPunctualityTrends(1);
-            expect(supabase.rpc).toHaveBeenCalledWith('get_punctuality_stats', { 
-                p_dept_id: 1, 
-                p_limit: 100 
-            });
-            expect(result).toEqual(mockData);
+            const asistio = result.find(r => r.label === 'Asistió');
+            const falto = result.find(r => r.label === 'Faltó sin Aviso');
+            expect(asistio?.count).toBe(2);
+            expect(falto?.count).toBe(1);
         });
     });
 
     describe('fetchDemographicDist', () => {
-        it('should call get_demographic_stats RPC and return results', async () => {
-            const mockData = {
-                gender: { male: 5, female: 5 },
-                ageRanges: { '18-25': 10 }
+        it('should query members then users and return gender/age distribution', async () => {
+            const mockMembers = [{ usuario_id: 1 }, { usuario_id: 2 }];
+            const mockUsers = [
+                { genero: 'Masculino', fecha_nacimiento: '2000-01-01' },
+                { genero: 'Femenino', fecha_nacimiento: '1995-06-15' },
+            ];
+
+            // Code calls from('usuarios') first (query builder), then from('membresias')
+            const usuariosChain = {
+                select: vi.fn(),
+                in: vi.fn().mockResolvedValue({ data: mockUsers, error: null }),
             };
-            (supabase.rpc as any).mockResolvedValue({ data: mockData, error: null });
+            usuariosChain.select.mockReturnValue(usuariosChain);
+
+            (supabase.from as any)
+                .mockReturnValueOnce(usuariosChain)
+                .mockReturnValueOnce({
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockResolvedValue({ data: mockMembers, error: null })
+                    })
+                });
 
             const result = await analyticsService.fetchDemographicDist(1);
-            expect(supabase.rpc).toHaveBeenCalledWith('get_demographic_stats', { 
-                p_dept_id: 1 
-            });
-            expect(result).toEqual(mockData);
+            expect(result.gender.male).toBe(1);
+            expect(result.gender.female).toBe(1);
         });
 
-        it('should return default structure if RPC returns null', async () => {
-            (supabase.rpc as any).mockResolvedValue({ data: null, error: null });
+        it('should return default structure if members return empty', async () => {
+            // When ids.length === 0, the usuarios query is awaited directly without .in()
+            const usuariosChain: any = { select: vi.fn() };
+            usuariosChain.select.mockReturnValue(
+                Promise.resolve({ data: [], error: null })
+            );
+
+            (supabase.from as any)
+                .mockReturnValueOnce(usuariosChain)
+                .mockReturnValueOnce({
+                    select: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockResolvedValue({ data: [], error: null })
+                    })
+                });
 
             const result = await analyticsService.fetchDemographicDist(1);
             expect(result.gender.male).toBe(0);

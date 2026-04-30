@@ -2,9 +2,9 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.0";
 import nodemailer from "npm:nodemailer@6.9.7";
 import * as Sentry from "https://deno.land/x/sentry/index.mjs";
 
-// Initialize Sentry
+// Initialize Sentry — DSN must come from env var, never hardcoded
 Sentry.init({
-    dsn: Deno.env.get("SENTRY_DSN") || "https://eea493c606dd0b918ac3e577f0bb5f67@o4511242478354432.ingest.us.sentry.io/4511242483728384",
+    dsn: Deno.env.get("SENTRY_DSN"),
     performance: true,
 });
 
@@ -18,15 +18,33 @@ interface User {
 }
 
 const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD");
+const GMAIL_SENDER_EMAIL = Deno.env.get("GMAIL_SENDER_EMAIL");
+// FUNCTION_SECRET is set in Supabase dashboard > Edge Functions > Secrets
+// Use it as the Bearer token for the cron trigger — never use SERVICE_ROLE_KEY over HTTP
+const FUNCTION_SECRET = Deno.env.get("FUNCTION_SECRET");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+/** Constant-time string comparison to prevent timing attacks */
+function safeEqual(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    let mismatch = 0;
+    for (let i = 0; i < a.length; i++) {
+        mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+    return mismatch === 0;
+}
+
 Deno.serve(async (req: Request) => {
     try {
-        const authHeader = req.headers.get("Authorization");
-        if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+        const authHeader = req.headers.get("Authorization") ?? "";
+        const expectedToken = FUNCTION_SECRET
+            ? `Bearer ${FUNCTION_SECRET}`
+            : `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+
+        if (!safeEqual(authHeader, expectedToken)) {
             console.error("No valid Authorization header provided.");
             return new Response(JSON.stringify({ error: "Unauthorized access" }), {
                 status: 401,
@@ -73,28 +91,33 @@ Deno.serve(async (req: Request) => {
             .eq('username', 'holiber.hall')
             .single();
 
-        if (userError) {
-            console.warn("Could not fetch Holiber Hall email from DB, using fallback:", userError.message);
+        if (userError || !user?.email_personal) {
+            throw new Error(`No se pudo obtener el email del destinatario: ${userError?.message ?? 'email vacío'}`);
         }
 
-        const emails: string[] = [user?.email_personal || "holiberhall@gmail.com"];
+        const emails: string[] = [user.email_personal];
 
         const htmlList = birthdayPeople
             .map((u: User) => `<li><b>${u.nombre} ${u.apellido}</b> (${u.fecha_nacimiento})</li>`)
             .join("");
+
+        const senderEmail = GMAIL_SENDER_EMAIL;
+        if (!senderEmail) {
+            throw new Error("Missing GMAIL_SENDER_EMAIL environment variable");
+        }
 
         const transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
             port: 587,
             secure: false,
             auth: {
-                user: "geovanniga32@gmail.com",
+                user: senderEmail,
                 pass: GMAIL_APP_PASSWORD,
             },
         });
 
         const info = await transporter.sendMail({
-            from: 'Aviva App <geovanniga32@gmail.com>',
+            from: `Aviva App <${senderEmail}>`,
             to: emails,
             subject: `🎉 Cumpleaños del día: ${birthdayNames}`,
             html: `

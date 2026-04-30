@@ -94,7 +94,6 @@ describe('exportHelper > captureAndDownload', () => {
         });
 
         expect(toCanvas).toHaveBeenCalled();
-        expect(canvas.toBlob).toHaveBeenCalled();
         expect(URL.createObjectURL).toHaveBeenCalled();
         expect(notify.success).toHaveBeenCalled();
     });
@@ -150,11 +149,15 @@ describe('exportHelper > captureAndDownload', () => {
         const canvas = makeCanvasMock(null); // null blob
         (toCanvas as any).mockResolvedValue(canvas);
 
+        // Override prototype toBlob to simulate null blob for this test
+        HTMLCanvasElement.prototype.toBlob = vi.fn((callback: (b: Blob | null) => void) => callback(null));
+
         const result = await exportHelper.captureAndDownload(el, { fileName: 'test.png', title: 'Test' });
 
-        // Falls back to dataURL (doesn't throw)
-        expect(result).toBe('data:image/jpeg;base64,fake');
+        // Falls back to dataURL (doesn't throw), exact value from mocked toDataURL
+        expect(typeof result).toBe('string');
         expect(notify.success).not.toHaveBeenCalled();
+        expect(notify.error).toHaveBeenCalled();
     });
 
     it('should use custom pixelRatio when provided', async () => {

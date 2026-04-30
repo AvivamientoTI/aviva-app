@@ -3,6 +3,7 @@ import { TextInput, PasswordInput, Button, Paper, Title, Container, Text, Stack 
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
+import { loginSchema } from '../../schemas/auth.schema';
 import './login.css';
 
 export default function Login() {
@@ -18,12 +19,11 @@ export default function Login() {
     setUsernameError('');
     setPasswordError('');
 
-    const usernameValidation = username.trim() ? '' : 'El nombre de usuario es requerido';
-    const passwordValidation = password.length >= 6 ? '' : 'La contraseña debe tener al menos 6 caracteres';
-
-    if (usernameValidation || passwordValidation) {
-      setUsernameError(usernameValidation);
-      setPasswordError(passwordValidation);
+    const result = loginSchema.safeParse({ username: username.trim(), password });
+    if (!result.success) {
+      const errors = result.error.flatten().fieldErrors;
+      setUsernameError(errors.username?.[0] ?? '');
+      setPasswordError(errors.password?.[0] ?? '');
       return;
     }
 

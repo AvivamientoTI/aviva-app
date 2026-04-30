@@ -187,7 +187,7 @@ export const groupAssignmentsByDate = (assignments: TransformerAssignment[]): Re
     Object.entries(serviceMap).forEach(([, sg]) => {
         // Find which fecha this service belongs to (look up from first assignment's service data)
         // We need to back-reference fecha from assignments — use the acc we built
-        Object.entries(acc).forEach(([fecha, dayGroup]) => {
+        Object.entries(acc).forEach(([, dayGroup]) => {
             if (dayGroup.allAssignments.some(a => sg.assignments.some(sa => sa.id === a.id))) {
                 if (!dayGroup.services.find(s => s.configuracion_dia_id === sg.configuracion_dia_id)) {
                     dayGroup.services.push(sg);

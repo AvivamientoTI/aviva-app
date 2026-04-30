@@ -22,13 +22,15 @@ export const exportHelper = {
         
         // --- Optimización Móvil ---
         const elementHeight = element.offsetHeight;
-        let ratio = isMobile() ? 1.5 : 2;
-        
+        let ratio = options.pixelRatio ?? (isMobile() ? 1.5 : 2);
+
         // Si el elemento es muy alto, bajamos el ratio para evitar que Safari crashee el Canvas
-        if (isMobile() && elementHeight > 1200) {
-            ratio = 1.0; 
-        } else if (elementHeight > 2500) {
-            ratio = isMobile() ? 0.8 : 1.5;
+        if (!options.pixelRatio) {
+            if (isMobile() && elementHeight > 1200) {
+                ratio = 1.0;
+            } else if (elementHeight > 2500) {
+                ratio = isMobile() ? 0.8 : 1.5;
+            }
         }
 
         try {

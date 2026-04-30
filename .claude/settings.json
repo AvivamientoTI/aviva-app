@@ -21,7 +21,13 @@
       "Bash(git reset *)",
       "mcp__claude_ai_Supabase__list_projects",
       "mcp__claude_ai_Supabase__execute_sql",
-      "mcp__claude_ai_Supabase__apply_migration"
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(ls src/test/)",
+      "Bash(ls src/contexts/__tests__/)",
+      "Bash(node -e \"const z = require\\('zod'\\); console.log\\(z.ZodNumber?.prototype ? 'cjs ok' : 'no'\\); const n = z.number\\({invalid_type_error: 'x', required_error: 'y'}\\); console.log\\('ok'\\)\")",
+      "Bash(npx tsx *)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/zod/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(grep -v \"//.*TODO.*later\\\\|as any\\\\b\")"
     ]
   }
 }

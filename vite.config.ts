@@ -1,11 +1,19 @@
 // Triggering vite restart after service file migration
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const supabaseUrl = env.VITE_SUPABASE_URL || '';
+  // Escape the URL for use in a RegExp pattern
+  const supabasePattern = supabaseUrl
+    ? new RegExp(`^${supabaseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/.*`, 'i')
+    : /^https:\/\/.*\.supabase\.co\/.*/i;
+
+  return ({
   plugins: [
     react(),
     VitePWA({
@@ -79,7 +87,7 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/ndgyicayxjgygijvahbu\.supabase\.co\/.*/i,
+            urlPattern: supabasePattern,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api',
@@ -127,4 +135,5 @@ export default defineConfig({
       }
     }
   }
+  });
 })

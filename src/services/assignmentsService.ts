@@ -119,8 +119,8 @@ export const assignmentsService = {
           )
         )
       `)
-            .eq('configuracion_dia.roles_cabecera.mes', month)
-            .eq('configuracion_dia.roles_cabecera.anio', year);
+            .gte('configuracion_dia.fecha', `${year}-${String(month).padStart(2, '0')}-01`)
+            .lte('configuracion_dia.fecha', `${year}-${String(month).padStart(2, '0')}-31`);
 
         if (error) throw error;
         return data || [];

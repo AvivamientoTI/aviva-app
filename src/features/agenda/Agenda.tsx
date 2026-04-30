@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
     Container, Title, Text, Stack, Group, Paper, SimpleGrid,
     ThemeIcon, Button, TextInput, Textarea, ActionIcon,
-    Badge, Loader, Center, Box, Modal, Divider
+    Badge, Loader, Center, Modal, Divider
 } from '@mantine/core';
 import { DatePickerInput, TimeInput } from '@mantine/dates';
 import {
