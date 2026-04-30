@@ -432,6 +432,18 @@ export default function Dashboard() {
                                             <Text size="sm" fw={800}>{personalStats.summary.total}</Text>
                                         </Group>
                                     </Stack>
+                                    <Button 
+                                        variant="light" 
+                                        color="teal" 
+                                        size="xs" 
+                                        radius="md" 
+                                        rightSection={<IconArrowRight size={14} />} 
+                                        onClick={() => navigate('/attendance/personal')} 
+                                        fullWidth 
+                                        mt="md"
+                                    >
+                                        Ver historial completo
+                                     </Button>
                                 </Stack>
                             ) : (
                                 <Stack align="center" py="xl" gap="xs">

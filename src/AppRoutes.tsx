@@ -11,6 +11,7 @@ const Dashboard = lazy(() => import('./features/dashboard/Dashboard'));
 const ScheduleView = lazy(() => import('./features/calendar/ScheduleView'));
 const AttendanceManager = lazy(() => import('./features/attendance/AttendanceManager'));
 const AttendanceRegistry = lazy(() => import('./features/attendance/AttendanceRegistry'));
+const PersonalAttendance = lazy(() => import('./features/attendance/PersonalAttendance'));
 const DepartmentsList = lazy(() => import('./features/departments/DepartmentsList'));
 const PlanningWizard = lazy(() => import('./features/planning/PlanningWizard'));
 const UsersList = lazy(() => import('./features/users/UsersList'));
@@ -61,6 +62,12 @@ export function AppRoutes() {
                     <Route path="attendance" element={
                         <ProtectedRoute requireEncargado>
                             <AttendanceManager />
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="attendance/personal" element={
+                        <ProtectedRoute>
+                            <PersonalAttendance />
                         </ProtectedRoute>
                     } />
 

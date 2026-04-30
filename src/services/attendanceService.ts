@@ -177,5 +177,28 @@ export const attendanceService = {
             },
             posicion: r.posicion_nombre ? { nombre: r.posicion_nombre } : null
         })) as AttendanceRecordWithDetails[];
+    },
+
+    /**
+     * Obtiene el historial de asistencia personal de un usuario
+     */
+    async fetchPersonalAttendance(usuarioId: number): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('asistencias')
+            .select(`
+                id,
+                estado,
+                justificacion,
+                created_at,
+                configuracion_dia:configuracion_dia_id (
+                    fecha,
+                    tipo_servicio
+                )
+            `)
+            .eq('usuario_id', usuarioId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
     }
 };

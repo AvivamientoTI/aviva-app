@@ -35,6 +35,7 @@ export function DashboardLayout() {
         { label: 'Dashboard', path: '/', icon: <IconLayoutDashboard size={20} stroke={1.5} /> },
         { label: 'Agenda', path: '/agenda', icon: <IconCalendarEvent size={20} stroke={1.5} /> },
         { label: 'Calendario', path: '/calendar', icon: <IconCalendar size={20} stroke={1.5} /> },
+        { label: 'Mi Asistencia', path: '/attendance/personal', icon: <IconCalendarCheck size={20} stroke={1.5} /> },
         ...(isSystemAdmin || isLiderOrSublider ? [
             { label: 'Planificación', path: '/planning', icon: <IconCalendarStats size={20} stroke={1.5} /> },
             { label: 'Departamentos', path: '/departments', icon: <IconBuildingCommunity size={20} stroke={1.5} /> },
