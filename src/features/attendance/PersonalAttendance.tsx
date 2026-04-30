@@ -1,4 +1,4 @@
-import { Container, Title, Text, Card, Stack, Badge, Table, ScrollArea, Group, ThemeIcon, Box } from '@mantine/core';
+import { Container, Title, Text, Card, Stack, Badge, Table, ScrollArea, Group, ThemeIcon } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { attendanceService } from '../../services/attendanceService';
 import { useUser } from '../../contexts/UserContext';

@@ -1,6 +1,6 @@
 import { ActionIcon, AppShell, Burger, Group, NavLink, Text, Stack, Divider, useMantineColorScheme, ThemeIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel, IconTrendingUp, IconClipboardList, IconCalendarEvent } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconShieldLock, IconLayoutDashboard, IconCalendar, IconCalendarStats, IconBuildingCommunity, IconChartBar, IconUsers, IconCalendarCancel, IconTrendingUp, IconClipboardList, IconCalendarEvent, IconCalendarCheck } from '@tabler/icons-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { useUser } from '../contexts/UserContext';
