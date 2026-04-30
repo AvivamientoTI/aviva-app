@@ -32,7 +32,7 @@ export function DashboardLayout() {
     // Opciones visibles según rol
     // Opciones visibles según rol con iconos
     const links = [
-        { label: 'Dashboard', path: '/', icon: <IconLayoutDashboard size={20} stroke={1.5} /> },
+        { label: 'Panel', path: '/', icon: <IconLayoutDashboard size={20} stroke={1.5} /> },
         { label: 'Agenda', path: '/agenda', icon: <IconCalendarEvent size={20} stroke={1.5} /> },
         { label: 'Calendario', path: '/calendar', icon: <IconCalendar size={20} stroke={1.5} /> },
         { label: 'Mi Asistencia', path: '/attendance/personal', icon: <IconCalendarCheck size={20} stroke={1.5} /> },
