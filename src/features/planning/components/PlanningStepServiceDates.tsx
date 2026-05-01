@@ -8,6 +8,7 @@ import 'dayjs/locale/es';
 
 import type { Position } from '../../../types';
 import { usePlanning } from '../context/PlanningContext';
+import { formatTime12h } from '../../../utils/timeFormat';
 import { useUniforms } from '../../../hooks/queries/useUniforms';
 
 export interface ServiceDateConfig {
@@ -223,9 +224,7 @@ export const PlanningStepServiceDates = ({
                                                                     size="sm"
                                                                     description={
                                                                         config.hora
-                                                                            ? config.hora < '12:00' ? '☀️ Mañana'
-                                                                            : config.hora < '17:00' ? '🌤 Tarde'
-                                                                            : '🌙 Noche'
+                                                                            ? `${formatTime12h(config.hora)} · ${config.hora < '12:00' ? '☀️ Mañana' : config.hora < '17:00' ? '🌤 Tarde' : '🌙 Noche'}`
                                                                             : idx > 0 ? 'Heredada del servicio anterior' : undefined
                                                                     }
                                                                 />

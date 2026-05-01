@@ -202,6 +202,10 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                                 s1 -= (planUsageCount[uid1] || 0) * 50;
                                 s2 -= (planUsageCount[uid2] || 0) * 50;
 
+                                // Penalizar líderes de otros departamentos para darles menor prioridad
+                                if (usersMap[uid1]?.isExternalLeader) s1 -= 40;
+                                if (usersMap[uid2]?.isExternalLeader) s2 -= 40;
+
                                 if (pass.name === 'General') {
                                     const team = assignments.filter(a => String(a.configuracion_dia_id) === String(config.id));
                                     const hasVeteran = team.some(a => (usersMap[String(a.usuario_id)]?.totalServedCount || 0) > 10);
@@ -224,6 +228,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                             if (totalSrv > 10) reasons.push('Aporta experiencia');
                             if (totalSrv < 3) reasons.push('Integración de nuevo');
                             if ((recentCount[String(selected.id)] || 0) === 0) reasons.push('Equidad: No ha servido');
+                            if (!usersMap[String(selected.id)]?.isExternalLeader) reasons.push('Sin liderazgo externo');
 
                             assignments.push({
                                 configuracion_dia_id: config.id,

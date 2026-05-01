@@ -9,6 +9,7 @@ import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
 import type { PublicUser } from '../../../types';
 
 import { formatName } from '../../../utils/formatName';
+import { formatTime12h } from '../../../utils/timeFormat';
 
 const normalize = (s: string) => s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || '';
 
@@ -209,6 +210,11 @@ export const PlanningStepReview = () => {
                                                 <Group gap="md">
                                                     <Badge size="lg" color={sIdx === 0 ? 'blue' : 'orange'}>{config.type}</Badge>
                                                     <Badge variant="light" color={getUniformeColor(config.uniform)}>{config.uniform}</Badge>
+                                                    {config.hora && (
+                                                        <Badge variant="dot" color="gold" size="lg">
+                                                            Llegada: {formatTime12h(config.hora)}
+                                                        </Badge>
+                                                    )}
                                                 </Group>
                                             </div>
 
