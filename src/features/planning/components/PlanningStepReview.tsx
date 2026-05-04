@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 import { usePlanning, type DraftAssignment } from '../context/PlanningContext';
 import { useDepartmentUsers } from '../hooks/useDepartmentUsers';
+import { useDepartments } from '../../../hooks/queries/useDepartments';
 import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
 import type { PublicUser } from '../../../types';
 
@@ -101,6 +102,7 @@ export const PlanningStepReview = () => {
     } = usePlanning();
 
     const { data: deptUsers } = useDepartmentUsers(selectedDeptId);
+    const { data: deptData } = useDepartments();
 
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingAssignment, setEditingAssignment] = useState<DraftAssignment | null>(null);
@@ -143,7 +145,7 @@ export const PlanningStepReview = () => {
             setSelectOptions(options);
         } catch (err) {
             console.error('Error calculando opciones de sustitución:', err);
-            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set());
+            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set(), !!isSecurity);
             setSelectOptions(options);
         } finally {
             setIsLoadingGlobal(false);

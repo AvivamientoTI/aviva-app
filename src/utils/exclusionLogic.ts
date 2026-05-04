@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 export const getUsersNotAssignedOnDate = async <T extends { id: number | string }>(
   date: string | Date | dayjs.Dayjs | null, 
   allUsers: T[],
-  excludeHeaderId?: number | string,
+  _excludeHeaderId?: number | string,
   serviceIndex?: number
 ): Promise<T[]> => {
   const blockedIds = new Set<string>();
