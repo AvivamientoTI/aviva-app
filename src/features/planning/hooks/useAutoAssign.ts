@@ -68,7 +68,10 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
     ): Promise<AutoAssignResult> => {
         setLoading(true);
         try {
-            // 1. Fetch department users
+            // 1. Fetch department users and info
+            const { data: deptInfo } = await supabase.from('departamentos').select('nombre').eq('id', Number(selectedDept)).single();
+            const isSecurity = deptInfo?.nombre?.toLowerCase().includes('seguridad');
+
             const { data: mData } = await supabase
                 .from('membresias')
                 .select('usuario_id, rol_jerarquico, usuario:usuarios(*)')
@@ -163,7 +166,12 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                     const serviceConfig = dayConfigs[sIdx];
                     if (!serviceConfig) continue;
 
-                    let eligibleUsers = await getUsersNotAssignedOnDate(dateStr, deptUsers);
+                    let eligibleUsers = await getUsersNotAssignedOnDate(
+                        dateStr, 
+                        deptUsers, 
+                        undefined, 
+                        isSecurity ? sIdx : undefined
+                    );
                     eligibleUsers = eligibleUsers.filter(u => u.activo !== false);
 
                     const suspendedIds = allSuspensions

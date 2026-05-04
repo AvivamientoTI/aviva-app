@@ -13,7 +13,7 @@ import { formatTime12h } from '../../../utils/timeFormat';
 
 const normalize = (s: string) => s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || '';
 
-// --- Helper: extraer fecha de forma robusta ---
+// --- Helpers ---
 function getAssignmentDate(a: DraftAssignment): string {
     if (a.fecha) return dayjs(a.fecha).format('YYYY-MM-DD');
     if (typeof a.configuracion_dia_id === 'string' && a.configuracion_dia_id.startsWith('temp-')) {
@@ -23,12 +23,21 @@ function getAssignmentDate(a: DraftAssignment): string {
     return '';
 }
 
+function getServiceIndex(a: DraftAssignment): number {
+    if (typeof a.configuracion_dia_id === 'string' && a.configuracion_dia_id.startsWith('temp-')) {
+        const parts = a.configuracion_dia_id.split('-');
+        if (parts.length >= 2) return parseInt(parts[parts.length - 1]) || 0;
+    }
+    return 0;
+}
+
 // --- Helper: filtrar candidatos según disponibilidad, género y rol ---
 function buildCandidates(
     allUsers: PublicUser[],
     editingAssignment: DraftAssignment,
     previewAssignments: DraftAssignment[],
-    blockedIds: Set<string>
+    blockedIds: Set<string>,
+    isSecurity: boolean
 ): { value: string; label: string }[] {
     const pos = editingAssignment.posicion;
     const dateStr = getAssignmentDate(editingAssignment);
@@ -38,9 +47,18 @@ function buildCandidates(
     candidates = candidates.filter(u => !blockedIds.has(String(u.id)));
 
     if (dateStr) {
+        const editingSIdx = getServiceIndex(editingAssignment);
+
         const assignedTodayInDraft = new Set(
             previewAssignments
-                .filter(a => getAssignmentDate(a) === dateStr && a.id !== editingAssignment.id)
+                .filter(a => {
+                    const sameDate = getAssignmentDate(a) === dateStr;
+                    const sameService = getServiceIndex(a) === editingSIdx;
+                    // For Security, only block if same date AND same service.
+                    // For others, block if same date (strict).
+                    const isBlocked = isSecurity ? (sameDate && sameService) : sameDate;
+                    return isBlocked && a.id !== editingAssignment.id;
+                })
                 .map(a => String(a.usuario_id))
         );
         candidates = candidates.filter(u => !assignedTodayInDraft.has(String(u.id)));
@@ -103,17 +121,25 @@ export const PlanningStepReview = () => {
 
         const dateToCheck = getAssignmentDate(assignment);
         const allUsers = (deptUsers || []) as PublicUser[];
+        const currentDept = deptData?.all.find(d => String(d.id) === selectedDeptId);
+        const isSecurity = currentDept?.nombre?.toLowerCase().includes('seguridad');
+        const sIdx = getServiceIndex(assignment);
 
         try {
             const blockedIds = new Set<string>();
             if (dateToCheck) {
-                const available = await getUsersNotAssignedOnDate(dateToCheck, allUsers, headerState?.id);
+                const available = await getUsersNotAssignedOnDate(
+                    dateToCheck, 
+                    allUsers, 
+                    headerState?.id, 
+                    isSecurity ? sIdx : undefined
+                );
                 const availableIds = new Set(available.map(u => String(u.id)));
                 allUsers.forEach(u => {
                     if (!availableIds.has(String(u.id))) blockedIds.add(String(u.id));
                 });
             }
-            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds);
+            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds, !!isSecurity);
             setSelectOptions(options);
         } catch (err) {
             console.error('Error calculando opciones de sustitución:', err);

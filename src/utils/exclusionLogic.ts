@@ -9,7 +9,8 @@ import dayjs from 'dayjs';
 export const getUsersNotAssignedOnDate = async <T extends { id: number | string }>(
   date: string | Date | dayjs.Dayjs | null, 
   allUsers: T[],
-  excludeHeaderId?: number | string
+  excludeHeaderId?: number | string,
+  serviceIndex?: number
 ): Promise<T[]> => {
   const blockedIds = new Set<string>();
 
@@ -20,13 +21,11 @@ export const getUsersNotAssignedOnDate = async <T extends { id: number | string 
   try {
     const { data: blockedResults, error } = await supabase.rpc('get_blocked_users', {
       p_date: normalizedDate,
-      p_exclude_role_id: excludeHeaderId ? Number(excludeHeaderId) : null
+      p_service_index: serviceIndex !== undefined ? serviceIndex : null
     }) as { data: { usuario_id: number }[] | null; error: any };
 
     if (error) {
       console.error('❌ [GlobalExclusion] RPC Error:', error);
-      // En caso de error, preferimos no bloquear a nadie globalmente para no romper la app,
-      // pero logueamos fuerte para depurar.
     } else if (blockedResults) {
       blockedResults.forEach(row => {
         if (row.usuario_id) {
