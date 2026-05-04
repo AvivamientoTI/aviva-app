@@ -74,7 +74,11 @@ export default function UsersList() {
     }
 
     if (error) {
-      notifications.show({ title: 'Error', message: error.message, color: 'red' });
+      let errorMessage = error.message;
+      if (error.message.includes('usuarios_username_key')) {
+        errorMessage = `El nombre de usuario "${formData.username}" ya está en uso por otro servidor.`;
+      }
+      notifications.show({ title: 'Error', message: errorMessage, color: 'red' });
     } else {
       notifications.show({ title: 'Éxito', message: 'Usuario guardado', color: 'green' });
       close();
@@ -131,7 +135,13 @@ export default function UsersList() {
       if (filterDept) {
         matchesDept = u.membresias?.some((m: any) => String(m.departamento?.id) === filterDept);
       } else {
-        matchesDept = u.membresias?.some((m: any) => permissions.canManageDepartment(m.departamento?.id));
+        // Si no hay filtro, mostrar usuarios de departamentos que puedo gestionar.
+        // Si es administrador del sistema, mostrar todos (incluyendo sin departamento).
+        if (permissions.isSystemAdmin) {
+            matchesDept = true;
+        } else {
+            matchesDept = u.membresias?.some((m: any) => permissions.canManageDepartment(m.departamento?.id));
+        }
       }
 
       // Gender Filter
