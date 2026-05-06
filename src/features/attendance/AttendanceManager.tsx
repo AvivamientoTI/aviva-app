@@ -36,7 +36,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { attendanceService, type ServiceDay, type AttendanceRecordWithDetails } from '../../services/attendanceService';
 import { supabase } from '../../services/supabaseClient';
 import dayjs from 'dayjs';
-import { ATTENDANCE_STATES } from '../../constants/attendance';
+import { ATTENDANCE_STATES, JUSTIFICATION_TYPES, type JustificationType } from '../../constants/attendance';
 
 export default function AttendanceManager() {
     const { attendanceManagedDepartments } = useUser();
@@ -99,6 +99,14 @@ export default function AttendanceManager() {
         if (newState !== ATTENDANCE_STATES.ASISTIO) {
             setCultosTime(prev => { const n = { ...prev }; delete n[recordId]; return n; });
         }
+    }
+
+    function handleJustificationTypeChange(recordId: string | number, tipo: string | null) {
+        setAttendance(prev => prev.map(rec =>
+            String(rec.id) === String(recordId)
+                ? { ...rec, tipo_justificacion: tipo as JustificationType | null, justificacion: tipo !== 'otro' ? null : rec.justificacion }
+                : rec
+        ));
     }
 
     function handleJustificationChange(recordId: string | number, text: string) {
@@ -168,12 +176,14 @@ export default function AttendanceManager() {
         }
         setSaving(true);
         try {
+            const isJustificada = (rec: typeof attendance[0]) => rec.estado === ATTENDANCE_STATES.CON_JUSTIFICACION;
             const recordsToUpdate = attendance.map(rec => ({
                 id: rec.id,
                 usuario_id: rec.usuario_id,
                 configuracion_dia_id: rec.configuracion_dia_id,
                 estado: rec.estado,
-                justificacion: rec.justificacion || '',
+                tipo_justificacion: isJustificada(rec) ? (rec as any).tipo_justificacion ?? null : null,
+                justificacion: isJustificada(rec) && (rec as any).tipo_justificacion === 'otro' ? rec.justificacion || '' : null,
                 turno_dominical: cultosTime[rec.id] || null,
                 hora_registro: rec.hora_registro ?? null
             }));
@@ -363,18 +373,31 @@ export default function AttendanceManager() {
                                                                     }}
                                                                 />
                                                                 {record.estado === ATTENDANCE_STATES.CON_JUSTIFICACION && (
-                                                                    <Textarea
-                                                                        placeholder="Motivo de la justificación..."
-                                                                        value={record.justificacion || ''}
-                                                                        onChange={(e) => handleJustificationChange(record.id, e.currentTarget.value)}
-                                                                        size="xs"
-                                                                        radius="md"
-                                                                        autosize
-                                                                        minRows={2}
-                                                                        maxRows={3}
-                                                                        style={{ width: '100%', minWidth: 180 }}
-                                                                        styles={{ input: { fontSize: '12px' } }}
-                                                                    />
+                                                                    <Stack gap={4} style={{ width: '100%', minWidth: 200 }}>
+                                                                        <Select
+                                                                            placeholder="Motivo de justificación..."
+                                                                            data={JUSTIFICATION_TYPES.map(j => ({ value: j.value, label: j.label }))}
+                                                                            value={(record as any).tipo_justificacion ?? null}
+                                                                            onChange={(val) => handleJustificationTypeChange(record.id, val)}
+                                                                            size="xs"
+                                                                            radius="md"
+                                                                            clearable
+                                                                            styles={{ input: { fontSize: '12px' } }}
+                                                                        />
+                                                                        {(record as any).tipo_justificacion === 'otro' && (
+                                                                            <Textarea
+                                                                                placeholder="Especifica el motivo..."
+                                                                                value={record.justificacion || ''}
+                                                                                onChange={(e) => handleJustificationChange(record.id, e.currentTarget.value)}
+                                                                                size="xs"
+                                                                                radius="md"
+                                                                                autosize
+                                                                                minRows={2}
+                                                                                maxRows={3}
+                                                                                styles={{ input: { fontSize: '12px' } }}
+                                                                            />
+                                                                        )}
+                                                                    </Stack>
                                                                 )}
                                                                 {selectedDate && dayjs(selectedDate).day() === 0 && record.estado === ATTENDANCE_STATES.ASISTIO && (
                                                                     <SegmentedControl

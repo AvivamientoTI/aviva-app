@@ -113,7 +113,7 @@ export const attendanceService = {
     /**
      * Guarda o actualiza los registros de asistencia
      */
-    async updateAttendanceRecords(records: (AttendanceInsert & { id?: string | number })[]): Promise<void> {
+    async updateAttendanceRecords(records: (AttendanceInsert & { id?: string | number; tipo_justificacion?: string | null })[]): Promise<void> {
         const { error } = await supabase
             .from('asistencias')
             .upsert(records.map(r => ({
@@ -121,6 +121,7 @@ export const attendanceService = {
                 configuracion_dia_id: r.configuracion_dia_id,
                 estado: r.estado,
                 justificacion: r.justificacion,
+                tipo_justificacion: r.tipo_justificacion ?? null,
                 hora_registro: r.hora_registro,
                 registrado_por: r.registrado_por
             })), { onConflict: 'configuracion_dia_id, usuario_id' });
@@ -167,6 +168,7 @@ export const attendanceService = {
             usuario_id: r.usuario_id,
             estado: r.estado || null,
             justificacion: r.justificacion || null,
+            tipo_justificacion: r.tipo_justificacion || null,
             hora_registro: r.hora_registro || null,
             registrado_por: r.registrado_por || null,
             created_at: null,
