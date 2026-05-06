@@ -138,7 +138,7 @@ export default function Agenda() {
                 <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
                     <Stack gap={0}>
                         <Title order={1} style={{ fontFamily: 'Inter, sans-serif', fontSize: '2.4rem', letterSpacing: '-0.02em' }}>
-                            Agenda 📅
+                            Agenda
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Eventos y actividades de la iglesia</Text>
                     </Stack>

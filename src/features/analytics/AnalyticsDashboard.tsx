@@ -1054,7 +1054,7 @@ export default function AnalyticsDashboard() {
                             letterSpacing: '-0.02em',
                             color: 'var(--mantine-color-text)'
                         }}>
-                            Panel de Impacto 📊
+                            Panel de Impacto
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Analítica avanzada de participación y asistencia</Text>
                     </Stack>

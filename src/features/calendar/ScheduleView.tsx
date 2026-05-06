@@ -205,7 +205,7 @@ export default function ScheduleView() {
                             fontSize: 'clamp(1.8rem, 5vw, 2.4rem)',
                             letterSpacing: '-0.02em'
                         }}>
-                            Calendario de Servicios 📅
+                            Calendario de Servicios
                         </Title>
                         <Text c="dimmed" size="sm" fw={500}>Gestión y visualización de roles asignados por departamento</Text>
                     </Stack>

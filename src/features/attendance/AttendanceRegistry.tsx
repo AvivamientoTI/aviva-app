@@ -25,6 +25,8 @@ interface RegistryRecord {
     estado: string | null;
     justificacion: string | null;
     hora_registro: string | null;
+    registrado_por: number | null;
+    registrado_por_nombre: string | null;
     usuario: { nombre: string; apellido: string } | null;
     posicion: { nombre: string } | null;
 }
@@ -92,7 +94,7 @@ export default function AttendanceRegistry() {
         if (!selectedService) return;
         setLoading(true);
         try {
-            const data = await attendanceService.fetchAttendanceWithDetails(
+            const data = await attendanceService.fetchAttendanceRegistry(
                 Number(selectedService),
                 Number(selectedDept)
             );
@@ -147,7 +149,7 @@ export default function AttendanceRegistry() {
                             letterSpacing: '-0.02em',
                             color: 'var(--mantine-color-text)'
                         }}>
-                            Registro de Asistencia 📋
+                            Registro de Asistencia
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Historial de ausencias y justificaciones por actividad</Text>
                     </Stack>
@@ -274,6 +276,7 @@ export default function AttendanceRegistry() {
                                             <Table.Th style={{ paddingLeft: 24, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mantine-color-gray-6)' }}>Servidor</Table.Th>
                                             <Table.Th style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mantine-color-gray-6)' }}>Estado</Table.Th>
                                             <Table.Th style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mantine-color-gray-6)' }}>Justificación</Table.Th>
+                                            <Table.Th style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mantine-color-gray-6)' }}>Registrado por</Table.Th>
                                             <Table.Th style={{ paddingRight: 24, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mantine-color-gray-6)', textAlign: 'right' }}>Hora</Table.Th>
                                         </Table.Tr>
                                     </Table.Thead>
@@ -327,6 +330,18 @@ export default function AttendanceRegistry() {
                                                         )
                                                     ) : (
                                                         <Text size="xs" c="dimmed">—</Text>
+                                                    )}
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    {r.registrado_por_nombre ? (
+                                                        <Group gap="xs" wrap="nowrap">
+                                                            <Avatar color="gold" radius="xl" size="xs">
+                                                                {r.registrado_por_nombre.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                            </Avatar>
+                                                            <Text size="xs" fw={600}>{r.registrado_por_nombre}</Text>
+                                                        </Group>
+                                                    ) : (
+                                                        <Text size="xs" c="dimmed" fs="italic">—</Text>
                                                     )}
                                                 </Table.Td>
                                                 <Table.Td style={{ paddingRight: 24, textAlign: 'right' }}>

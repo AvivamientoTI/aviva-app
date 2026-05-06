@@ -305,7 +305,7 @@ export default function SuspensionManager() {
                             letterSpacing: '-0.02em',
                             color: 'var(--mantine-color-text)'
                         }}>
-                            Suspensiones e Inactividad 📋
+                            Suspensiones e Inactividad
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Gestión de suspensiones y registro de servidores inactivos</Text>
                     </Stack>

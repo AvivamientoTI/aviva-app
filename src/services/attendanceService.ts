@@ -184,6 +184,44 @@ export const attendanceService = {
     /**
      * Obtiene el historial de asistencia personal de un usuario
      */
+    async fetchAttendanceRegistry(configDiaId: number, deptId: number): Promise<any[]> {
+        const { data, error } = await supabase
+            .rpc('get_attendance_detailed', {
+                p_config_dia_id: configDiaId,
+                p_dept_id: deptId
+            });
+
+        if (error) throw error;
+
+        const registradorIds = [...new Set(
+            (data || []).map((r: any) => r.registrado_por).filter(Boolean)
+        )];
+
+        let registradoresMap: Record<number, string> = {};
+        if (registradorIds.length > 0) {
+            const { data: regs } = await supabase
+                .from('usuarios')
+                .select('id, nombre, apellido')
+                .in('id', registradorIds);
+            (regs || []).forEach((u: any) => {
+                registradoresMap[u.id] = `${u.nombre} ${u.apellido}`;
+            });
+        }
+
+        return (data || []).map((r: any) => ({
+            id: r.asistencia_id || `temp-${r.usuario_id}`,
+            usuario_id: r.usuario_id,
+            estado: r.estado || null,
+            justificacion: r.justificacion || null,
+            tipo_justificacion: r.tipo_justificacion || null,
+            hora_registro: r.hora_registro || null,
+            registrado_por: r.registrado_por || null,
+            registrado_por_nombre: r.registrado_por ? (registradoresMap[r.registrado_por] ?? null) : null,
+            usuario: { nombre: r.nombre, apellido: r.apellido },
+            posicion: r.posicion_nombre ? { nombre: r.posicion_nombre } : null,
+        }));
+    },
+
     async fetchPersonalAttendance(usuarioId: number): Promise<any[]> {
         const { data, error } = await supabase
             .from('asistencias')

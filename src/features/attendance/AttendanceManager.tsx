@@ -35,12 +35,12 @@ import { useUser } from '../../contexts/UserContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { attendanceService, type ServiceDay, type AttendanceRecordWithDetails } from '../../services/attendanceService';
 import { supabase } from '../../services/supabaseClient';
-import { IconBell } from '@tabler/icons-react';
+import { IconBell, IconLock } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { ATTENDANCE_STATES, JUSTIFICATION_TYPES, type JustificationType } from '../../constants/attendance';
 
 export default function AttendanceManager() {
-    const { attendanceManagedDepartments } = useUser();
+    const { attendanceManagedDepartments, userProfile } = useUser();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
     const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -172,6 +172,15 @@ export default function AttendanceManager() {
     }
 
     async function handleSave() {
+        if (isLocked) {
+            notifications.show({
+                title: 'Registro cerrado',
+                message: 'No se pueden realizar cambios en la asistencia después de las 12:00 de la noche.',
+                color: 'red',
+                icon: <IconLock size={18} />
+            });
+            return;
+        }
         if (!selectedService || attendance.length === 0) {
             notifications.show({ title: 'Error', message: 'No hay datos para guardar.', color: 'red' });
             return;
@@ -187,7 +196,8 @@ export default function AttendanceManager() {
                 tipo_justificacion: isJustificada(rec) ? (rec as any).tipo_justificacion ?? null : null,
                 justificacion: isJustificada(rec) && (rec as any).tipo_justificacion === 'otro' ? rec.justificacion || '' : null,
                 turno_dominical: cultosTime[rec.id] || null,
-                hora_registro: rec.hora_registro ?? null
+                hora_registro: rec.hora_registro ?? new Date().toISOString(),
+                registrado_por: userProfile?.usuario_id ?? null
             }));
             await attendanceService.updateAttendanceRecords(recordsToUpdate);
             notifications.show({ title: '¡Éxito!', message: 'Asistencia guardada.', color: 'green' });
@@ -234,6 +244,11 @@ export default function AttendanceManager() {
         }
     }
 
+    // Bloquear edición si la fecha del servicio ya pasó (después de medianoche)
+    const isLocked = selectedDate
+        ? dayjs(selectedDate).format('YYYY-MM-DD') < dayjs().format('YYYY-MM-DD')
+        : false;
+
     const filteredDepts = (attendanceManagedDepartments || []).filter(d => permissions.canManageAttendance(d.id));
 
     useEffect(() => {
@@ -274,7 +289,7 @@ export default function AttendanceManager() {
                             letterSpacing: '-0.02em',
                             color: 'var(--mantine-color-text)'
                         }}>
-                            Control de Asistencia ✅
+                            Control de Asistencia
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Registro y seguimiento de puntualidad para servicios</Text>
                     </Stack>
@@ -356,6 +371,17 @@ export default function AttendanceManager() {
                             </Paper>
                         </SimpleGrid>
 
+                        {isLocked && (
+                            <Alert
+                                icon={<IconLock size={18} />}
+                                title="Registro cerrado"
+                                color="red"
+                                radius="xl"
+                            >
+                                La asistencia de esta fecha ya no puede modificarse. Los cambios solo están permitidos hasta las 12:00 de la noche del día del servicio.
+                            </Alert>
+                        )}
+
                         <Paper shadow="md" radius="xl" withBorder className="glass-card" style={{
                             backgroundColor: 'var(--mantine-color-body)',
                             overflow: 'hidden'
@@ -396,6 +422,7 @@ export default function AttendanceManager() {
                                                                 <SegmentedControl
                                                                     value={record.estado ?? ''}
                                                                     onChange={(value) => handleAttendanceChange(record.id, value)}
+                                                                    disabled={isLocked}
                                                                     data={[
                                                                         { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },
                                                                         { label: 'Falta', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
@@ -419,6 +446,7 @@ export default function AttendanceManager() {
                                                                             size="xs"
                                                                             radius="md"
                                                                             clearable
+                                                                            disabled={isLocked}
                                                                             styles={{ input: { fontSize: '12px' } }}
                                                                         />
                                                                         {(record as any).tipo_justificacion === 'otro' && (
@@ -431,6 +459,7 @@ export default function AttendanceManager() {
                                                                                 autosize
                                                                                 minRows={2}
                                                                                 maxRows={3}
+                                                                                disabled={isLocked}
                                                                                 styles={{ input: { fontSize: '12px' } }}
                                                                             />
                                                                         )}
@@ -487,14 +516,15 @@ export default function AttendanceManager() {
                                 </Text>
                             )}
                             <Button
-                                leftSection={<IconDeviceFloppy size={20} />}
+                                leftSection={isLocked ? <IconLock size={20} /> : <IconDeviceFloppy size={20} />}
                                 onClick={handleSave}
                                 loading={saving || notifying}
+                                disabled={isLocked}
                                 size="lg"
                                 radius="xl"
                                 className="btn-premium"
                             >
-                                Guardar Asistencia
+                                {isLocked ? 'Registro cerrado' : 'Guardar Asistencia'}
                             </Button>
                         </Group>
                     </Stack>

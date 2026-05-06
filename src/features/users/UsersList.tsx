@@ -211,7 +211,7 @@ export default function UsersList() {
                     color: 'var(--mantine-color-text)', 
                     letterSpacing: '-0.02em' 
                 }}>
-                    Directorio de Servidores 👥
+                    Directorio de Servidores
                 </Title>
                 <Text c="dimmed" size="md" fw={500}>Gestión y administración de voluntarios por departamento</Text>
             </Stack>
