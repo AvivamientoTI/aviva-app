@@ -27,7 +27,8 @@
       "Bash(node -e \"const z = require\\('zod'\\); console.log\\(z.ZodNumber?.prototype ? 'cjs ok' : 'no'\\); const n = z.number\\({invalid_type_error: 'x', required_error: 'y'}\\); console.log\\('ok'\\)\")",
       "Bash(npx tsx *)",
       "Bash(node -e \"const pkg = require\\('./node_modules/zod/package.json'\\); console.log\\(pkg.version\\)\")",
-      "Bash(grep -v \"//.*TODO.*later\\\\|as any\\\\b\")"
+      "Bash(grep -v \"//.*TODO.*later\\\\|as any\\\\b\")",
+      "Read(//c/Users/geova/**)"
     ]
   }
 }

@@ -28,8 +28,12 @@ import {
     IconUsers,
     IconInfoCircle,
     IconBuildingCommunity,
-    IconCheck
+    IconCheck,
+    IconUser,
+    IconX,
 } from '@tabler/icons-react';
+import { JUSTIFICATION_TYPES } from '../../constants/attendance';
+import { attendanceService } from '../../services/attendanceService';
 import dayjs from 'dayjs';
 import { analyticsService } from '../../services/analyticsService';
 import { useQuery } from '@tanstack/react-query';
@@ -44,6 +48,7 @@ import { supabase } from '../../services/supabaseClient';
 export default function AnalyticsDashboard() {
     const [activeTab, setActiveTab] = useState<string | null>('weekly');
     const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+    const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
     const { managedDepartments } = useUser();
     const { isSystemAdmin } = usePermissions();
@@ -115,6 +120,19 @@ export default function AnalyticsDashboard() {
         queryFn: () => analyticsService.fetchPunctualityTrends(deptId!),
         enabled: deptId != null,
         retry: 1
+    });
+
+    const { data: deptMembers } = useQuery({
+        queryKey: ['deptMembers', deptId],
+        queryFn: () => attendanceService.fetchDeptMembers(deptId!),
+        enabled: deptId != null,
+        staleTime: 60000,
+    });
+
+    const { data: memberAttendance, isLoading: loadingMember } = useQuery({
+        queryKey: ['memberAttendance', selectedMemberId],
+        queryFn: () => attendanceService.fetchPersonalAttendance(Number(selectedMemberId)),
+        enabled: !!selectedMemberId,
     });
 
     const isLoading = deptId == null || loadingWeekly || loadingMonthly || loadingAnnual || loadingChurn || loadingDemographic || loadingPunctuality;
@@ -843,6 +861,187 @@ export default function AnalyticsDashboard() {
         );
     };
 
+    const renderServerStats = () => {
+        const memberOptions = (deptMembers || []).map(m => ({
+            value: String(m.id),
+            label: `${m.nombre} ${m.apellido}`,
+        }));
+
+        const records = memberAttendance || [];
+        const total = records.length;
+        const asistio = records.filter((r: any) => r.estado === 'Asistió').length;
+        const justificada = records.filter((r: any) => r.estado === 'Faltó con Aviso').length;
+        const sinAviso = records.filter((r: any) => r.estado === 'Faltó sin Aviso').length;
+        const rate = total > 0 ? Math.round((asistio / total) * 100) : 0;
+        const rateColor = rate >= 80 ? 'teal' : rate >= 60 ? 'orange' : 'red';
+
+        const justifLabels = Object.fromEntries(JUSTIFICATION_TYPES.map(j => [j.value, j.label]));
+
+        const getStatusColor = (estado: string) => {
+            if (estado === 'Asistió') return 'teal';
+            if (estado === 'Faltó con Aviso') return 'yellow';
+            return 'red';
+        };
+
+        return (
+            <Stack gap="xl" className="animate-fade-in">
+                <Paper p="xl" radius="xl" withBorder className="shell-glass">
+                    <Select
+                        label="Seleccionar servidor"
+                        placeholder="Buscar servidor del departamento..."
+                        data={memberOptions}
+                        value={selectedMemberId}
+                        onChange={setSelectedMemberId}
+                        searchable
+                        leftSection={<IconUser size={18} color="var(--mantine-color-gold-6)" />}
+                        radius="md"
+                        size="md"
+                        nothingFoundMessage="No se encontró el servidor"
+                    />
+                </Paper>
+
+                {!selectedMemberId && (
+                    <Paper p="xl" radius="xl" withBorder style={{ borderStyle: 'dashed' }}>
+                        <Center py="lg">
+                            <Stack align="center" gap="sm">
+                                <ThemeIcon size={56} radius="xl" variant="light" color="gold">
+                                    <IconUser size={28} />
+                                </ThemeIcon>
+                                <Text fw={700} size="lg">Selecciona un servidor</Text>
+                                <Text c="dimmed" size="sm" ta="center">
+                                    Elige un servidor del departamento para ver su historial y estadísticas de asistencia.
+                                </Text>
+                            </Stack>
+                        </Center>
+                    </Paper>
+                )}
+
+                {selectedMemberId && loadingMember && (
+                    <Center py="xl"><Text c="dimmed" fw={600}>Cargando estadísticas...</Text></Center>
+                )}
+
+                {selectedMemberId && !loadingMember && (
+                    <Stack gap="xl">
+                        <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="lg">
+                            <Paper p="lg" radius="xl" withBorder className="glass-card">
+                                <Stack gap={0}>
+                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Tasa de Asistencia</Text>
+                                    <Text fw={900} size="2.2rem" c={`${rateColor}.6`}>{rate}%</Text>
+                                    <Text size="xs" c="dimmed" fw={600}>{asistio} de {total} servicios</Text>
+                                </Stack>
+                            </Paper>
+                            <Paper p="lg" radius="xl" withBorder className="glass-card">
+                                <Stack gap={0}>
+                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Presencias</Text>
+                                    <Text fw={900} size="2.2rem" c="teal.6">{asistio}</Text>
+                                    <Text size="xs" c="dimmed" fw={600}>Asistencias confirmadas</Text>
+                                </Stack>
+                            </Paper>
+                            <Paper p="lg" radius="xl" withBorder className="glass-card">
+                                <Stack gap={0}>
+                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Justificadas</Text>
+                                    <Text fw={900} size="2.2rem" c="yellow.6">{justificada}</Text>
+                                    <Text size="xs" c="dimmed" fw={600}>No cuentan como falta</Text>
+                                </Stack>
+                            </Paper>
+                            <Paper p="lg" radius="xl" withBorder className="glass-card">
+                                <Stack gap={0}>
+                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Faltas s/aviso</Text>
+                                    <Text fw={900} size="2.2rem" c="red.6">{sinAviso}</Text>
+                                    <Text size="xs" c="dimmed" fw={600}>Ausencias injustificadas</Text>
+                                </Stack>
+                            </Paper>
+                        </SimpleGrid>
+
+                        <Paper p="lg" radius="xl" withBorder className="glass-card">
+                            <Group justify="space-between" mb="md">
+                                <Stack gap={0}>
+                                    <Text fw={800} size="lg">Tasa de asistencia real</Text>
+                                    <Text size="xs" c="dimmed" fw={600}>Excluyendo ausencias justificadas</Text>
+                                </Stack>
+                                <Badge color={rateColor} variant="filled" size="lg" radius="sm" fw={800}>{rate}%</Badge>
+                            </Group>
+                            <Progress value={rate} color={rateColor} size="lg" radius="xl" />
+                        </Paper>
+
+                        <Paper shadow="sm" radius="xl" withBorder className="glass-card" style={{ overflow: 'hidden' }}>
+                            <Table.ScrollContainer minWidth={500}>
+                                <Table verticalSpacing="sm" highlightOnHover>
+                                    <Table.Thead style={{ backgroundColor: 'var(--mantine-color-gray-1)' }}>
+                                        <Table.Tr>
+                                            <Table.Th style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', paddingLeft: 20 }}>Fecha</Table.Th>
+                                            <Table.Th style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Servicio</Table.Th>
+                                            <Table.Th style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Estado</Table.Th>
+                                            <Table.Th style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Justificación</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {records.length === 0 ? (
+                                            <Table.Tr>
+                                                <Table.Td colSpan={4}>
+                                                    <Center py="xl">
+                                                        <Text c="dimmed" fw={600}>Sin registros de asistencia</Text>
+                                                    </Center>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ) : records.map((rec: any) => {
+                                            const config = Array.isArray(rec.configuracion_dia) ? rec.configuracion_dia[0] : rec.configuracion_dia;
+                                            const tipoLabel = rec.tipo_justificacion
+                                                ? justifLabels[rec.tipo_justificacion] ?? rec.tipo_justificacion
+                                                : null;
+                                            return (
+                                                <Table.Tr key={rec.id}>
+                                                    <Table.Td style={{ paddingLeft: 20 }}>
+                                                        <Text size="sm" fw={700}>
+                                                            {config?.fecha ? dayjs(config.fecha).format('DD/MM/YYYY') : '—'}
+                                                        </Text>
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Badge variant="light" color="blue" size="sm">
+                                                            {config?.tipo_servicio || 'N/A'}
+                                                        </Badge>
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Badge
+                                                            color={getStatusColor(rec.estado)}
+                                                            variant="filled"
+                                                            size="sm"
+                                                            leftSection={
+                                                                rec.estado === 'Asistió' ? <IconCheck size={12} /> :
+                                                                rec.estado === 'Faltó con Aviso' ? <IconInfoCircle size={12} /> :
+                                                                <IconX size={12} />
+                                                            }
+                                                        >
+                                                            {rec.estado}
+                                                        </Badge>
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        {tipoLabel ? (
+                                                            <Group gap={4} wrap="nowrap">
+                                                                <Badge variant="light" color="gray" size="xs">{tipoLabel}</Badge>
+                                                                {rec.justificacion && (
+                                                                    <Text size="xs" c="dimmed" style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        {rec.justificacion}
+                                                                    </Text>
+                                                                )}
+                                                            </Group>
+                                                        ) : (
+                                                            <Text size="xs" c="dimmed" fs="italic">—</Text>
+                                                        )}
+                                                    </Table.Td>
+                                                </Table.Tr>
+                                            );
+                                        })}
+                                    </Table.Tbody>
+                                </Table>
+                            </Table.ScrollContainer>
+                        </Paper>
+                    </Stack>
+                )}
+            </Stack>
+        );
+    };
+
     return (
         <Container size="xl" py="xl">
             <Stack gap="xl">
@@ -901,6 +1100,9 @@ export default function AnalyticsDashboard() {
                         <Tabs.Tab value="insights" leftSection={<IconActivity size={18} />} styles={{ tab: { fontWeight: 700 } }}>
                             Insights
                         </Tabs.Tab>
+                        <Tabs.Tab value="servidor" leftSection={<IconUser size={18} />} styles={{ tab: { fontWeight: 700 } }}>
+                            Por Servidor
+                        </Tabs.Tab>
                     </Tabs.List>
 
                     <Box mt="xl">
@@ -915,6 +1117,7 @@ export default function AnalyticsDashboard() {
                                 <Tabs.Panel value="annual">{renderAnnual()}</Tabs.Panel>
                                 <Tabs.Panel value="demographics">{renderDemographics()}</Tabs.Panel>
                                 <Tabs.Panel value="insights">{renderInsights()}</Tabs.Panel>
+                                <Tabs.Panel value="servidor">{renderServerStats()}</Tabs.Panel>
                             </>
                         )}
                     </Box>

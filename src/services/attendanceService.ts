@@ -191,6 +191,7 @@ export const attendanceService = {
                 id,
                 estado,
                 justificacion,
+                tipo_justificacion,
                 created_at,
                 configuracion_dia:configuracion_dia_id (
                     fecha,

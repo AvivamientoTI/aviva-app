@@ -35,6 +35,7 @@ import { useUser } from '../../contexts/UserContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { attendanceService, type ServiceDay, type AttendanceRecordWithDetails } from '../../services/attendanceService';
 import { supabase } from '../../services/supabaseClient';
+import { IconBell } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { ATTENDANCE_STATES, JUSTIFICATION_TYPES, type JustificationType } from '../../constants/attendance';
 
@@ -47,6 +48,7 @@ export default function AttendanceManager() {
     const [attendance, setAttendance] = useState<AttendanceRecordWithDetails[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [notifying, setNotifying] = useState(false);
     const [cultosTime, setCultosTime] = useState<Record<string | number, string>>({});
 
     const permissions = usePermissions();
@@ -190,10 +192,45 @@ export default function AttendanceManager() {
             await attendanceService.updateAttendanceRecords(recordsToUpdate);
             notifications.show({ title: '¡Éxito!', message: 'Asistencia guardada.', color: 'green' });
             fetchAttendanceData();
+            sendAttendanceNotifications(Number(selectedService));
         } catch (error: any) {
             notifications.show({ title: 'Error', message: error.message, color: 'red' });
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function sendAttendanceNotifications(configDiaId: number) {
+        setNotifying(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY;
+            const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-attendance`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ configuracion_dia_id: configDiaId }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error ?? 'Error desconocido');
+            notifications.show({
+                title: 'Notificaciones enviadas',
+                message: `${result.sent} correo(s) enviados a los servidores.`,
+                color: 'blue',
+                icon: <IconBell size={18} />,
+            });
+        } catch (err: any) {
+            notifications.show({
+                title: 'Error al notificar',
+                message: err.message,
+                color: 'orange',
+                icon: <IconBell size={18} />,
+            });
+        } finally {
+            setNotifying(false);
         }
     }
 
@@ -444,10 +481,15 @@ export default function AttendanceManager() {
                         </Paper>
 
                         <Group justify="flex-end">
+                            {notifying && (
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Enviando notificaciones...
+                                </Text>
+                            )}
                             <Button
                                 leftSection={<IconDeviceFloppy size={20} />}
                                 onClick={handleSave}
-                                loading={saving}
+                                loading={saving || notifying}
                                 size="lg"
                                 radius="xl"
                                 className="btn-premium"

@@ -5,9 +5,10 @@ import { useUser } from '../../contexts/UserContext';
 import { IconCalendarCheck, IconAlertCircle, IconCheck, IconX, IconInfoCircle } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
+import { JUSTIFICATION_TYPES } from '../../constants/attendance';
 
-// Helper to safely get the first item or the item itself
 const getSingle = (val: any) => Array.isArray(val) ? val[0] : val;
+const JUSTIF_LABELS = Object.fromEntries(JUSTIFICATION_TYPES.map(j => [j.value, j.label]));
 
 export default function PersonalAttendance() {
     const { userProfile } = useUser();
@@ -99,7 +100,18 @@ export default function PersonalAttendance() {
                                                     </Badge>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    {record.justificacion ? (
+                                                    {(record as any).tipo_justificacion ? (
+                                                        <Group gap={4} wrap="nowrap">
+                                                            <Badge variant="light" color="gray" size="xs">
+                                                                {JUSTIF_LABELS[(record as any).tipo_justificacion] ?? (record as any).tipo_justificacion}
+                                                            </Badge>
+                                                            {record.justificacion && (
+                                                                <Text size="xs" c="dimmed" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                    {record.justificacion}
+                                                                </Text>
+                                                            )}
+                                                        </Group>
+                                                    ) : record.justificacion ? (
                                                         <Group gap={4} wrap="nowrap">
                                                             <IconAlertCircle size={14} color="var(--mantine-color-gray-6)" />
                                                             <Text size="xs" c="dimmed" style={{ maxWidth: 200, wordBreak: 'break-word' }}>
@@ -107,7 +119,7 @@ export default function PersonalAttendance() {
                                                             </Text>
                                                         </Group>
                                                     ) : (
-                                                        <Text size="xs" c="dimmed" fs="italic">Sin justificación</Text>
+                                                        <Text size="xs" c="dimmed" fs="italic">—</Text>
                                                     )}
                                                 </Table.Td>
                                             </Table.Tr>
