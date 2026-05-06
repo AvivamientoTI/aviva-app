@@ -14,7 +14,8 @@ import {
     Badge,
     Progress,
     Center,
-    Select
+    Select,
+    Table
 } from '@mantine/core';
 import { BarChart, DonutChart } from '@mantine/charts';
 import {
