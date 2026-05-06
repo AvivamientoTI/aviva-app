@@ -38,7 +38,8 @@ function buildCandidates(
     editingAssignment: DraftAssignment,
     previewAssignments: DraftAssignment[],
     blockedIds: Set<string>,
-    isSecurity: boolean
+    isSecurity: boolean,
+    isIntercesion: boolean = false
 ): { value: string; label: string }[] {
     const pos = editingAssignment.posicion;
     const dateStr = getAssignmentDate(editingAssignment);
@@ -47,7 +48,7 @@ function buildCandidates(
     let candidates = allUsers.filter(u => u.activo !== false);
     candidates = candidates.filter(u => !blockedIds.has(String(u.id)));
 
-    if (dateStr) {
+    if (dateStr && !isIntercesion) {
         const editingSIdx = getServiceIndex(editingAssignment);
 
         const assignedTodayInDraft = new Set(
@@ -124,16 +125,19 @@ export const PlanningStepReview = () => {
         const dateToCheck = getAssignmentDate(assignment);
         const allUsers = (deptUsers || []) as PublicUser[];
         const currentDept = deptData?.all.find(d => String(d.id) === selectedDeptId);
-        const isSecurity = currentDept?.nombre?.toLowerCase().includes('seguridad');
+        const deptName = currentDept?.nombre?.toLowerCase() || '';
+        const isSecurity = deptName.includes('seguridad');
+        const isIntercesion = deptName.includes('intercesi');
         const sIdx = getServiceIndex(assignment);
 
         try {
             const blockedIds = new Set<string>();
-            if (dateToCheck) {
+            // Intercesión allows repeat assignments — skip global conflict check
+            if (dateToCheck && !isIntercesion) {
                 const available = await getUsersNotAssignedOnDate(
-                    dateToCheck, 
-                    allUsers, 
-                    headerState?.id, 
+                    dateToCheck,
+                    allUsers,
+                    headerState?.id,
                     isSecurity ? sIdx : undefined
                 );
                 const availableIds = new Set(available.map(u => String(u.id)));
@@ -141,11 +145,11 @@ export const PlanningStepReview = () => {
                     if (!availableIds.has(String(u.id))) blockedIds.add(String(u.id));
                 });
             }
-            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds, !!isSecurity);
+            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds, !!isSecurity, isIntercesion);
             setSelectOptions(options);
         } catch (err) {
             console.error('Error calculando opciones de sustitución:', err);
-            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set(), !!isSecurity);
+            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set(), !!isSecurity, isIntercesion);
             setSelectOptions(options);
         } finally {
             setIsLoadingGlobal(false);

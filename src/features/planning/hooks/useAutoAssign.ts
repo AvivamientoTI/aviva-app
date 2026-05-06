@@ -70,7 +70,9 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
         try {
             // 1. Fetch department users and info
             const { data: deptInfo } = await supabase.from('departamentos').select('nombre').eq('id', Number(selectedDept)).single();
-            const isSecurity = deptInfo?.nombre?.toLowerCase().includes('seguridad');
+            const deptNombre = deptInfo?.nombre?.toLowerCase() || '';
+            const isSecurity = deptNombre.includes('seguridad');
+            const isIntercesion = deptNombre.includes('intercesi');
 
             const { data: mData } = await supabase
                 .from('membresias')
@@ -166,12 +168,14 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                     const serviceConfig = dayConfigs[sIdx];
                     if (!serviceConfig) continue;
 
-                    let eligibleUsers = await getUsersNotAssignedOnDate(
-                        dateStr, 
-                        deptUsers, 
-                        undefined, 
-                        isSecurity ? sIdx : undefined
-                    );
+                    let eligibleUsers = isIntercesion
+                        ? deptUsers
+                        : await getUsersNotAssignedOnDate(
+                            dateStr,
+                            deptUsers,
+                            undefined,
+                            isSecurity ? sIdx : undefined
+                        );
                     eligibleUsers = eligibleUsers.filter(u => u.activo !== false);
 
                     const suspendedIds = allSuspensions
@@ -189,7 +193,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                             if (assignedPositions.has(slotKey)) continue;
 
                             let candidates = eligibleUsers.filter(u => {
-                                if (assignments.some(a => String(a.configuracion_dia_id) === String(config.id) && String(a.usuario_id) === String(u.id))) return false;
+                                if (!isIntercesion && assignments.some(a => String(a.configuracion_dia_id) === String(config.id) && String(a.usuario_id) === String(u.id))) return false;
                                 const reqGen = String(pos.genero_requerido || 'A').toUpperCase();
                                 if (reqGen !== 'A' && String(u.genero).toUpperCase() !== reqGen) return false;
                                 if (pass.name === 'Leadership' && !(usersMap[String(u.id)]?.isInternalLeader)) return false;

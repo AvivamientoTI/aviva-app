@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { 
-    Table, Button, Modal, TextInput, Select, Group, Title, Badge, 
+    Table, Button, Modal, TextInput, PasswordInput, Select, Group, Title, Badge, 
     ActionIcon, Alert, Paper, Avatar, Text, Menu, SimpleGrid, 
     ThemeIcon, Stack, Container, Center 
 } from '@mantine/core';
@@ -47,7 +47,8 @@ export default function UsersList() {
     email_personal: '',
     genero: 'M',
     telefono: '',
-    fecha_nacimiento: null as Date | null
+    fecha_nacimiento: null as Date | null,
+    password: ''
   });
 
   // Manual fetches removed in favor of useQuery
@@ -59,6 +60,19 @@ export default function UsersList() {
       fecha_nacimiento: formData.fecha_nacimiento ? dayjs(formData.fecha_nacimiento).format('YYYY-MM-DD') : null
     };
 
+    // Validar contraseña si es nuevo usuario
+    if (!editingUser) {
+        const passwordRegex = /^(?=(?:.*[0-9]){2,})(?=.*[!@#$%^&*(),.?":{}|<>]).{6,}$/;
+        if (!passwordRegex.test(formData.password)) {
+            notifications.show({ 
+                title: 'Contraseña débil', 
+                message: 'La contraseña debe tener al menos 2 números, 1 carácter especial y mínimo 6 caracteres.', 
+                color: 'red' 
+            });
+            return;
+        }
+    }
+
     let error;
     if (editingUser) {
       const { error: updateError } = await supabase
@@ -67,10 +81,33 @@ export default function UsersList() {
         .eq('id', editingUser.id);
       error = updateError;
     } else {
-      const { error: insertError } = await supabase
+      const { password, ...dbPayload } = payload;
+      const { data: insertedData, error: insertError } = await supabase
         .from('usuarios')
-        .insert(payload);
+        .insert(dbPayload)
+        .select();
       error = insertError;
+
+      if (!error && insertedData && insertedData[0] && password) {
+        const newUser = insertedData[0];
+        // Crear acceso en Supabase Auth mediante Edge Function
+        const { error: fnError } = await supabase.functions.invoke('create-user-auth', {
+            body: { 
+                usuario_id: newUser.id, 
+                username: newUser.username, 
+                password: password 
+            }
+        });
+        
+        if (fnError) {
+            console.error('Error creating auth user:', fnError);
+            notifications.show({ 
+                title: 'Aviso', 
+                message: 'Usuario creado pero no se pudo configurar la contraseña. Use "Reset Password" después.', 
+                color: 'orange' 
+            });
+        }
+      }
     }
 
     if (error) {
@@ -96,7 +133,8 @@ export default function UsersList() {
       email_personal: user.email_personal || '',
       genero: user.genero,
       telefono: user.telefono,
-      fecha_nacimiento: user.fecha_nacimiento ? new Date(user.fecha_nacimiento) : null
+      fecha_nacimiento: user.fecha_nacimiento ? new Date(user.fecha_nacimiento) : null,
+      password: ''
     });
     open();
   };
@@ -123,7 +161,8 @@ export default function UsersList() {
       email_personal: '',
       genero: 'M',
       telefono: '',
-      fecha_nacimiento: null
+      fecha_nacimiento: null,
+      password: ''
     });
   };
 
@@ -426,6 +465,17 @@ export default function UsersList() {
                             value={formData.email_personal}
                             onChange={(e) => setFormData({ ...formData, email_personal: e.target.value })}
                         />
+                        {!editingUser && (
+                            <PasswordInput
+                                label="Contraseña Inicial"
+                                placeholder="Min. 2 números + 1 especial"
+                                required
+                                radius="md"
+                                description="Mínimo 6 caracteres, 2 números y 1 símbolo"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            />
+                        )}
                         <TextInput
                             label="Teléfono"
                             placeholder="Ej. 0981 123 456"
