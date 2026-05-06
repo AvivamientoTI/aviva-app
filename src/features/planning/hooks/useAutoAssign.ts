@@ -58,6 +58,43 @@ interface OtherMembershipResponse {
     rol_jerarquico: string;
 }
 
+// Servidores que sirven cada 3 meses — reciben menor prioridad en el algoritmo
+const QUARTERLY_SERVERS = new Set([
+    'alejandro melendez',
+    'andrea callimore',
+    'omar salazar',
+    'jeinnel newball',
+    'priscila clarke',
+    'andre arias',
+    'cinthya marin',
+    'deykell taylor',
+    'diandra wilson',
+    'marla brack',
+    'dunia lopez',
+    'elena zuniga',
+    'floribeth zuniga',
+    'hillary ramirez',
+    'holiber hall',
+    'jairon arias',
+    'jerrylin lemones',
+    'joislin newball',
+    'kenisha galagarza',
+    'marco murillo',
+    'merielen somarribas',
+    'natalia solano',
+    'yasling rodriguez',
+    'tanasha daviey',
+    'jose funes',
+]);
+
+const normalizeForQuarterly = (str: string) =>
+    str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
+const isQuarterlyServer = (user: PublicUser) => {
+    const fullName = normalizeForQuarterly(`${user.nombre} ${user.apellido}`);
+    return QUARTERLY_SERVERS.has(fullName);
+};
+
 export const useAutoAssign = (selectedDept: string | number | null) => {
     const [loading, setLoading] = useState(false);
 
@@ -218,6 +255,10 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                                 if (usersMap[uid1]?.isExternalLeader) s1 -= 40;
                                 if (usersMap[uid2]?.isExternalLeader) s2 -= 40;
 
+                                // Penalizar servidores trimestrales — sirven cada 3 meses
+                                if (isQuarterlyServer(u1)) s1 -= 100;
+                                if (isQuarterlyServer(u2)) s2 -= 100;
+
                                 if (pass.name === 'General') {
                                     const team = assignments.filter(a => String(a.configuracion_dia_id) === String(config.id));
                                     const hasVeteran = team.some(a => (usersMap[String(a.usuario_id)]?.totalServedCount || 0) > 10);
@@ -241,6 +282,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                             if (totalSrv < 3) reasons.push('Integración de nuevo');
                             if ((recentCount[String(selected.id)] || 0) === 0) reasons.push('Equidad: No ha servido');
                             if (!usersMap[String(selected.id)]?.isExternalLeader) reasons.push('Sin liderazgo externo');
+                            if (isQuarterlyServer(selected)) reasons.push('Servidor trimestral (baja prioridad)');
 
                             assignments.push({
                                 configuracion_dia_id: config.id,
