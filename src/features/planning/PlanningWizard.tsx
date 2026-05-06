@@ -430,7 +430,7 @@ function PlanningWizardContent() {
               fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
               color: 'var(--mantine-color-text)', 
               letterSpacing: '-0.02em' 
-            }}>Planificador de Roles 📝</Title>
+            }}>Planificador de Roles</Title>
             <Text c="dimmed" size="sm" fw={500}>Configura, asigna y aprueba el rol mensual</Text>
           </Stack>
           <Badge size="lg" variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} radius="md" p="md" visibleFrom="sm">

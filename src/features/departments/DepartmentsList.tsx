@@ -176,7 +176,7 @@ export default function DepartmentsList() {
                             letterSpacing: '-0.02em',
                             color: 'var(--mantine-color-text)'
                         }}>
-                            Gestión de Departamentos 🏗️
+                            Gestión de Departamentos
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Configuración de la estructura organizacional y uniformes</Text>
                     </Stack>

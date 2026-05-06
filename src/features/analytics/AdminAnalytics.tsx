@@ -95,7 +95,7 @@ export default function AdminAnalytics() {
                             letterSpacing: '-0.02em',
                             color: 'var(--mantine-color-text)'
                         }}>
-                            Analítica Global 🌐
+                            Analítica Global
                         </Title>
                         <Text c="dimmed" fw={500} size="md">Visión estratégica de todos los departamentos — últimos 3 meses</Text>
                     </Stack>
