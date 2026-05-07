@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getUsersNotAssignedOnDate } from '../exclusionLogic';
+
+vi.mock('../../services/supabaseClient', () => ({
+    supabase: {
+        rpc: vi.fn()
+    }
+}));
+
 import { supabase } from '../../services/supabaseClient';
 
 describe('exclusionLogic', () => {
@@ -35,7 +42,7 @@ describe('exclusionLogic', () => {
         
         expect(supabase.rpc).toHaveBeenCalledWith('get_blocked_users', {
             p_date: '2024-05-20',
-            p_exclude_role_id: null
+            p_service_index: null
         });
     });
 

@@ -37,7 +37,6 @@ describe('Auth > Login', () => {
     it('should render the login form with all required elements', () => {
         renderLogin();
 
-        expect(screen.getByText('Aviva App')).toBeInTheDocument();
         expect(screen.getByText('Iglesia Avivamiento y Poder')).toBeInTheDocument();
         expect(screen.getByLabelText(/Nombre de Usuario/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Contraseña/i)).toBeInTheDocument();

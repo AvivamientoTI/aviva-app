@@ -146,11 +146,14 @@ describe('exportHelper > captureAndDownload', () => {
 
     it('should handle null blob gracefully', async () => {
         const el = makeElement();
-        const canvas = makeCanvasMock(null); // null blob
+        const canvas = makeCanvasMock();
         (toCanvas as any).mockResolvedValue(canvas);
 
-        // Override prototype toBlob to simulate null blob for this test
-        HTMLCanvasElement.prototype.toBlob = vi.fn((callback: (b: Blob | null) => void) => callback(null));
+        // Spy on prototype methods so the internal finalCanvas uses them
+        vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,fake');
+        vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
+            (callback: (b: Blob | null) => void) => callback(null)
+        );
 
         const result = await exportHelper.captureAndDownload(el, { fileName: 'test.png', title: 'Test' });
 
