@@ -91,7 +91,7 @@ export default function UsersList() {
       if (!error && insertedData && insertedData[0] && password) {
         const newUser = insertedData[0];
         // Crear acceso en Supabase Auth mediante Edge Function
-        const { error: fnError } = await supabase.functions.invoke('create-user-auth', {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('create-user-auth', {
             body: { 
                 usuario_id: newUser.id, 
                 username: newUser.username, 
@@ -99,11 +99,14 @@ export default function UsersList() {
             }
         });
         
-        if (fnError) {
-            console.error('Error creating auth user:', fnError);
+        // Verificar tanto errores de red como errores de la función
+        const functionError = fnError || (fnData && fnData.error);
+        if (functionError) {
+            const errorMsg = typeof functionError === 'string' ? functionError : (functionError.message || fnData?.error || 'Error desconocido');
+            console.error('Error creating auth user:', functionError);
             notifications.show({ 
                 title: 'Aviso', 
-                message: 'Usuario creado pero no se pudo configurar la contraseña. Use "Reset Password" después.', 
+                message: `Usuario creado pero no se pudo configurar la contraseña: ${errorMsg}. Use "Reset Password" después.`, 
                 color: 'orange' 
             });
         }
