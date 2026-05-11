@@ -246,7 +246,7 @@ export default function AttendanceManager() {
 
     // Bloquear edición si la fecha del servicio ya pasó (después de medianoche)
     const isLocked = selectedDate
-        ? dayjs(selectedDate).format('YYYY-MM-DD') < dayjs().format('YYYY-MM-DD')
+        ? dayjs(selectedDate).format('YYYY-MM-DD') < dayjs().subtract(1, 'day').format('YYYY-MM-DD')
         : false;
 
     const filteredDepts = (attendanceManagedDepartments || []).filter(d => permissions.canManageAttendance(d.id));
