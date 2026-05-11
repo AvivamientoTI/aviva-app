@@ -309,7 +309,7 @@ export default function AttendanceRegistry() {
                                                 <Table.Td style={{ paddingLeft: 24 }}>
                                                     <Group gap="sm">
                                                         <Avatar color="gold" radius="lg" size="sm">
-                                                            {r.usuario?.nombre[0]}{r.usuario?.apellido[0]}
+                                                            {r.usuario?.nombre?.[0]}{r.usuario?.apellido?.[0]}
                                                         </Avatar>
                                                         <Stack gap={0}>
                                                             <Text size="sm" fw={800}>{r.usuario?.nombre} {r.usuario?.apellido}</Text>

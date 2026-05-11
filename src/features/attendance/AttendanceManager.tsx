@@ -408,7 +408,7 @@ export default function AttendanceManager() {
                                                     <Table.Td style={{ paddingLeft: '24px' }}>
                                                         <Group gap="sm">
                                                             <Avatar color="gold" radius="lg" size="md">
-                                                                {record.usuario?.nombre[0]}{record.usuario?.apellido[0]}
+                                                                {record.usuario?.nombre?.[0]}{record.usuario?.apellido?.[0]}
                                                             </Avatar>
                                                             <Stack gap={0}>
                                                                 <Text size="sm" fw={800}>{record.usuario?.nombre} {record.usuario?.apellido}</Text>
