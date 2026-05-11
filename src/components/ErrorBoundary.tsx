@@ -67,7 +67,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                                 Ha ocurrido un error inesperado en la aplicación. No te preocupes, hemos registrado el problema.
                             </Text>
 
-                            {import.meta.env.DEV && this.state.error && (
+                            {this.state.error && (
                                 <Paper bg="gray.0" p="md" w="100%" withBorder>
                                     <Text c="red" fw={600} mb="xs">Error: {this.state.error.toString()}</Text>
                                     <Text size="xs" component="pre" style={{ whiteSpace: 'pre-wrap', overflowX: 'auto' }}>
