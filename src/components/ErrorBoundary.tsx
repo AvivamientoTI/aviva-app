@@ -27,6 +27,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error("Uncaught error:", error, errorInfo);
+        alert('ERROR: ' + error.toString() + '\n\nSTACK: ' + (errorInfo?.componentStack?.slice(0, 300) ?? 'N/A'));
         Sentry.captureException(error, { extra: { ...errorInfo } });
         
         // Auto-fix para White Screen / Chunk Error en Vercel
