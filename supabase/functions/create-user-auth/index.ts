@@ -12,12 +12,22 @@ const sbAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 Deno.serve(async (req: Request) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   // Solo aceptar POST
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -27,7 +37,7 @@ Deno.serve(async (req: Request) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing authorization header" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -37,7 +47,7 @@ Deno.serve(async (req: Request) => {
     if (authError || !callerUser) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -53,7 +63,7 @@ Deno.serve(async (req: Request) => {
     if (!callerProfile?.usuario_id) {
       return new Response(JSON.stringify({ error: "Forbidden: no profile linked" }), {
         status: 403,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -72,7 +82,7 @@ Deno.serve(async (req: Request) => {
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden: only admins can create users" }), {
         status: 403,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -83,7 +93,7 @@ Deno.serve(async (req: Request) => {
     if (!usuario_id || !username || !password) {
       return new Response(JSON.stringify({ error: "Missing required fields: usuario_id, username, password" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -105,7 +115,7 @@ Deno.serve(async (req: Request) => {
       console.error("❌ Error creating auth user:", createError);
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -138,7 +148,7 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
 
@@ -146,7 +156,7 @@ Deno.serve(async (req: Request) => {
     console.error("❌ Handler error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

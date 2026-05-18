@@ -43,8 +43,8 @@ export function ProtectedRoute({
         return <RestrictedAccess />;
     }
 
-    // 4. Verificación de Membresía Básica (Servidores)
-    if (requireMember && !perms.isServidoresMember && !perms.isSystemAdmin) {
+    // 4. Verificación de Membresía Básica (Cualquier departamento)
+    if (requireMember && !perms.hasAnyMembership && !perms.isSystemAdmin) {
         return <RestrictedAccess type="no-permissions" />;
     }
 

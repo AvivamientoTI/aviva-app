@@ -75,6 +75,7 @@ export function usePermissions() {
         canManagePositions: canManageDepartment,
         
         // Restored for App.tsx & DashboardLayout routing
+        hasAnyMembership: (userMemberships?.length ?? 0) > 0,
         isServidoresMember: userMemberships?.some(m => m.departamento?.nombre === DEPARTMENTS.SERVIDORES) ?? false,
         isLiderSubliderEncargadoServidores: userMemberships?.some(m => {
             const { isLider, isSublider, isEncargado, isAdmin } = userRoles(m);
