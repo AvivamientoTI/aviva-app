@@ -1,675 +1,654 @@
-# 📖 Ujieres App — Documentación Completa
+# Ujieres App
 
-> **Portal de Gestión para Servidores y Ujieres — Avivamiento y Poder (AYP)**
+Aplicacion web progresiva para la gestion operativa de servidores, ujieres, asistencia, calendario, planificacion mensual y analitica interna de la Iglesia Avivamiento y Poder.
 
----
+## Descripcion General
 
-## Tabla de Contenidos
+Ujieres App centraliza procesos que normalmente se gestionan de forma manual: asignacion de servidores por fecha y posicion, registro de asistencia, revision de ausencias, administracion de departamentos, suspensiones, disponibilidad, reportes y comunicacion de eventos internos.
 
-1. [Descripción General](#1-descripción-general)
-2. [Stack Tecnológico](#2-stack-tecnológico)
-3. [Arquitectura](#3-arquitectura)
-4. [Estructura de Directorios](#4-estructura-de-directorios)
-5. [Modelo de Datos (Base de Datos)](#5-modelo-de-datos-base-de-datos)
-6. [Sistema de Roles y Permisos](#6-sistema-de-roles-y-permisos)
-7. [Módulos y Funcionalidades](#7-módulos-y-funcionalidades)
-8. [Edge Functions (Backend Serverless)](#8-edge-functions-backend-serverless)
-9. [RPCs de Base de Datos](#9-rpcs-de-base-de-datos)
-10. [Configuración e Instalación](#10-configuración-e-instalación)
-11. [Variables de Entorno](#11-variables-de-entorno)
-12. [Guía de Desarrollo](#12-guía-de-desarrollo)
-13. [Testing](#13-testing)
-14. [Despliegue](#14-despliegue)
-15. [Convenciones de Código](#15-convenciones-de-código)
+El proyecto esta orientado a lideres, sublideres, encargados y servidores. Su proposito principal es reducir la carga administrativa de la coordinacion del ministerio, mejorar la trazabilidad de asistencia y facilitar una planificacion mensual mas equitativa.
 
----
+La aplicacion funciona como una SPA/PWA construida con React y Vite. El backend se apoya en Supabase para autenticacion, base de datos PostgreSQL, politicas RLS, RPCs y Edge Functions.
 
-## 1. Descripción General
+## Caracteristicas Principales
 
-**Ujieres App** es una Progressive Web App (PWA) de gestión interna para el ministerio de Servidores y Ujieres de la iglesia **Avivamiento y Poder**. Permite a líderes, encargados y servidores gestionar:
+- Inicio de sesion con Supabase Auth usando una estrategia de email virtual a partir del nombre de usuario.
+- Rutas protegidas por autenticacion y permisos funcionales.
+- Panel principal con resumen operativo y widget de consultas conversacionales.
+- Calendario de servicios y vista detallada de asignaciones.
+- Planificador mensual por departamento con asistente de asignacion automatica.
+- Gestion de asistencia general, asistencia personal y registro historico.
+- Gestion de usuarios, membresias, disponibilidad, suspensiones e inactividad.
+- Gestion de departamentos, posiciones y uniformes.
+- Agenda interna con eventos vistos/no vistos por usuario.
+- Analitica departamental y analitica global para administradores.
+- Exportacion visual de reportes/calendarios mediante captura HTML a imagen.
+- Notificaciones visuales con Mantine Notifications.
+- PWA con service worker, cache de assets y cache de llamadas a Supabase.
+- Observabilidad con Sentry en frontend y algunas Edge Functions.
+- Pruebas unitarias, de componentes, seguridad y E2E.
 
-- Planificación mensual de roles y asignaciones de servicio.
-- Registro y seguimiento de asistencia.
-- Calendario compartido de servicios con exportación.
-- Estadísticas e indicadores de salud del equipo.
-- Consultas conversacionales impulsadas por IA (OpenAI).
-- Gestión de usuarios, suspensiones y membresías departamentales.
+## Tecnologias Utilizadas
 
-La aplicación está diseñada para ser **mobile-first**, instalable como PWA, y con soporte completo de modo oscuro/claro.
+| Categoria | Tecnologia |
+| --- | --- |
+| Lenguaje | TypeScript, JavaScript |
+| Frontend | React 18, Vite 6 |
+| UI | Mantine 8, Mantine Dates, Mantine Notifications |
+| Iconos | Tabler Icons React |
+| Routing | React Router DOM 6 |
+| Estado servidor/cache | TanStack React Query 5 |
+| Calendario | React Big Calendar, Day.js |
+| Graficos | Mantine Charts, Recharts |
+| Backend/BaaS | Supabase Auth, PostgreSQL, Edge Functions, RPCs, RLS |
+| IA/NLP | Groq API compatible con OpenAI, modelo `llama-3.1-8b-instant`, via Edge Function `chat-ai` |
+| Validacion | Zod |
+| Exportacion | html-to-image, jsPDF, jspdf-autotable |
+| PWA | vite-plugin-pwa, Workbox |
+| Observabilidad | Sentry, Vercel Analytics |
+| Testing | Vitest, Testing Library, Playwright, axe-core/playwright |
+| Linting | ESLint 9, typescript-eslint |
+| Deploy | Vercel |
 
----
+## Arquitectura del Proyecto
 
-## 2. Stack Tecnológico
+La aplicacion sigue una arquitectura frontend modular por funcionalidades. El cliente React consume Supabase directamente para operaciones de datos autorizadas por RLS y usa Edge Functions para tareas privilegiadas o integraciones externas.
 
-| Capa | Tecnología |
-|---|---|
-| **Frontend** | React 18, TypeScript, Vite 6 |
-| **UI Framework** | Mantine 8.x (componentes + temas) |
-| **Iconos** | Tabler Icons React |
-| **Gráficos** | Mantine Charts (Recharts) |
-| **Calendario** | React Big Calendar |
-| **Routing** | React Router DOM v6 |
-| **Data Fetching** | TanStack React Query v5 |
-| **Backend / BaaS** | Supabase (Auth, Database, Edge Functions, Storage) |
-| **IA Conversacional** | OpenAI GPT (via Supabase Edge Function) |
-| **Exportación** | html-to-image, jsPDF, jspdf-autotable, XLSX |
-| **Fecha/Hora** | Day.js |
-| **PWA** | vite-plugin-pwa (Workbox) |
-| **Testing (Unit)** | Vitest + Testing Library |
-| **Testing (E2E)** | Playwright |
-| **Linting** | ESLint 9 + TypeScript ESLint |
-| **Deploy** | Vercel |
-
----
-
-## 3. Arquitectura
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   FRONTEND (Vite/React)             │
-│                                                     │
-│  ┌───────────┐  ┌────────────┐  ┌───────────────┐  │
-│  │  Auth     │  │  Dashboard │  │  Calendar     │  │
-│  │  Login    │  │  Stats/AI  │  │  Scheduling   │  │
-│  └───────────┘  └────────────┘  └───────────────┘  │
-│  ┌───────────┐  ┌────────────┐  ┌───────────────┐  │
-│  │ Planning  │  │ Attendance │  │  Analytics    │  │
-│  │  Wizard   │  │  Manager   │  │  Dashboard    │  │
-│  └───────────┘  └────────────┘  └───────────────┘  │
-│                                                     │
-│  React Query Cache ⟷ UserContext ⟷ usePermissions  │
-└───────────────────────┬─────────────────────────────┘
-                        │ HTTPS / REST / Realtime
-┌───────────────────────▼─────────────────────────────┐
-│                  SUPABASE BACKEND                   │
-│                                                     │
-│  ┌─────────────────┐  ┌──────────────────────────┐  │
-│  │  PostgreSQL DB  │  │  Edge Functions (Deno)   │  │
-│  │  + Row Level    │  │  - chat-ai (OpenAI)      │  │
-│  │    Security     │  │  - auth-claims-admin     │  │
-│  │  + RPCs         │  │  - check-birthdays       │  │
-│  └─────────────────┘  └──────────────────────────┘  │
-│  ┌─────────────────┐                                │
-│  │  Supabase Auth  │                                │
-│  │  (JWT + session)│                                │
-│  └─────────────────┘                                │
-└─────────────────────────────────────────────────────┘
-                        │ Deploy
-┌───────────────────────▼──────────┐
-│            Vercel (CDN)          │
-│  SPA + PWA + Service Worker      │
-└──────────────────────────────────┘
+```text
+Usuario
+  |
+  v
+React SPA / PWA
+  |
+  +-- React Router: rutas publicas y protegidas
+  +-- UserContext: sesion, perfil y membresias
+  +-- usePermissions: permisos derivados de roles
+  +-- React Query: cache y sincronizacion de datos
+  |
+  v
+Servicios frontend / Hooks
+  |
+  +-- Supabase Client
+  +-- Servicios de dominio
+  +-- Edge Functions
+  |
+  v
+Supabase
+  |
+  +-- Auth
+  +-- PostgreSQL
+  +-- Row Level Security
+  +-- RPCs SQL
+  +-- Edge Functions Deno
 ```
 
-### Flujo de Autenticación
+### Flujo de autenticacion
 
-1. El usuario ingresa su **nombre de usuario** (ej. `juan.perez`).
-2. La app construye un **email virtual** (`juan.perez@ayp.com`) y lo envía a Supabase Auth.
-3. Si es válido, Supabase retorna un JWT que se persiste en `localStorage`.
-4. `UserContext` carga el perfil (`user_profiles`) y las membresías departamentales (`membresias`) del usuario.
-5. `usePermissions` deriva todos los permisos funcionales a partir de las membresías.
+1. El usuario escribe un nombre de usuario y una contrasena en `/login`.
+2. El login transforma el nombre de usuario en un email interno con el formato `usuario@ayp.com`.
+3. Supabase Auth valida las credenciales con `signInWithPassword`.
+4. `UserProvider` obtiene la sesion activa, carga `user_profiles` y relaciona el usuario autenticado con `usuarios`.
+5. Se consultan las membresias del usuario en `membresias` junto con su `departamento`.
+6. `usePermissions` calcula permisos como administrador, lider, sublider, encargado o servidor.
+7. `ProtectedRoute` y `DashboardLayout` habilitan u ocultan secciones segun esos permisos.
 
----
+### Flujo de datos general
 
-## 4. Estructura de Directorios
+- Los componentes de `src/features` usan hooks y servicios para leer o escribir datos.
+- Los servicios en `src/services` encapsulan operaciones contra Supabase.
+- React Query gestiona cache, reintentos y actualizacion de datos.
+- Las reglas criticas de acceso deben vivir en Supabase RLS y RPCs; el frontend solo refleja permisos para UX.
+- Las Edge Functions se usan para IA, creacion de usuarios Auth, claims de administrador y notificaciones externas.
 
-```
+## Estructura del Proyecto
+
+```text
 ujieres-app/
-├── src/
-│   ├── assets/               # Imágenes estáticas
-│   ├── components/           # Componentes UI reutilizables globales
-│   │   ├── FullScreenLoader.tsx
-│   │   ├── RestrictedAccess.tsx
-│   │   ├── ErrorBoundary.tsx
-│   │   ├── SkeletonLoaders.tsx
-│   │   └── __tests__/        # Tests de componentes
-│   ├── constants/            # Constantes tipadas de la app
-│   │   ├── roles.ts          # Roles del sistema
-│   │   ├── departments.ts    # Nombres de departamentos
-│   │   └── attendance.ts     # Estados de asistencia
-│   ├── contexts/
-│   │   └── UserContext.tsx   # Estado global del usuario autenticado
-│   ├── features/             # Módulos por funcionalidad
-│   │   ├── admin/
-│   │   ├── analytics/        # Dashboard de estadísticas avanzadas
-│   │   ├── attendance/       # Registro de asistencia
-│   │   ├── auth/             # Login + PasswordChangeModal
-│   │   ├── calendar/         # Calendario de servicios + ScheduleView
-│   │   ├── dashboard/        # Panel principal + IA conversacional
-│   │   ├── departments/      # Gestión de departamentos y posiciones
-│   │   ├── planning/         # Wizard de planificación mensual
-│   │   ├── reports/          # Templates de reportes exportables
-│   │   └── users/            # Gestión de servidores y suspensiones
-│   ├── hooks/
-│   │   ├── usePermissions.ts # Hook de permisos funcionales
-│   │   ├── useDashboardData.ts
-│   │   └── queries/          # Hooks React Query especializados
-│   ├── layouts/
-│   │   └── DashboardLayout.tsx  # Layout principal con sidebar
-│   ├── services/             # Capa de acceso a Supabase
-│   │   ├── supabaseClient.ts
-│   │   ├── attendanceService.ts
-│   │   ├── analyticsService.ts
-│   │   ├── assignmentsService.ts
-│   │   ├── conversationalService.ts
-│   │   ├── recommendationService.ts
-│   │   ├── suspensionService.ts
-│   │   └── ImpactReportService.ts
-│   ├── test/
-│   │   └── setup.ts          # Setup global de Vitest (mocks de Supabase)
-│   ├── types/
-│   │   ├── index.ts          # Interfaces de dominio
-│   │   └── database.types.ts # Tipos autogenerados desde Supabase
-│   └── utils/
-│       ├── exclusionLogic.ts # Lógica de conflictos de asignación
-│       ├── exportHelper.ts   # Utilidades para exportar PDF/Excel
-│       ├── notificationsHelper.tsx
-│       ├── roleUtils.ts      # Parseo de roles jerárquicos
-│       └── calendar/         # Utilidades de calendario y colores
-├── tests/
-│   └── e2e/
-│       └── auth.spec.ts      # Tests E2E de Playwright
-├── supabase/
-│   ├── config.toml           # Configuración de Supabase CLI
-│   ├── functions/            # Edge Functions (Deno)
-│   │   ├── chat-ai/
-│   │   ├── auth-claims-admin/
-│   │   └── check-birthdays/
-│   └── migrations/           # Migraciones SQL versionadas
-├── public/                   # Assets públicos (logo, favicon)
-├── playwright.config.ts      # Configuración de Playwright E2E
-├── vite.config.ts            # Configuración de Vite + Vitest + PWA
-├── vercel.json               # Configuración de despliegue Vercel
-└── package.json
+|-- public/
+|   |-- logo-iglesia.png
+|   `-- vite.svg
+|-- src/
+|   |-- App.tsx
+|   |-- AppRoutes.tsx
+|   |-- main.tsx
+|   |-- assets/
+|   |-- components/
+|   |-- constants/
+|   |-- contexts/
+|   |-- features/
+|   |   |-- admin/
+|   |   |-- agenda/
+|   |   |-- analytics/
+|   |   |-- attendance/
+|   |   |-- auth/
+|   |   |-- calendar/
+|   |   |-- dashboard/
+|   |   |-- departments/
+|   |   |-- planning/
+|   |   |-- reports/
+|   |   `-- users/
+|   |-- hooks/
+|   |-- layouts/
+|   |-- schemas/
+|   |-- services/
+|   |-- test/
+|   |-- types/
+|   `-- utils/
+|-- supabase/
+|   |-- config.toml
+|   |-- functions/
+|   |-- migrations/
+|   `-- snippets/
+|-- tests/
+|   `-- e2e/
+|-- index.html
+|-- package.json
+|-- playwright.config.ts
+|-- tsconfig.json
+|-- vercel.json
+`-- vite.config.ts
 ```
 
----
+### Carpetas principales
 
-## 5. Modelo de Datos (Base de Datos)
+| Ruta | Proposito |
+| --- | --- |
+| `src/features` | Modulos funcionales de la aplicacion. |
+| `src/components` | Componentes reutilizables globales: loaders, boundaries, estados vacios, badges, proteccion de acceso. |
+| `src/layouts` | Layout principal con sidebar, header, navegacion y acciones de usuario. |
+| `src/contexts` | Contexto global de usuario autenticado y membresias. |
+| `src/hooks` | Hooks compartidos y hooks de consulta con React Query. |
+| `src/services` | Capa de acceso a Supabase y servicios de dominio. |
+| `src/schemas` | Esquemas Zod para validar formularios o entradas. |
+| `src/utils` | Utilidades de roles, calendario, exportacion, disponibilidad y logica de exclusion. |
+| `src/types` | Tipos de dominio y tipos generados desde Supabase. |
+| `supabase/migrations` | Migraciones SQL versionadas. |
+| `supabase/functions` | Edge Functions escritas para Deno. |
+| `tests/e2e` | Pruebas end-to-end con Playwright. |
 
-### Tablas Principales
+## Modulos Funcionales
 
-| Tabla | Descripción |
-|---|---|
-| `usuarios` | Perfil público de cada servidor (nombre, apellido, género, fecha_nacimiento) |
-| `user_profiles` | Vincula el usuario de Supabase Auth (`auth.users`) con la tabla `usuarios` |
-| `departamentos` | Departamentos de la iglesia (Servidores, Consolidación, etc.) |
-| `membresias` | Membresía de un usuario en un departamento con su `rol_jerarquico` |
-| `posiciones_departamento` | Posiciones disponibles en cada departamento (Ujier, Encargado de Puerta, etc.) |
-| `configuracion_dia` | Configuración de cada día de servicio (fecha, tipo_servicio, uniforme) |
-| `roles_cabecera` | Vincula un `configuracion_dia` con un `departamento` para el mes/año |
-| `asignaciones` | Asignación de un usuario a una posición en un día de servicio |
-| `asistencias` | Registro de asistencia de un usuario en un día específico |
-| `suspensiones` | Registro de suspensiones temporales de servidores |
+### Autenticacion
 
-### Relaciones Clave
+Archivos principales:
 
-```
-usuarios ──< membresias >── departamentos
-usuarios ──< asignaciones >── posiciones_departamento
-asignaciones >── configuracion_dia ──< roles_cabecera >── departamentos
-asistencias >── configuracion_dia
-asistencias >── usuarios
-suspensiones >── usuarios
-user_profiles ── usuarios
-```
+- `src/features/auth/Login.jsx`
+- `src/features/auth/components/PasswordChangeModal.tsx`
+- `src/schemas/auth.schema.ts`
+- `src/services/supabaseClient.ts`
 
-### Estados de Asistencia
+Incluye login con usuario/contrasena, validacion con Zod, cambio de contrasena y persistencia de sesion mediante Supabase Auth.
 
-| Constante | Valor |
-|---|---|
-| `ATTENDANCE_STATES.ASISTIO` | `"Asistió"` |
-| `ATTENDANCE_STATES.CON_JUSTIFICACION` | `"Faltó con Aviso"` |
-| `ATTENDANCE_STATES.SIN_JUSTIFICACION` | `"Faltó sin Aviso"` |
-| `ATTENDANCE_STATES.AUSENTE` | `"Ausente"` |
+### Dashboard
 
----
+Archivos principales:
 
-## 6. Sistema de Roles y Permisos
+- `src/features/dashboard/Dashboard.tsx`
+- `src/features/dashboard/components/AiQueryWidget.tsx`
+- `src/hooks/useDashboardData.ts`
 
-### Roles Jerárquicos (por `membresias.rol_jerarquico`)
+Presenta informacion resumida del usuario y del equipo. El widget conversacional interpreta consultas mediante la Edge Function `chat-ai` y luego ejecuta consultas internas sobre asistencia, asignaciones y eventos.
 
-| Rol | Descripción |
-|---|---|
-| `Admin` | Administrador del sistema. Acceso total. Solo en dept. `Administración`. |
-| `Líder` | Líder de departamento. Gestión completa de su dept. |
-| `Sublíder` | Sublíder de departamento. Mismos permisos que Líder. |
-| `Encargado` / `Encargada` | Encargado de área. Puede registrar asistencia. |
-| `Servidor` / `Servidora` | Miembro estándar. Solo puede ver su propio rol. |
+### Calendario
 
-### Hook `usePermissions`
+Archivos principales:
 
-Centraliza toda la lógica de permisos. Se llama en cualquier componente que necesite controlar visibilidad o acciones.
+- `src/features/calendar/ScheduleView.tsx`
+- `src/features/calendar/CustomCalendar.tsx`
+- `src/features/calendar/components/*`
+- `src/features/calendar/hooks/*`
 
-```typescript
-const {
-  isSystemAdmin,             // true si tiene rol 'Admin' en 'Administración'
-  canManageDepartment(deptId), // Líder/Sublíder/Admin del departamento
-  canManageUsers,            // Cualquier líder o Admin
-  canCreateSchedule(deptId), // Puede crear planificación mensual
-  canModifyAssignments(deptId), // Puede editar asignaciones
-  canManageAttendance(deptId), // Puede registrar asistencia (solo Servidores)
-  canViewReports(deptId),    // Puede ver reportes e indicadores
-  canViewAllSchedules,       // Puede ver calendarios de todos los deptos
-  isServidoresMember,        // Es miembro de cualquier rol en Servidores
-  isLiderOrSublider,         // Es Líder o Sublíder en cualquier depto
-  isLiderSubliderEncargadoServidores, // Para acceso a Asistencia
-  isLiderOrSubliderServidores, // Para acceso a Servidores y Suspensiones
-} = usePermissions();
-```
+Permite visualizar servicios, asignaciones, uniformes, encargados y listas detalladas. Tambien incluye utilidades de exportacion de imagen.
 
-### Visibilidad de Menú por Rol
+### Planificacion
 
-| Sección | Miembro | Encargado | Líder/Sublíder | Admin |
-|---|---|---|---|---|
-| Dashboard | ✅ | ✅ | ✅ | ✅ |
-| Calendario | ✅ | ✅ | ✅ | ✅ |
-| Planificación | ❌ | ❌ | ✅ | ✅ |
-| Departamentos | ❌ | ❌ | ✅ | ✅ |
-| Estadísticas | ❌ | ❌ | ✅ | ✅ |
-| Analítica Global | ❌ | ❌ | ❌ | ✅ |
-| Servidores | ❌ | ❌ | ✅ (Serv.) | ✅ |
-| Suspensiones | ❌ | ❌ | ✅ (Serv.) | ✅ |
-| Asistencia | ❌ | ✅ (Serv.) | ✅ (Serv.) | ✅ |
+Archivos principales:
 
----
+- `src/features/planning/PlanningWizard.tsx`
+- `src/features/planning/context/PlanningContext.tsx`
+- `src/features/planning/hooks/useAutoAssign.ts`
+- `src/features/planning/components/*`
 
-## 7. Módulos y Funcionalidades
+Implementa un wizard para planificar por departamento, mes, fechas de servicio, cuotas por posicion y revision final. La asignacion automatica usa reglas de disponibilidad, suspensiones, carga reciente, liderazgo, genero requerido, experiencia y prioridad reducida para servidores trimestrales.
 
-### 7.1 Dashboard (`/`)
+### Asistencia
 
-Panel principal personalizado para cada usuario.
+Archivos principales:
 
-**Para todos los usuarios:**
-- Tarjeta de bienvenida con el nombre del servidor.
-- Lista de **próximos servicios** asignados (máx. 5) con fecha, tipo, uniforme y posición.
-- Recordatorio automático si hay un servicio en las próximas 48 horas.
-- Estadísticas de asistencia personal (tasa de asistencia, mes anterior).
-- Botones: **Exportar PDF** del rol mensual y **Compartir** via Web Share API.
+- `src/features/attendance/AttendanceManager.tsx`
+- `src/features/attendance/AttendanceRegistry.tsx`
+- `src/features/attendance/PersonalAttendance.tsx`
+- `src/services/attendanceService.ts`
+- `src/constants/attendance.ts`
 
-**Para Encargados/Líderes adicionalmente:**
-- Selector de departamento para ver estadísticas del equipo.
-- Gráfico de donut: distribución de asistencia vs. faltas del departamento.
-- Gráfico de barras: tendencia mensual de asistencia.
-- Widget de **IA Conversacional** para consultas en lenguaje natural.
+Gestiona estados de asistencia:
 
-### 7.2 IA Conversacional (`AiQueryWidget`)
+- `Asistio`
+- `Ausente`
+- `Falto con Aviso`
+- `Falto sin Aviso`
 
-Widget en el Dashboard que permite consultas en lenguaje natural.
+Tambien soporta tipos de justificacion como trabajo, salud, permiso pastoral, distancia u otro.
 
-**Cómo funciona:**
-1. El usuario escribe una pregunta (ej. *"¿Cómo va la asistencia este mes?"*).
-2. La app envía la consulta a la Edge Function `chat-ai`.
-3. La función llama a OpenAI para interpretar la **intención** (`intent`) y extraer entidades.
-4. El `conversationalService` ejecuta la consulta real en Supabase.
-5. La respuesta se presenta como texto, gráfico (donut/barra) o lista.
+### Usuarios y suspensiones
 
-**Intenciones soportadas:**
+Archivos principales:
 
-| Intent | Ejemplo de consulta | Respuesta |
-|---|---|---|
-| `attendance_summary` | "Resumen de asistencia" | Gráfico donut |
-| `top_servers` | "Top servidores del mes" | Gráfico de barras |
-| `absentees` | "¿Quién ha faltado?" | Lista de ausentes |
-| `upcoming_events` | "¿Cuándo es el próximo servicio?" | Lista de eventos |
-| `discipline_alerts` | "Alertas de disciplina" | Lista de usuarios en riesgo |
-| `specific_user` | "¿Cómo va Juan Pérez?" | Informe textual del usuario |
+- `src/features/users/UsersList.tsx`
+- `src/features/users/SuspensionManager.tsx`
+- `src/features/users/AvailabilityManager.tsx`
+- `src/services/suspensionService.ts`
 
-### 7.3 Calendario (`/calendar`)
+Permite administrar servidores, membresias, disponibilidad y periodos de suspension o inactividad.
 
-Vista de calendario interactiva de los servicios del departamento.
+### Departamentos
 
-- Vista mensual con color por tipo de uniforme.
-- Click en un día para ver/editar asignaciones.
-- Soporte para **intercambio de roles** entre servidores (swap).
-- Validación de conflictos: un servidor no puede estar asignado dos veces en el mismo día.
-- La lógica de exclusión usa el RPC `get_blocked_users` para detectar conflictos globales entre departamentos.
-- **Exportación** del calendario completo como imagen de alta resolución.
+Archivos principales:
 
-### 7.4 Planificación (`/planning`)
+- `src/features/departments/DepartmentsList.tsx`
+- `src/features/departments/PositionsManager.tsx`
+- `src/features/departments/UniformsManager.tsx`
 
-Wizard paso a paso para crear el rol mensual.
+Permite gestionar departamentos, posiciones disponibles y uniformes asociados.
 
-**Pasos del Wizard:**
-1. **Seleccionar Departamento** — Departamentos que el usuario puede gestionar.
-2. **Configurar Mes** — Mes y año objetivo.
-3. **Agregar Días** — Seleccionar fechas, tipo de servicio y color de uniforme.
-4. **Asignar Usuarios** — Para cada día y posición, seleccionar servidores disponibles. El sistema filtra automáticamente usuarios ya asignados, bloqueados por suspensión, o que no cumplen requisitos de género de la posición.
-5. **Revisar y Confirmar** — Vista previa del rol antes de guardar.
+### Agenda
 
-### 7.5 Asistencia (`/attendance`)
+Archivos principales:
 
-Pantalla para registrar la asistencia de los servidores en un día de servicio.
+- `src/features/agenda/Agenda.tsx`
+- `src/features/agenda/AgendaNotificationModal.tsx`
+- `src/services/agendaService.ts`
 
-- Selección de día de servicio del departamento.
-- Lista de todos los miembros del departamento con estados: `Asistió`, `Faltó con Aviso`, `Faltó sin Aviso`.
-- Campo de justificación para ausencias con aviso.
-- Registro de hora de llegada opcional.
-- Guardado masivo con upsert (crea o actualiza registros).
+Permite crear, listar y marcar eventos de agenda como vistos por usuario.
 
-### 7.6 Estadísticas (`/analytics`)
+TODO: `agendaService.ts` usa las tablas `agenda_eventos` y `agenda_eventos_vistos`, pero estas no aparecen en `src/types/database.types.ts` dentro de la version inspeccionada. Conviene actualizar los tipos de Supabase y confirmar que las migraciones correspondientes esten versionadas.
 
-Dashboard de análisis para líderes.
+### Analitica y reportes
 
-**Métricas disponibles:**
-- Resumen de asistencia (total, tasa, comparativa mes anterior).
-- **Gráfico de tendencia semanal** (últimas 12 semanas).
-- **Heatmap anual** de asistencia.
-- **Detección de riesgo de baja** (`churnRisk`): servidores con >50% de faltas en 4 semanas.
-- **Distribución demográfica**: género y rangos etarios.
-- **Tendencias de puntualidad**: temprano, a tiempo, tarde.
+Archivos principales:
 
-### 7.7 Analítica Global (`/admin/analytics`)
+- `src/features/analytics/AnalyticsDashboard.tsx`
+- `src/features/analytics/AdminAnalytics.tsx`
+- `src/features/analytics/components/ActivityHeatmap.tsx`
+- `src/features/reports/*`
+- `src/services/analyticsService.ts`
+- `src/services/ImpactReportService.ts`
 
-Panel exclusivo para Administradores del sistema.
+Incluye analitica departamental, analitica global para administradores y reportes exportables.
 
-- Vista de salud de **todos los departamentos** simultáneamente.
-- Ranking de departamentos por tasa de asistencia (últimos 3 meses).
-- Total de servidores activos por departamento.
+## Roles y Permisos
 
-### 7.8 Servidores (`/servers`)
+Los roles principales estan definidos en `src/constants/roles.ts`:
 
-Gestión completa de los miembros del departamento.
+| Rol | Uso esperado |
+| --- | --- |
+| `Admin` | Administracion global del sistema. |
+| `Lider` | Gestion de departamento y reportes. |
+| `Sublider` | Gestion delegada de departamento. |
+| `Encargado` / `Encargada` | Gestion operativa, especialmente asistencia en Servidores. |
+| `Servidor` / `Servidora` | Usuario base con acceso personal. |
 
-- Listado con búsqueda, filtros de género, rol y estado.
-- Crear y editar perfiles de usuarios.
-- Vincular usuarios a cuentas de autenticación.
-- Gestionar membresías y roles jerárquicos.
-- Ver historial de asistencia y asignaciones.
-- **Importación masiva desde Excel/CSV**.
+Los permisos se calculan en `src/hooks/usePermissions.ts` a partir de `membresias.rol_jerarquico` y el departamento asociado.
 
-### 7.9 Suspensiones (`/suspensions`)
+Permisos destacados:
 
-Gestión de suspensiones temporales de servidores.
+- Gestion de departamentos.
+- Gestion de usuarios.
+- Creacion de planificaciones.
+- Modificacion de asignaciones.
+- Gestion de asistencia.
+- Visualizacion de reportes.
+- Visualizacion de calendarios globales.
 
-- Listar suspensiones activas e históricas.
-- Crear suspensiones por fecha de inicio/fin y motivo.
-- Los servidores suspendidos quedan excluidos automáticamente de la planificación.
+## Base de Datos
 
-### 7.10 Departamentos (`/departments`)
+La base de datos principal es PostgreSQL administrada por Supabase. El archivo `src/types/database.types.ts` muestra las tablas y RPCs utilizadas por el frontend.
 
-Gestión de la estructura departamental.
+### Tablas detectadas en tipos
 
-- Configurar posiciones disponibles (nombre, género requerido, orden).
-- Administrar colores y configuración por departamento.
+| Tabla | Proposito |
+| --- | --- |
+| `usuarios` | Datos de servidores/personas. |
+| `user_profiles` | Vinculo entre `auth.users` y `usuarios`. |
+| `departamentos` | Departamentos disponibles. |
+| `membresias` | Relacion usuario-departamento con rol jerarquico. |
+| `posiciones_departamento` | Posiciones o funciones dentro de un departamento. |
+| `uniformes_departamento` | Uniformes asociados a departamentos. |
+| `configuracion_dia` | Configuracion de fechas de servicio. |
+| `roles_cabecera` | Agrupacion de planificacion por departamento/configuracion. |
+| `asignaciones` | Asignaciones de usuarios a posiciones en fechas de servicio. |
+| `asistencias` | Registros de asistencia y justificaciones. |
+| `horarios_no_disponibilidad` | Restricciones de disponibilidad por dia/turno. |
+| `suspensiones` | Suspensiones temporales o inactividad. |
+| `directorio_usuarios` | Vista/relacion usada por tipos generados. |
 
----
+### RPCs detectadas
 
-## 8. Edge Functions (Backend Serverless)
+- `get_attendance_detailed`
+- `get_weekly_attendance_trend`
+- `get_churn_risk`
+- `get_birthdays_today`
+- `get_blocked_users`
+- `get_current_month_stats`
+- `get_demographic_stats`
+- `get_global_attendance_health`
+- `get_annual_attendance_heatmap`
+- `get_punctuality_stats`
+- `get_user_departments`
+- `is_dept_leader`
+- `is_global_admin`
+- `is_servidores_leader`
+- `search_users_fuzzy`
+- `end_suspension`
 
-Ubicadas en `supabase/functions/`, se ejecutan en el runtime **Deno** de Supabase.
+### Seguridad de datos
 
-### `chat-ai`
+El repositorio contiene migraciones para:
 
-Puente entre la app y OpenAI GPT.
+- Helpers de permisos en SQL.
+- Politicas RLS.
+- Indices de rendimiento.
+- RPCs de analitica y busqueda.
+- Control de suspensiones.
+- Validacion de usuarios bloqueados por fecha/servicio.
 
-**Request:**
-```json
-{ "query": "¿Cómo va la asistencia este mes?" }
-```
+La seguridad real debe validarse siempre en Supabase, no solo en el frontend.
 
-**Response:**
-```json
-{
-  "intent": "attendance_summary",
-  "startDate": "2026-04-01",
-  "nameFragment": null
-}
+## Edge Functions
+
+Las funciones se encuentran en `supabase/functions`.
+
+| Funcion | Proposito | Variables relevantes |
+| --- | --- | --- |
+| `chat-ai` | Interpreta consultas del dashboard y devuelve una intencion estructurada. | `GROQ_API_KEY`, `SENTRY_DSN` |
+| `create-user-auth` | Crea usuarios en Supabase Auth y los vincula con `user_profiles`. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `auth-claims-admin` | Agrega claims de administrador mediante hook seguro. | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HOOK_SECRET`, `SENTRY_DSN` |
+| `check-birthdays` | Consulta cumpleanos del dia y envia correo. | `FUNCTION_SECRET`, `GMAIL_APP_PASSWORD`, `GMAIL_SENDER_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY` |
+| `notify-attendance` | Envia notificaciones de asistencia por correo y opcionalmente WhatsApp. | `FUNCTION_SECRET`, `GMAIL_*`, `TWILIO_*`, `SUPABASE_SERVICE_ROLE_KEY` |
+
+TODO: En `supabase/config.toml` solo aparece configurada explicitamente la funcion `chat-ai`. Si las demas se despliegan, conviene documentar el flujo de despliegue o agregarlas a la configuracion si aplica.
+
+## Variables de Entorno
+
+El archivo `.env.example` define las variables requeridas para el frontend:
+
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_SENTRY_DSN=https://your-sentry-dsn-here
 ```
 
-Requiere la variable de entorno `OPENAI_API_KEY` configurada en Supabase.
+### Variables para Edge Functions
 
-### `auth-claims-admin`
+Estas no aparecen en `.env.example`, pero se usan en las funciones Supabase:
 
-Gestiona los custom claims JWT del usuario (ej. rol de admin). Se invoca al asignar o quitar el rol de Administrador.
+```env
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SENTRY_DSN=
+GROQ_API_KEY=
+HOOK_SECRET=
+FUNCTION_SECRET=
+GMAIL_APP_PASSWORD=
+GMAIL_SENDER_EMAIL=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_WHATSAPP_FROM=
+```
 
-### `check-birthdays`
+Nunca expongas `SUPABASE_SERVICE_ROLE_KEY`, secretos de correo, Twilio o Groq en variables `VITE_*`, porque esas variables se empaquetan en el cliente.
 
-Scheduled function que detecta cumpleaños de servidores y puede enviar notificaciones.
+## Requisitos Previos
 
----
+- Node.js compatible con Vite 6 y TypeScript 5.9.
+- npm.
+- Proyecto Supabase configurado.
+- Supabase CLI si se van a ejecutar migraciones o funciones localmente.
+- Credenciales de servicios externos segun las funciones que se quieran usar: Groq, Sentry, Gmail SMTP y Twilio.
 
-## 9. RPCs de Base de Datos
+TODO: El repositorio no define `engines` en `package.json`. Se recomienda fijar una version minima de Node.js para evitar diferencias entre entornos.
 
-Funciones PostgreSQL expuestas como RPCs de Supabase:
+## Instalacion
 
-| RPC | Descripción |
-|---|---|
-| `get_blocked_users(p_date, p_exclude_role_id)` | Retorna IDs de usuarios con conflictos de asignación para una fecha |
-| `get_attendance_detailed(p_config_dia_id, p_dept_id)` | Vista detallada de asistencia con usuario y posición |
-| `get_weekly_attendance_trend(p_dept_id, p_weeks)` | Tendencia semanal de asistencia |
-| `get_annual_attendance_heatmap(p_dept_id, p_start_date)` | Datos para heatmap anual |
-| `get_churn_risk(p_dept_id, p_weeks)` | Usuarios con alto riesgo de abandono |
-| `get_global_attendance_health(p_start_date)` | Salud de asistencia global por departamento |
-| `search_users_fuzzy(p_dept_id, p_search_query)` | Búsqueda de usuarios por nombre con pg_trgm |
-| `get_birthdays_today()` | Servidores que cumplen años hoy |
-| `get_is_servidores_leader(p_user_id)` | Verifica si el usuario es líder de Servidores |
-
----
-
-## 10. Configuración e Instalación
-
-### Prerrequisitos
-
-- Node.js ≥ 20.x
-- npm ≥ 10.x
-- Cuenta en [Supabase](https://supabase.com)
-- Supabase CLI (`npm i -g supabase`)
-
-### Instalación
+1. Clonar el repositorio:
 
 ```bash
-# 1. Clonar el repositorio
-git clone <repo-url>
+git clone <url-del-repositorio>
 cd ujieres-app
+```
 
-# 2. Instalar dependencias
+2. Instalar dependencias:
+
+```bash
 npm install
+```
 
-# 3. Instalar navegadores para Playwright (pruebas E2E)
-npx playwright install chromium
+3. Crear archivo de entorno:
 
-# 4. Configurar variables de entorno
+```bash
 cp .env.example .env.development
-# Editar .env.development con tus credenciales de Supabase
+```
 
-# 5. Iniciar el servidor de desarrollo
+En Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env.development
+```
+
+4. Completar las variables de Supabase y Sentry en `.env.development`.
+
+## Ejecucion en Desarrollo
+
+Iniciar Vite:
+
+```bash
 npm run dev
 ```
 
----
+Por configuracion de `vite.config.ts`, el servidor local usa:
 
-## 11. Variables de Entorno
-
-Crear un archivo `.env.development` en la raíz:
-
-```env
-VITE_SUPABASE_URL=https://<tu-project-id>.supabase.co
-VITE_SUPABASE_ANON_KEY=<tu-anon-key>
+```text
+http://127.0.0.1:3000
 ```
 
-> **Nota:** Para producción, estas variables deben configurarse en el panel de Vercel bajo _Settings → Environment Variables_.
-
-### Variables de Supabase (Edge Functions)
-
-En el panel de Supabase, bajo _Project Settings → Edge Functions → Secrets_:
-
-```
-OPENAI_API_KEY=sk-...  # Requerida para el módulo de IA conversacional
-```
-
----
-
-## 12. Guía de Desarrollo
-
-### Scripts Disponibles
+Vista previa de build:
 
 ```bash
-npm run dev          # Inicia servidor local en http://127.0.0.1:3000
-npm run build        # Compila TypeScript y genera el bundle de producción
-npm run preview      # Previsualiza el bundle de producción localmente
-npm run lint         # Ejecuta ESLint en todo el proyecto
-
-# Testing
-npm test             # Vitest en modo watch (unit tests)
-npx vitest run       # Vitest una sola corrida (para CI)
-npx playwright test  # Pruebas E2E en Chromium
-npx playwright test --ui  # Pruebas E2E con interfaz visual interactiva
-```
-
-### Agregar un Nuevo Módulo
-
-1. Crear la carpeta `src/features/<nombre-modulo>/`.
-2. Crear el componente principal `<NombreModulo>.tsx`.
-3. Registrar la ruta en `src/App.tsx` con el guard de permisos correspondiente.
-4. Agregar el link al menú lateral en `src/layouts/DashboardLayout.tsx`.
-5. Si necesita datos de Supabase, crear el service en `src/services/<nombreService>.ts`.
-6. Si los datos se reutilizan en múltiples vistas, crear un hook en `src/hooks/`.
-
-### Actualizar Tipos de Base de Datos
-
-Cuando cambia el esquema en Supabase, regenerar los tipos:
-
-```bash
-node save_types.cjs
-```
-
-Esto actualiza `src/types/database.types.ts` con los tipos más recientes.
-
----
-
-## 13. Testing
-
-La suite de testing cubre dos niveles:
-
-### 13.1 Unit Tests (Vitest)
-
-Ubicados en carpetas `__tests__/` junto a los módulos que prueban.
-
-```
-src/
-  utils/__tests__/exclusionLogic.test.ts        # Lógica de conflictos de asignación
-  components/__tests__/FullScreenLoader.test.tsx # Componente de carga
-  components/__tests__/RestrictedAccess.test.tsx # Componente de acceso restringido
-  features/calendar/hooks/useAvailableUsersForSwap.test.ts # Hook de filtrado de usuarios
-```
-
-**Ejecución:**
-```bash
-npx vitest run --reporter=verbose
-# Expected: 4 test files, 11 tests passed ✅
-```
-
-**Mocks disponibles globalmente (via `src/test/setup.ts`):**
-- `supabase.from()` — mock de consultas a tablas.
-- `supabase.rpc()` — mock de llamadas RPC.
-- `supabase.auth` — mock de sesión, signIn, signOut.
-- `window.matchMedia` — requerido por Mantine.
-
-### 13.2 E2E Tests (Playwright)
-
-Ubicados en `tests/e2e/`.
-
-```
-tests/e2e/
-  auth.spec.ts  # Flujos de autenticación
-```
-
-**Pruebas incluidas:**
-
-| Prueba | Descripción |
-|---|---|
-| Redirect sin sesión | La app redirige a `/login` al acceder a `/` sin sesión |
-| Error de contraseña corta | Muestra error JS cuando la contraseña es < 6 caracteres |
-| Error de usuario vacío | Dispara validación de campo requerido vía JS submit |
-| Branding de la página | Verifica título y texto de bienvenida |
-
-**Ejecución:**
-```bash
-npx playwright test
-# Expected: 4 tests passed, 1 passed (34.9s) ✅
-
-npx playwright test --ui  # Modo visual interactivo
-npx playwright show-report  # Ver reporte HTML de última ejecución
-```
-
-> El servidor de desarrollo (`npm run dev`) se inicia automáticamente antes de las pruebas E2E gracias a la directiva `webServer` en `playwright.config.ts`.
-
----
-
-## 14. Despliegue
-
-La app se despliega en **Vercel** con CI/CD automático desde el branch principal.
-
-### Configuración de Vercel (`vercel.json`)
-
-El archivo `vercel.json` incluye rewrites para que React Router funcione correctamente en producción (SPA routing):
-
-```json
-{
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-}
-```
-
-### Pasos de Despliegue Manual
-
-```bash
-# Compilar
-npm run build
-
-# Previsualizar localmente antes de subir
 npm run preview
 ```
 
-Vercel detecta los cambios en el repositorio y despliega automáticamente.
+## Scripts Disponibles
 
-### Migraciones de Base de Datos
+| Script | Comando | Descripcion |
+| --- | --- | --- |
+| Desarrollo | `npm run dev` | Inicia Vite en `127.0.0.1:3000`. |
+| Build | `npm run build` | Ejecuta `tsc -b` y genera build con Vite. |
+| Preview | `npm run preview` | Sirve el build generado localmente. |
+| Lint | `npm run lint` | Ejecuta ESLint sobre el proyecto. |
+| Tests unitarios | `npm run test` | Ejecuta Vitest. |
+| Tests UI | `npm run test:ui` | Abre la interfaz de Vitest. |
+| Tests E2E | `npm run test:e2e` | Ejecuta Playwright. |
+| Tests E2E UI | `npm run test:e2e:ui` | Abre la interfaz de Playwright. |
+| Tests seguridad | `npm run test:security` | Ejecuta pruebas bajo `src/test/security`. |
 
-Las migraciones se aplican con la CLI de Supabase:
+## Testing
+
+El proyecto contiene pruebas en varias capas:
+
+- Unitarias y componentes: `src/**/__tests__`.
+- Hooks y servicios: `src/hooks`, `src/services`, `src/utils`.
+- Seguridad/RLS: `src/test/security`.
+- E2E: `tests/e2e`.
+
+Ejecutar pruebas unitarias:
 
 ```bash
-supabase db push  # Aplica migraciones pendientes a producción
-supabase migration new <nombre>  # Crea una nueva migración
+npm run test
 ```
 
----
+Ejecutar pruebas E2E:
 
-## 15. Convenciones de Código
-
-### Nomenclatura
-
-- **Componentes React:** PascalCase (`DepartmentsList.tsx`)
-- **Hooks:** camelCase con prefijo `use` (`usePermissions.ts`)
-- **Services:** camelCase con sufijo `Service` (`attendanceService.ts`)
-- **Constantes:** UPPER_SNAKE_CASE (`ATTENDANCE_STATES`)
-- **Archivos de test:** `<Componente>.test.tsx` o `<Componente>.test.ts`
-
-### Estructura de un Feature Module
-
-```
-features/mi-modulo/
-├── MiModulo.tsx          # Componente principal / página
-├── components/           # Sub-componentes específicos del módulo
-├── hooks/                # Hooks locales del módulo
-├── context/              # Contexto local si aplica
-└── mi-modulo.css         # Estilos específicos (si aplica)
+```bash
+npm run test:e2e
 ```
 
-### Acceso a Supabase
+Playwright levanta automaticamente `npm run dev` usando `playwright.config.ts`.
 
-- **Nunca** llamar a Supabase directamente desde un componente. Siempre usar la capa `services/`.
-- En componentes, usar **React Query** para cachear y gestionar el estado de las peticiones.
-- Para mutaciones (INSERT/UPDATE/DELETE), usar `useMutation` de React Query.
+## Build y Produccion
 
-### Permisos
+Generar build de produccion:
 
-- **Nunca** ocultar funcionalidades basándose en strings de rol directamente. Siempre usar `usePermissions()`.
-- Las rutas protegidas se configuran en `App.tsx`.
+```bash
+npm run build
+```
 
----
+El build final se genera en `dist/`.
 
-## Contacto y Soporte
+La configuracion de `vite.config.ts` incluye:
 
-Para reportar problemas o solicitar nuevas funcionalidades, contactar al equipo de desarrollo de AYP.
+- React plugin.
+- PWA con `autoUpdate`.
+- Cache de Google Fonts.
+- Cache de imagenes.
+- Estrategia `NetworkFirst` para llamadas a Supabase.
+- Separacion manual de chunks para frameworks, Supabase y utilidades.
+- Limite de advertencia de chunks en `1600`.
 
-> *Documentación generada el 14 de abril de 2026.*
+### Despliegue en Vercel
+
+El archivo `vercel.json` configura:
+
+- Rewrites hacia `index.html` para soportar React Router en SPA.
+- Headers de seguridad:
+  - `X-Content-Type-Options`
+  - `X-Frame-Options`
+  - `X-XSS-Protection`
+  - `Referrer-Policy`
+  - `Permissions-Policy`
+  - `Strict-Transport-Security`
+  - `Content-Security-Policy`
+- Cache-Control estricto para `sw.js` e `index.html`.
+
+Checklist minimo para produccion:
+
+- Configurar `VITE_SUPABASE_URL`.
+- Configurar `VITE_SUPABASE_ANON_KEY`.
+- Configurar `VITE_SENTRY_DSN` si se usara observabilidad frontend.
+- Configurar secretos de Edge Functions en Supabase.
+- Aplicar migraciones de Supabase.
+- Verificar politicas RLS.
+- Ejecutar `npm run lint`.
+- Ejecutar `npm run test`.
+- Ejecutar `npm run test:e2e` para flujos criticos.
+- Ejecutar `npm run build`.
+
+## Supabase Local
+
+El repositorio incluye `supabase/config.toml`, migraciones y funciones. Si tienes Supabase CLI instalado, el flujo tipico es:
+
+```bash
+npx supabase start
+npx supabase db reset
+```
+
+Para desplegar migraciones o funciones a un proyecto remoto se deben usar los comandos de Supabase CLI correspondientes y los secretos configurados en Supabase.
+
+TODO: No se encontro un `seed.sql` en la lista de archivos inspeccionada, aunque `supabase/config.toml` referencia `./seed.sql`. Confirmar si el seed se mantiene fuera del repositorio o si debe agregarse.
+
+## Convenciones de Desarrollo
+
+- Mantener modulos nuevos dentro de `src/features/<modulo>`.
+- Encapsular acceso a Supabase en `src/services` o hooks dedicados.
+- Usar React Query para datos remotos reutilizados.
+- Usar Zod para validar entradas de usuario.
+- Reutilizar constantes de `src/constants` para roles, departamentos y estados.
+- No duplicar reglas criticas de permisos solo en UI; deben existir tambien en RLS/RPCs.
+- Agregar pruebas cuando se modifique logica compartida, permisos, planificacion, asistencia o servicios.
+- Evitar exponer secretos en el cliente.
+
+## Solucion de Problemas
+
+### `Faltan las variables de entorno de Supabase`
+
+El cliente Supabase lanza este error cuando faltan:
+
+```env
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+```
+
+Revisa `.env.development` y reinicia `npm run dev`.
+
+### Pantalla protegida redirige o muestra acceso restringido
+
+Verifica:
+
+- Que el usuario tenga un registro en `user_profiles`.
+- Que `user_profiles.usuario_id` apunte a un registro valido en `usuarios`.
+- Que existan membresias en `membresias`.
+- Que `rol_jerarquico` coincida con los roles esperados por `parseRoles`.
+
+### El asistente conversacional no responde
+
+Verifica:
+
+- Edge Function `chat-ai` desplegada.
+- `GROQ_API_KEY` configurada como secret de Supabase.
+- Usuario autenticado, ya que `chat-ai` requiere Authorization Bearer.
+- Logs de Supabase Edge Functions y Sentry.
+
+### Playwright no encuentra la app
+
+`playwright.config.ts` espera la app en:
+
+```text
+http://127.0.0.1:3000
+```
+
+Si el puerto esta ocupado, libera el puerto o ajusta la configuracion.
+
+### PWA o service worker sirve contenido viejo
+
+El proyecto usa `vite-plugin-pwa` con `autoUpdate`. En problemas de cache:
+
+- Recargar con cache deshabilitado desde DevTools.
+- Borrar datos del sitio en el navegador.
+- Verificar que `sw.js` no quede cacheado por CDN. `vercel.json` ya define `max-age=0, must-revalidate`.
+
+### Error de CSP en produccion
+
+`vercel.json` restringe conexiones a `self`, Supabase, Groq y Sentry. Si se agrega una integracion externa, actualizar `connect-src`, `img-src`, `font-src` o la directiva que corresponda.
+
+## Estado y Pendientes
+
+- TODO: Confirmar version minima oficial de Node.js y agregar `engines` a `package.json`.
+- TODO: Confirmar y versionar migraciones de `agenda_eventos` y `agenda_eventos_vistos`, o regenerar `database.types.ts`.
+- TODO: Confirmar si `supabase/seed.sql` debe existir en el repositorio, ya que `supabase/config.toml` lo referencia.
+- TODO: Documentar comandos exactos de despliegue de Edge Functions si forman parte del flujo operativo del equipo.
+- TODO: Revisar textos con caracteres corruptos en archivos fuente heredados y normalizar codificacion a UTF-8.
+
+## Contribucion
+
+1. Crear una rama descriptiva.
+2. Instalar dependencias con `npm install`.
+3. Configurar `.env.development`.
+4. Implementar cambios siguiendo la organizacion por features.
+5. Ejecutar lint y pruebas relevantes:
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+6. Para cambios de flujo completo, ejecutar:
+
+```bash
+npm run test:e2e
+```
+
+7. Abrir pull request describiendo alcance, pruebas realizadas y cualquier migracion o variable nueva requerida.
+
+## Licencia
+
+TODO: No se encontro un archivo de licencia en el repositorio. Definir licencia o politica de uso antes de distribuir el proyecto publicamente.
