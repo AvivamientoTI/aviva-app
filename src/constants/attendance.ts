@@ -10,9 +10,10 @@ export type AttendanceStateType = typeof ATTENDANCE_STATES[keyof typeof ATTENDAN
 export const JUSTIFICATION_TYPES = [
     { value: 'trabajo', label: 'Trabajo' },
     { value: 'salud', label: 'Salud' },
+    { value: 'estudio', label: 'Estudio' },
     { value: 'permiso_pastoral', label: 'Permiso Pastoral' },
     { value: 'distancia', label: 'Distancia' },
     { value: 'otro', label: 'Otro' },
 ] as const;
 
-export type JustificationType = 'trabajo' | 'salud' | 'permiso_pastoral' | 'distancia' | 'otro';
+export type JustificationType = 'trabajo' | 'salud' | 'estudio' | 'permiso_pastoral' | 'distancia' | 'otro';

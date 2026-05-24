@@ -24,6 +24,7 @@ function safeEqual(a: string, b: string): boolean {
 const JUSTIFICATION_LABELS: Record<string, string> = {
     trabajo: "Trabajo",
     salud: "Salud",
+    estudio: "Estudio",
     permiso_pastoral: "Permiso Pastoral",
     distancia: "Distancia",
     otro: "Otro",

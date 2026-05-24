@@ -228,7 +228,7 @@ Gestiona estados de asistencia:
 - `Falto con Aviso`
 - `Falto sin Aviso`
 
-Tambien soporta tipos de justificacion como trabajo, salud, permiso pastoral, distancia u otro.
+Tambien soporta tipos de justificacion como trabajo, salud, estudio, permiso pastoral, distancia u otro.
 
 ### Usuarios y suspensiones
 

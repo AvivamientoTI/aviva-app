@@ -72,7 +72,7 @@ export type Database = {
           hora_registro: string | null
           id: string
           justificacion: string | null
-          tipo_justificacion: 'trabajo' | 'salud' | 'permiso_pastoral' | 'distancia' | 'otro' | null
+          tipo_justificacion: 'trabajo' | 'salud' | 'estudio' | 'permiso_pastoral' | 'distancia' | 'otro' | null
           registrado_por: number | null
           updated_at: string | null
           usuario_id: number | null
@@ -84,7 +84,7 @@ export type Database = {
           hora_registro?: string | null
           id?: string
           justificacion?: string | null
-          tipo_justificacion?: 'trabajo' | 'salud' | 'permiso_pastoral' | 'distancia' | 'otro' | null
+          tipo_justificacion?: 'trabajo' | 'salud' | 'estudio' | 'permiso_pastoral' | 'distancia' | 'otro' | null
           registrado_por?: number | null
           updated_at?: string | null
           usuario_id?: number | null
@@ -96,7 +96,7 @@ export type Database = {
           hora_registro?: string | null
           id?: string
           justificacion?: string | null
-          tipo_justificacion?: 'trabajo' | 'salud' | 'permiso_pastoral' | 'distancia' | 'otro' | null
+          tipo_justificacion?: 'trabajo' | 'salud' | 'estudio' | 'permiso_pastoral' | 'distancia' | 'otro' | null
           registrado_por?: number | null
           updated_at?: string | null
           usuario_id?: number | null
