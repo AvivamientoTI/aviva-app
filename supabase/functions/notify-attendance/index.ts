@@ -30,7 +30,17 @@ const JUSTIFICATION_LABELS: Record<string, string> = {
     otro: "Otro",
 };
 
+export const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 Deno.serve(async (req: Request) => {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
     try {
         const authHeader = req.headers.get("Authorization") ?? "";
         const expectedToken = FUNCTION_SECRET
@@ -40,14 +50,14 @@ Deno.serve(async (req: Request) => {
         if (!safeEqual(authHeader, expectedToken)) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), {
                 status: 401,
-                headers: { "Content-Type": "application/json" },
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
 
         if (!GMAIL_APP_PASSWORD || !GMAIL_SENDER_EMAIL) {
             return new Response(JSON.stringify({ error: "Missing email credentials" }), {
                 status: 500,
-                headers: { "Content-Type": "application/json" },
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
 
@@ -55,7 +65,7 @@ Deno.serve(async (req: Request) => {
         if (!configuracion_dia_id) {
             return new Response(JSON.stringify({ error: "configuracion_dia_id is required" }), {
                 status: 400,
-                headers: { "Content-Type": "application/json" },
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
 
@@ -99,7 +109,7 @@ Deno.serve(async (req: Request) => {
         if (!records || records.length === 0) {
             return new Response(JSON.stringify({ message: "No hay registros de asistencia" }), {
                 status: 200,
-                headers: { "Content-Type": "application/json" },
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
 
@@ -182,7 +192,7 @@ Deno.serve(async (req: Request) => {
 
         return new Response(JSON.stringify({ message: "Notificaciones enviadas", sent, skipped }), {
             status: 200,
-            headers: { "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
 
     } catch (err) {
@@ -190,7 +200,7 @@ Deno.serve(async (req: Request) => {
         const message = err instanceof Error ? err.message : String(err);
         return new Response(JSON.stringify({ error: message }), {
             status: 500,
-            headers: { "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
 });

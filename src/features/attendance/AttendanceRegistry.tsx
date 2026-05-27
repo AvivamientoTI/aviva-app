@@ -14,7 +14,7 @@ import { useUser } from '../../contexts/UserContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { attendanceService } from '../../services/attendanceService';
 import { supabase } from '../../services/supabaseClient';
-import { ATTENDANCE_STATES } from '../../constants/attendance';
+import { ATTENDANCE_STATES, JUSTIFICATION_TYPES } from '../../constants/attendance';
 import dayjs from 'dayjs';
 
 type FilterState = 'todos' | 'ausentes' | 'justificados';
@@ -23,6 +23,7 @@ interface RegistryRecord {
     id: string | number;
     usuario_id: number;
     estado: string | null;
+    tipo_justificacion: string | null;
     justificacion: string | null;
     hora_registro: string | null;
     registrado_por: number | null;
@@ -320,10 +321,13 @@ export default function AttendanceRegistry() {
                                                 <Table.Td>{estadoBadge(r.estado)}</Table.Td>
                                                 <Table.Td style={{ maxWidth: 320 }}>
                                                     {r.estado === ATTENDANCE_STATES.CON_JUSTIFICACION ? (
-                                                        r.justificacion ? (
+                                                        r.tipo_justificacion || r.justificacion ? (
                                                             <Group gap="xs" align="flex-start">
                                                                 <IconFileText size={14} color="var(--mantine-color-orange-6)" style={{ flexShrink: 0, marginTop: 2 }} />
-                                                                <Text size="sm" fw={600} c="orange.8">{r.justificacion}</Text>
+                                                                <Stack gap={0}>
+                                                                    {r.tipo_justificacion && <Text size="sm" fw={700} c="orange.9">{JUSTIFICATION_TYPES.find(j => j.value === r.tipo_justificacion)?.label || r.tipo_justificacion}</Text>}
+                                                                    {r.justificacion && <Text size="xs" fw={600} c="orange.8">{r.justificacion}</Text>}
+                                                                </Stack>
                                                             </Group>
                                                         ) : (
                                                             <Text size="xs" c="dimmed" fw={600} fs="italic">Sin motivo especificado</Text>
