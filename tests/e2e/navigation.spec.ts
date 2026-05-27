@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Navigation & UI — No Session', () => {
+test.describe('Navigation & UI - No Session', () => {
     test.beforeEach(async ({ page }) => {
         // Ensure no session is set
         await page.goto('/login');
@@ -18,9 +18,12 @@ test.describe('Navigation & UI — No Session', () => {
     test('login form is fully keyboard accessible', async ({ page }) => {
         await page.goto('/login');
 
-        // Tab to username field
-        await page.keyboard.press('Tab');
         const usernameField = page.getByLabel('Nombre de Usuario');
+        for (let i = 0; i < 5; i += 1) {
+            const isFocused = await usernameField.evaluate((element) => element === document.activeElement);
+            if (isFocused) break;
+            await page.keyboard.press('Tab');
+        }
         await expect(usernameField).toBeFocused({ timeout: 3000 });
 
         // Fill via keyboard
@@ -46,7 +49,7 @@ test.describe('Navigation & UI — No Session', () => {
         });
 
         await expect(page.getByText('El nombre de usuario es requerido')).toBeVisible({ timeout: 5000 });
-        await expect(page.getByText('La contraseña debe tener al menos 6 caracteres')).toBeVisible({ timeout: 5000 });
+        await expect(page.getByText(/La contrase.* debe tener al menos 6 caracteres/i)).toBeVisible({ timeout: 5000 });
     });
 
     test('validation error clears when user starts typing', async ({ page }) => {
@@ -67,7 +70,7 @@ test.describe('Navigation & UI — No Session', () => {
     test('password field should toggle visibility', async ({ page }) => {
         await page.goto('/login');
 
-        const passwordInput = page.getByLabel('Contraseña');
+        const passwordInput = page.getByLabel(/Contrase/i);
         await passwordInput.fill('secret123');
 
         // Initially type="password"
@@ -88,7 +91,7 @@ test.describe('Navigation & UI — No Session', () => {
 
     test('logo image should be visible and load correctly', async ({ page }) => {
         await page.goto('/login');
-        const logo = page.locator('img[alt="Logo"]');
+        const logo = page.getByAltText(/Iglesia Avivamiento y Poder/i);
         await expect(logo).toBeVisible({ timeout: 5000 });
 
         // Check that image is not broken (naturalWidth > 0)

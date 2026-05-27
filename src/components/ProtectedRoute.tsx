@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { FullScreenLoader } from './FullScreenLoader';
@@ -25,7 +26,8 @@ export function ProtectedRoute({
     requireLiderServidores,
     requireEncargado
 }: ProtectedRouteProps) {
-    const { loading, userProfile } = useUser();
+    const { loading, user, userProfile } = useUser();
+    const location = useLocation();
     const perms = usePermissions();
 
     // 1. Mostrar loader si estamos cargando datos
@@ -33,7 +35,12 @@ export function ProtectedRoute({
         return <FullScreenLoader />;
     }
 
-    // 2. Si no hay perfil vinculado (usuario huérfano), restringir acceso
+    // 2. Si no hay sesión activa, redirigir al login
+    if (!user) {
+        return <Navigate to="/login" replace state={{ from: location }} />;
+    }
+
+    // 3. Si no hay perfil vinculado (usuario huérfano), restringir acceso
     if (userProfile === null) {
         return <RestrictedAccess type="no-profile" />;
     }
