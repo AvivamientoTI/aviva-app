@@ -39,6 +39,9 @@ import { IconBell, IconLock } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { ATTENDANCE_STATES, JUSTIFICATION_TYPES, type JustificationType } from '../../constants/attendance';
 
+const UNMARKED_ATTENDANCE_VALUE = '__sin_marcar__';
+const UNMARKED_SUNDAY_TURN_VALUE = '__sin_turno__';
+
 export default function AttendanceManager() {
     const { attendanceManagedDepartments, userProfile } = useUser();
     const [selectedDept, setSelectedDept] = useState<string | null>(null);
@@ -427,15 +430,25 @@ export default function AttendanceManager() {
                                                         <Center>
                                                             <Stack gap={6} align="center">
                                                                 <SegmentedControl
-                                                                    value={record.estado ?? ''}
-                                                                    onChange={(value) => handleAttendanceChange(record.id, value)}
+                                                                    value={record.estado ?? UNMARKED_ATTENDANCE_VALUE}
+                                                                    onChange={(value) => {
+                                                                        if (value !== UNMARKED_ATTENDANCE_VALUE) {
+                                                                            handleAttendanceChange(record.id, value);
+                                                                        }
+                                                                    }}
                                                                     disabled={isLocked}
                                                                     data={[
+                                                                        { label: 'Sin marcar', value: UNMARKED_ATTENDANCE_VALUE, disabled: true },
                                                                         { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },
                                                                         { label: 'Falta', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
                                                                         { label: 'Justificada', value: ATTENDANCE_STATES.CON_JUSTIFICACION },
                                                                     ]}
-                                                                    color={record.estado === ATTENDANCE_STATES.ASISTIO ? 'teal' : record.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION ? 'red' : 'blue'}
+                                                                    color={
+                                                                        !record.estado ? 'gray' :
+                                                                        record.estado === ATTENDANCE_STATES.ASISTIO ? 'teal' :
+                                                                        record.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION ? 'red' :
+                                                                        'blue'
+                                                                    }
                                                                     radius="xl"
                                                                     size="sm"
                                                                     styles={{
@@ -474,9 +487,14 @@ export default function AttendanceManager() {
                                                                 )}
                                                                 {selectedDate && dayjs(selectedDate).day() === 0 && record.estado === ATTENDANCE_STATES.ASISTIO && (
                                                                     <SegmentedControl
-                                                                        value={cultosTime[record.id] || ''}
-                                                                        onChange={(val) => setCultosTime(prev => ({ ...prev, [record.id]: val }))}
+                                                                        value={cultosTime[record.id] || UNMARKED_SUNDAY_TURN_VALUE}
+                                                                        onChange={(val) => {
+                                                                            if (val !== UNMARKED_SUNDAY_TURN_VALUE) {
+                                                                                setCultosTime(prev => ({ ...prev, [record.id]: val }));
+                                                                            }
+                                                                        }}
                                                                         data={[
+                                                                            { label: 'Sin turno', value: UNMARKED_SUNDAY_TURN_VALUE, disabled: true },
                                                                             { label: '8 AM', value: '8am' },
                                                                             { label: '11 AM', value: '11am' },
                                                                         ]}
