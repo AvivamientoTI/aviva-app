@@ -32,7 +32,20 @@ if (import.meta.env.PROD) {
 inject();
 dayjs.locale('es');
 
-registerSW({ immediate: true });
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  window.location.reload();
+});
+
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    void updateSW(true);
+  },
+  onRegisteredSW(_swUrl, registration) {
+    void registration?.update();
+  },
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

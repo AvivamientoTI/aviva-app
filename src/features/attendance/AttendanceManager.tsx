@@ -438,7 +438,7 @@ export default function AttendanceManager() {
                                                                     }}
                                                                     disabled={isLocked}
                                                                     data={[
-                                                                        { label: 'Sin marcar', value: UNMARKED_ATTENDANCE_VALUE, disabled: true },
+                                                                        { label: 'Sin marcar', value: UNMARKED_ATTENDANCE_VALUE },
                                                                         { label: 'Presente', value: ATTENDANCE_STATES.ASISTIO },
                                                                         { label: 'Falta', value: ATTENDANCE_STATES.SIN_JUSTIFICACION },
                                                                         { label: 'Justificada', value: ATTENDANCE_STATES.CON_JUSTIFICACION },
@@ -494,7 +494,7 @@ export default function AttendanceManager() {
                                                                             }
                                                                         }}
                                                                         data={[
-                                                                            { label: 'Sin turno', value: UNMARKED_SUNDAY_TURN_VALUE, disabled: true },
+                                                                            { label: 'Sin turno', value: UNMARKED_SUNDAY_TURN_VALUE },
                                                                             { label: '8 AM', value: '8am' },
                                                                             { label: '11 AM', value: '11am' },
                                                                         ]}

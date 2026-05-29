@@ -88,18 +88,7 @@ export default defineConfig(({ mode }) => {
           },
           {
             urlPattern: supabasePattern,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api',
-              networkTimeoutSeconds: 5,
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // <--- 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+            handler: 'NetworkOnly',
           }
         ]
       }
