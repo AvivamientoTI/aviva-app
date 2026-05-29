@@ -57,11 +57,39 @@ export default function AttendanceManager() {
     const permissions = usePermissions();
     const isDirty = useRef(false);
 
+    const draftKey = selectedService ? `attendance_draft_${selectedService}` : null;
+
+    function saveDraft(updatedAttendance: AttendanceRecordWithDetails[], updatedCultosTime: Record<string | number, string>) {
+        if (!draftKey) return;
+        try {
+            localStorage.setItem(draftKey, JSON.stringify({ attendance: updatedAttendance, cultosTime: updatedCultosTime }));
+        } catch { /* quota exceeded — ignore */ }
+    }
+
+    function clearDraft() {
+        if (draftKey) localStorage.removeItem(draftKey);
+    }
+
+    function loadDraft(): { attendance: AttendanceRecordWithDetails[]; cultosTime: Record<string | number, string> } | null {
+        if (!draftKey) return null;
+        try {
+            const raw = localStorage.getItem(draftKey);
+            return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+    }
+
     useEffect(() => {
         if (selectedDept && selectedDate) {
             fetchData();
         }
     }, [selectedDept, selectedDate]);
+
+    // Persiste turnos dominicales en el borrador cuando cambian
+    useEffect(() => {
+        if (isDirty.current && attendance.length > 0) {
+            saveDraft(attendance, cultosTime);
+        }
+    }, [cultosTime]);
 
     useEffect(() => {
         if (selectedService) {
@@ -119,30 +147,46 @@ export default function AttendanceManager() {
     function handleAttendanceChange(recordId: string | number, newState: string) {
         isDirty.current = true;
         const now = new Date().toISOString();
-        setAttendance(prev => prev.map(rec =>
-            String(rec.id) === String(recordId)
-                ? { ...rec, estado: newState, hora_registro: now }
-                : rec
-        ));
-        if (newState !== ATTENDANCE_STATES.ASISTIO) {
-            setCultosTime(prev => { const n = { ...prev }; delete n[recordId]; return n; });
-        }
+        setAttendance(prev => {
+            const updated = prev.map(rec =>
+                String(rec.id) === String(recordId)
+                    ? { ...rec, estado: newState, hora_registro: now }
+                    : rec
+            );
+            const newCultosTime = newState !== ATTENDANCE_STATES.ASISTIO
+                ? (ct: Record<string | number, string>) => { const n = { ...ct }; delete n[recordId]; return n; }
+                : null;
+            setCultosTime(prev => {
+                const ct = newCultosTime ? newCultosTime(prev) : prev;
+                saveDraft(updated, ct);
+                return ct;
+            });
+            return updated;
+        });
     }
 
     function handleJustificationTypeChange(recordId: string | number, tipo: string | null) {
         isDirty.current = true;
-        setAttendance(prev => prev.map(rec =>
-            String(rec.id) === String(recordId)
-                ? { ...rec, tipo_justificacion: tipo as JustificationType | null, justificacion: tipo !== 'otro' ? null : rec.justificacion }
-                : rec
-        ));
+        setAttendance(prev => {
+            const updated = prev.map(rec =>
+                String(rec.id) === String(recordId)
+                    ? { ...rec, tipo_justificacion: tipo as JustificationType | null, justificacion: tipo !== 'otro' ? null : rec.justificacion }
+                    : rec
+            );
+            setCultosTime(ct => { saveDraft(updated, ct); return ct; });
+            return updated;
+        });
     }
 
     function handleJustificationChange(recordId: string | number, text: string) {
         isDirty.current = true;
-        setAttendance(prev => prev.map(rec =>
-            String(rec.id) === String(recordId) ? { ...rec, justificacion: text } : rec
-        ));
+        setAttendance(prev => {
+            const updated = prev.map(rec =>
+                String(rec.id) === String(recordId) ? { ...rec, justificacion: text } : rec
+            );
+            setCultosTime(ct => { saveDraft(updated, ct); return ct; });
+            return updated;
+        });
     }
 
     async function fetchData() {
@@ -178,15 +222,35 @@ export default function AttendanceManager() {
                 return;
             }
             const data = await attendanceService.fetchAttendanceWithDetails(Number(selectedService), Number(selectedDept));
-            isDirty.current = false;
-            setAttendance(data);
-            
+
             // Cargar turnos dominicales iniciales si existen
             const turnosMap: Record<string | number, string> = {};
             data.forEach((rec: any) => {
                 if (rec.turno_dominical) turnosMap[rec.id] = rec.turno_dominical;
             });
-            setCultosTime(turnosMap);
+
+            // Restaurar borrador si existe (fusiona estructura fresca de BD con valores guardados)
+            const draft = loadDraft();
+            if (draft) {
+                const draftById = new Map(draft.attendance.map((r: any) => [String(r.id), r]));
+                const merged = data.map(rec => {
+                    const saved = draftById.get(String(rec.id));
+                    return saved ? { ...rec, estado: saved.estado, tipo_justificacion: saved.tipo_justificacion, justificacion: saved.justificacion, hora_registro: saved.hora_registro } : rec;
+                });
+                isDirty.current = true;
+                setAttendance(merged);
+                setCultosTime({ ...turnosMap, ...draft.cultosTime });
+                notifications.show({
+                    title: 'Borrador restaurado',
+                    message: 'Se recuperaron los cambios que tenías sin guardar.',
+                    color: 'blue',
+                    icon: <IconClipboardCheck size={18} />
+                });
+            } else {
+                isDirty.current = false;
+                setAttendance(data);
+                setCultosTime(turnosMap);
+            }
         } catch (error) {
             console.error(error);
             notifications.show({
@@ -240,6 +304,7 @@ export default function AttendanceManager() {
             }));
             await attendanceService.updateAttendanceRecords(recordsToUpdate);
             isDirty.current = false;
+            clearDraft();
             notifications.show({ title: '¡Éxito!', message: 'Asistencia guardada.', color: 'green' });
             fetchAttendanceData();
             sendAttendanceNotifications(Number(selectedService));
