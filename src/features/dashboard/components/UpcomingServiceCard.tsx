@@ -1,5 +1,5 @@
 import { Card, Box, Stack, Group, Badge, ThemeIcon, Text, Title, Button, Menu } from '@mantine/core';
-import { IconRocket, IconCalendarEvent, IconArrowRight, IconCalendarPlus, IconDownload, IconBrandGoogle } from '@tabler/icons-react';
+import { IconRocket, IconCalendarEvent, IconArrowRight, IconCalendarPlus, IconDownload, IconBrandGoogle, IconCalendarOff } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { UpcomingService } from '../../../hooks/useDashboardData';
@@ -20,14 +20,26 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
     if (!nextService) {
         return (
             <Card padding="xl" radius="xl" withBorder h="100%">
-                <Stack align="center" justify="center" h="100%" gap="md">
+                <Stack align="center" justify="center" h="100%" gap="lg">
                     <ThemeIcon size={60} radius="xl" color="stone" variant="light">
-                        <IconCalendarEvent size={32} />
+                        <IconCalendarOff size={32} />
                     </ThemeIcon>
-                    <Stack gap={4} align="center">
-                        <Text fw={800} size="lg" c="dimmed">Sin servicios próximos</Text>
-                        <Text size="sm" ta="center" c="dimmed" opacity={0.7}>Descansa y prepárate para el próximo rol.</Text>
+                    <Stack gap={6} align="center">
+                        <Text fw={800} size="lg">Sin servicios próximos</Text>
+                        <Text size="sm" ta="center" c="dimmed" maw={240}>
+                            Descansa. Cuando te asignen al próximo servicio, aparecerá aquí.
+                        </Text>
                     </Stack>
+                    <Button
+                        variant="light"
+                        color="stone"
+                        size="sm"
+                        radius="xl"
+                        rightSection={<IconArrowRight size={16} />}
+                        onClick={() => navigate('/calendar')}
+                    >
+                        Ver el calendario
+                    </Button>
                 </Stack>
             </Card>
         );
@@ -42,6 +54,10 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
     const departamento: string = getSingle(posicion?.departamento)?.nombre ?? '';
 
     const serviceEvent = { fecha, posicion: posicionNombre, departamento, tipoServicio, uniforme };
+
+    const isToday = fecha ? dayjs(fecha).isSame(dayjs(), 'day') : false;
+    const isTomorrow = fecha ? dayjs(fecha).isSame(dayjs().add(1, 'day'), 'day') : false;
+    const urgencyLabel = isToday ? 'Hoy' : isTomorrow ? 'Mañana' : null;
 
     const handleICS = () => {
         downloadICS([serviceEvent], serverName, `servicio-${fecha}.ics`);
@@ -68,23 +84,35 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
             <Stack justify="space-between" h="100%">
                 <div>
                     <Group justify="space-between" mb="lg">
-                        <Badge variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} size="lg" radius="md">
-                            PRÓXIMO SERVICIO
-                        </Badge>
+                        <Group gap="xs">
+                            <Badge variant="gradient" gradient={{ from: 'orange.6', to: 'yellow.6' }} size="lg" radius="md">
+                                PRÓXIMO SERVICIO
+                            </Badge>
+                            {urgencyLabel && (
+                                <Badge
+                                    variant="filled"
+                                    color={isToday ? 'teal' : 'orange'}
+                                    size="lg"
+                                    radius="md"
+                                    fw={800}
+                                >
+                                    {urgencyLabel}
+                                </Badge>
+                            )}
+                        </Group>
                         <ThemeIcon variant="light" color="gold" radius="xl" size="lg">
                             <IconRocket size={20} />
                         </ThemeIcon>
                     </Group>
 
                     <Stack gap={2}>
-                        <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 1 }}>
+                        <Text size="sm" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: 'var(--ls-label)' }}>
                             {departamento}
                         </Text>
                         <Title order={3} style={{
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '1.7rem',
+                            fontSize: 'var(--text-heading)',
                             color: 'var(--mantine-color-gold-text)',
-                            letterSpacing: '-0.01em'
+                            letterSpacing: 'var(--ls-heading)'
                         }}>
                             {posicionNombre}
                         </Title>
@@ -110,12 +138,12 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
                                 <Button
                                     fullWidth
                                     variant="light"
-                                    color="blue"
+                                    color="stone"
                                     size="sm"
                                     radius="xl"
                                     leftSection={<IconCalendarPlus size={16} />}
                                 >
-                                    Agregar al Calendario
+                                    Agregar al calendario
                                 </Button>
                             </Menu.Target>
                             <Menu.Dropdown>
@@ -124,7 +152,7 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
                                     leftSection={<IconDownload size={14} />}
                                     onClick={handleICS}
                                 >
-                                    Descargar .ics (Apple / Outlook)
+                                    Descargar .ics
                                 </Menu.Item>
                                 <Menu.Item
                                     leftSection={<IconBrandGoogle size={14} />}
@@ -155,7 +183,7 @@ export function UpcomingServiceCard({ nextService, serverName = '' }: UpcomingSe
                         rightSection={<IconArrowRight size={18} />}
                         onClick={() => navigate('/calendar')}
                     >
-                        Ver detalles del servicio
+                        Ver el calendario
                     </Button>
                 </Stack>
             </Stack>

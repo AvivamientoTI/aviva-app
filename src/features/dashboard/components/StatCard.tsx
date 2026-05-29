@@ -34,7 +34,7 @@ export function StatCard({ title, value, subtitle, icon, color, trendData }: Sta
 
             <Stack gap="md" style={{ position: 'relative', zIndex: 1 }}>
                 <Group justify="space-between" align="center">
-                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.05em' }}>
+                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" style={{ letterSpacing: 'var(--ls-label)' }}>
                         {title}
                     </Text>
                     <ThemeIcon color={color} variant="light" size="lg" radius="md">
@@ -44,7 +44,7 @@ export function StatCard({ title, value, subtitle, icon, color, trendData }: Sta
                 
                 <Group align="flex-end" justify="space-between">
                     <div>
-                        <Text fw={800} size="xl" style={{ fontSize: '2.1rem', letterSpacing: '-0.01em' }}>
+                        <Text fw={800} size="xl" style={{ fontSize: 'var(--text-title)', letterSpacing: 'var(--ls-ui)' }}>
                             {value}
                         </Text>
                         {subtitle && (
@@ -55,7 +55,7 @@ export function StatCard({ title, value, subtitle, icon, color, trendData }: Sta
                     </div>
 
                     {trendData && trendData.length > 0 && (
-                        <Box w={80} mb={6}>
+                        <Box w={80} mb={6} visibleFrom="sm">
                             <Sparkline
                                 data={trendData}
                                 h={32}

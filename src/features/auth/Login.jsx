@@ -50,19 +50,13 @@ export default function Login() {
   };
 
   return (
-    <div className="login-bg" style={{
-      backgroundColor: '#fcfaf5', // Warm white/cream
-      backgroundImage: 'radial-gradient(at 0% 0%, rgba(212, 175, 55, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(197, 160, 89, 0.05) 0px, transparent 50%)',
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
+    <div className="login-bg">
       <Container size={420}>
         <Paper withBorder shadow="xl" p="xl" radius="32px" style={{
-          backgroundColor: '#ffffff',
-          borderColor: '#e2e8f0', // Neutral border is fine, maybe slightly warmer? Let's keep neutral for clean look
-          color: '#1c1917'
+          backgroundColor: '#fafaf9', /* stone.0 — warm white */
+          borderColor: '#e7e5e4',     /* stone.2 — warm border */
+          borderTop: '3px solid #d97706', /* gold.6 — brand identity accent */
+          color: '#1c1917'            /* stone.9 */
         }}>
           <Stack align="center" gap="xs" mb="xl">
             <img
@@ -95,13 +89,13 @@ export default function Login() {
                 radius="xl"
                 styles={{
                   input: {
-                    backgroundColor: '#fcfcfd',
-                    borderColor: '#e7e5e4',
-                    color: '#0f172a',
+                    backgroundColor: '#fafaf9', /* stone.0 */
+                    borderColor: '#e7e5e4',     /* stone.2 */
+                    color: '#1c1917',           /* stone.9 — warm dark */
                     fontWeight: 600,
-                    '&:focus': { borderColor: '#ca8a04' } // Focus Gold
+                    '&:focus': { borderColor: '#d97706' } /* gold.6 */
                   },
-                  label: { color: '#78716c', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }
+                  label: { color: '#78716c', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 } /* stone.5 */
                 }}
               />
               <PasswordInput
@@ -119,18 +113,18 @@ export default function Login() {
                 radius="xl"
                 styles={{
                   input: {
-                    backgroundColor: '#fcfcfd',
-                    borderColor: '#e7e5e4',
-                    color: '#0f172a',
+                    backgroundColor: '#fafaf9', /* stone.0 */
+                    borderColor: '#e7e5e4',     /* stone.2 */
+                    color: '#1c1917',           /* stone.9 — warm dark */
                     fontWeight: 600,
-                    '&:focus': { borderColor: '#ca8a04' } // Focus Gold
+                    '&:focus': { borderColor: '#d97706' } /* gold.6 */
                   },
-                  label: { color: '#78716c', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 }
+                  label: { color: '#78716c', fontWeight: 800, fontSize: '0.85rem', marginBottom: 4 } /* stone.5 */
                 }}
               />
               <Button fullWidth mt="xl" type="submit" loading={loading} size="lg" radius="xl" style={{
-                background: 'linear-gradient(135deg, #ca8a04 0%, #a16207 100%)', // Gold/Amber gradient
-                boxShadow: '0 8px 16px rgba(202, 138, 4, 0.25)',
+                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', /* gold.6 → gold.7 — exact theme values */
+                boxShadow: '0 8px 16px rgba(217, 119, 6, 0.28)',
                 height: 54,
                 fontSize: '1.1rem',
                 border: 'none',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import {
     Container,
     Title,
@@ -10,12 +10,12 @@ import {
     ThemeIcon,
     Tabs,
     Box,
-    Card,
     Badge,
     Progress,
     Center,
     Select,
-    Table
+    Table,
+    Loader
 } from '@mantine/core';
 import { BarChart, DonutChart } from '@mantine/charts';
 import {
@@ -43,8 +43,32 @@ import { useUser } from '../../contexts/UserContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { supabase } from '../../services/supabaseClient';
 
+const TOOLTIP_PROPS = {
+    allowEscapeViewBox: { x: false, y: false },
+    offset: 10,
+    wrapperStyle: { zIndex: 200 },
+};
 
-// Re-using the logic for activity heatmap
+function Kpi({ label, value, valueColor, subText, icon }: {
+    label: string;
+    value: ReactNode;
+    valueColor?: string;
+    subText?: string;
+    icon?: ReactNode;
+}) {
+    return (
+        <Paper p="lg" radius="xl" withBorder>
+            <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                    <Text className="section-label">{label}</Text>
+                    <Text fw={900} size="2rem" c={valueColor} style={{ letterSpacing: '-0.02em' }}>{value}</Text>
+                    {subText && <Text size="xs" c="dimmed" fw={600} mt={4}>{subText}</Text>}
+                </Stack>
+                {icon}
+            </Group>
+        </Paper>
+    );
+}
 
 export default function AnalyticsDashboard() {
     const [activeTab, setActiveTab] = useState<string | null>('weekly');
@@ -54,7 +78,6 @@ export default function AnalyticsDashboard() {
     const { managedDepartments } = useUser();
     const { isSystemAdmin } = usePermissions();
 
-    // For system admins, load all departments; for leaders use their managed ones
     const { data: allDepts } = useQuery({
         queryKey: ['allDepts'],
         queryFn: async () => {
@@ -70,18 +93,16 @@ export default function AnalyticsDashboard() {
         ? (allDepts ?? []).map(d => ({ value: String(d.id), label: d.nombre }))
         : managedDepartments.map(d => ({ value: String(d.id), label: d.nombre }));
 
-    // Auto-select first department when options load
     useEffect(() => {
         if (!selectedDeptId && deptOptions.length > 0) {
             setSelectedDeptId(deptOptions[0].value);
         }
-    }, [deptOptions.length]);
+    }, [deptOptions]);
 
     const deptId: number | null = selectedDeptId ? Number(selectedDeptId) : null;
     const selectedDeptName = deptOptions.find(d => d.value === selectedDeptId)?.label ?? null;
-    
-    // Using React Query for data fetching
-    const { data: monthlyStatsData, isLoading: loadingMonthly } = useQuery({
+
+    const { data: monthlyStatsData, isLoading: loadingMonthly, isError: errorMonthly } = useQuery({
         queryKey: ['analytics', 'monthly', deptId],
         queryFn: () => analyticsService.fetchAttendanceStats(deptId!, 'YTD'),
         enabled: deptId != null,
@@ -95,28 +116,28 @@ export default function AnalyticsDashboard() {
         retry: 1
     });
 
-    const { data: annualStatsData, isLoading: loadingAnnual } = useQuery({
+    const { data: annualStatsData, isLoading: loadingAnnual, isError: errorAnnual } = useQuery({
         queryKey: ['analytics', 'annual', deptId],
         queryFn: () => analyticsService.fetchAnnualStats(deptId!),
         enabled: deptId != null,
         retry: 1
     });
 
-    const { data: churnRiskData, isLoading: loadingChurn } = useQuery({
+    const { data: churnRiskData, isLoading: loadingChurn, isError: errorChurn } = useQuery({
         queryKey: ['analytics', 'churn', deptId],
         queryFn: () => analyticsService.fetchChurnRisk(deptId!),
         enabled: deptId != null,
         retry: 1
     });
 
-    const { data: demographicData, isLoading: loadingDemographic } = useQuery({
+    const { data: demographicData, isLoading: loadingDemographic, isError: errorDemographic } = useQuery({
         queryKey: ['analytics', 'demographics', deptId],
         queryFn: () => analyticsService.fetchDemographicDist(deptId!),
         enabled: deptId != null,
         retry: 1
     });
 
-    const { data: punctualityData, isLoading: loadingPunctuality } = useQuery({
+    const { data: punctualityData, isLoading: loadingPunctuality, isError: errorPunctuality } = useQuery({
         queryKey: ['analytics', 'punctuality', deptId],
         queryFn: () => analyticsService.fetchPunctualityTrends(deptId!),
         enabled: deptId != null,
@@ -130,13 +151,14 @@ export default function AnalyticsDashboard() {
         staleTime: 60000,
     });
 
-    const { data: memberAttendance, isLoading: loadingMember } = useQuery({
+    const { data: memberAttendance, isLoading: loadingMember, isError: errorMember } = useQuery({
         queryKey: ['memberAttendance', selectedMemberId],
         queryFn: () => attendanceService.fetchPersonalAttendance(Number(selectedMemberId)),
         enabled: !!selectedMemberId,
     });
 
     const isLoading = deptId == null || loadingWeekly || loadingMonthly || loadingAnnual || loadingChurn || loadingDemographic || loadingPunctuality;
+    const hasError = errorWeekly || errorMonthly || errorAnnual || errorChurn || errorDemographic || errorPunctuality;
     const weeklyStats = weeklyStatsData || [];
     const annualStats = annualStatsData || null;
 
@@ -160,11 +182,11 @@ export default function AnalyticsDashboard() {
         return (
             <Stack gap="xl" className="animate-fade-in">
                 <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
-                    <Paper p="lg" radius="xl" withBorder className="glass-card" style={{ background: 'linear-gradient(135deg, var(--mantine-color-body) 0%, rgba(217,119,6,0.05) 100%)' }}>
+                    <Paper p="lg" radius="xl" withBorder>
                         <Group justify="space-between" align="flex-start">
                             <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Tasa Promedio</Text>
-                                <Text fw={900} size="2.2rem" style={{ letterSpacing: '-0.02em' }}>{avgRate}%</Text>
+                                <Text className="section-label">Tasa Promedio</Text>
+                                <Text fw={900} size="2rem" style={{ letterSpacing: '-0.02em' }}>{avgRate}%</Text>
                                 {rateDiff !== null && (
                                     <Group gap={4} mt={4}>
                                         <IconArrowUpRight size={14} color={rateDiff >= 0 ? 'var(--mantine-color-teal-6)' : 'var(--mantine-color-red-6)'} style={{ transform: rateDiff < 0 ? 'rotate(90deg)' : undefined }} />
@@ -176,30 +198,22 @@ export default function AnalyticsDashboard() {
                         </Group>
                     </Paper>
 
-                    <Paper p="lg" radius="xl" withBorder className="glass-card" style={{ background: 'linear-gradient(135deg, var(--mantine-color-body) 0%, rgba(37,99,235,0.05) 100%)' }}>
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Total Presentes</Text>
-                                <Text fw={900} size="2.2rem" style={{ letterSpacing: '-0.02em' }}>{totalPresent}</Text>
-                                <Text size="xs" c="dimmed" fw={600} mt={4}>de {totalRecords} registros (12 sem.)</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="blue"><IconCalendarStats size={24} /></ThemeIcon>
-                        </Group>
-                    </Paper>
+                    <Kpi
+                        label="Total Presentes"
+                        value={totalPresent}
+                        subText={`de ${totalRecords} registros (12 sem.)`}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="blue"><IconCalendarStats size={24} /></ThemeIcon>}
+                    />
 
-                    <Paper p="lg" radius="xl" withBorder className="glass-card" style={{ background: 'linear-gradient(135deg, var(--mantine-color-body) 0%, rgba(245,158,11,0.05) 100%)' }}>
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Última Semana</Text>
-                                <Text fw={900} size="2.2rem" style={{ letterSpacing: '-0.02em' }}>{lastWeek?.rate ?? 0}%</Text>
-                                <Text size="xs" c="dimmed" fw={600} mt={4}>{lastWeek ? `${lastWeek.present} presentes · ${lastWeek.absent} ausentes` : 'Sin datos'}</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="orange"><IconActivity size={24} /></ThemeIcon>
-                        </Group>
-                    </Paper>
+                    <Kpi
+                        label="Última Semana"
+                        value={`${lastWeek?.rate ?? 0}%`}
+                        subText={lastWeek ? `${lastWeek.present} presentes · ${lastWeek.absent} ausentes` : 'Sin datos'}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="orange"><IconActivity size={24} /></ThemeIcon>}
+                    />
                 </SimpleGrid>
 
-                <Paper p="xl" radius="xl" withBorder className="glass-card" style={{ backgroundColor: 'var(--mantine-color-body)', overflow: 'hidden' }}>
+                <Paper p="xl" radius="xl" withBorder style={{ overflow: 'hidden' }}>
                     <Group justify="space-between" mb="xl">
                         <Stack gap={0}>
                             <Title order={4}>Tendencia de Participación</Title>
@@ -233,11 +247,7 @@ export default function AnalyticsDashboard() {
                                 gridAxis="y"
                                 tickLine="y"
                                 withTooltip
-                                tooltipProps={{
-                                    allowEscapeViewBox: { x: false, y: false },
-                                    offset: 10,
-                                    wrapperStyle: { zIndex: 200 }
-                                }}
+                                tooltipProps={TOOLTIP_PROPS}
                                 xAxisProps={{ tick: { fontSize: 11, fontWeight: 600 }, interval: 0, angle: -35, textAnchor: 'end', height: 55 }}
                                 yAxisProps={{ tick: { fontSize: 11 }, width: 35 }}
                             />
@@ -280,41 +290,28 @@ export default function AnalyticsDashboard() {
         return (
             <Stack gap="xl" className="animate-fade-in">
                 <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
-                    <Paper p="lg" radius="xl" withBorder className="glass-card" style={{ background: 'linear-gradient(135deg, var(--mantine-color-body) 0%, rgba(20,184,166,0.05) 100%)' }}>
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Tasa Global YTD</Text>
-                                <Text fw={900} size="2.2rem" style={{ letterSpacing: '-0.02em' }}>{overallRate}%</Text>
-                                <Text size="xs" c="dimmed" fw={600} mt={4}>{summary.asistio} de {summary.total} registros</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="teal"><IconTrendingUp size={24} /></ThemeIcon>
-                        </Group>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card" style={{ background: 'linear-gradient(135deg, var(--mantine-color-body) 0%, rgba(34,197,94,0.05) 100%)' }}>
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Mejor Mes</Text>
-                                <Text fw={900} size="1.6rem" style={{ letterSpacing: '-0.02em' }}>{bestMonth?.month ?? '—'}</Text>
-                                <Text size="xs" c="teal.6" fw={700} mt={4}>
-                                    {bestMonth ? `${Math.round((bestMonth.asistio / (bestMonth.asistio + bestMonth.faltas)) * 100)}% asistencia` : '—'}
-                                </Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="green"><IconArrowUpRight size={24} /></ThemeIcon>
-                        </Group>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card" style={{ background: 'linear-gradient(135deg, var(--mantine-color-body) 0%, rgba(239,68,68,0.05) 100%)' }}>
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Total Faltas YTD</Text>
-                                <Text fw={900} size="2.2rem" c="red.6" style={{ letterSpacing: '-0.02em' }}>{totalFaltas}</Text>
-                                <Text size="xs" c="dimmed" fw={600} mt={4}>{summary.faltoConAviso} c/aviso · {summary.faltoSinAviso} s/aviso</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="red"><IconAlertTriangle size={24} /></ThemeIcon>
-                        </Group>
-                    </Paper>
+                    <Kpi
+                        label="Tasa Global YTD"
+                        value={`${overallRate}%`}
+                        subText={`${summary.asistio} de ${summary.total} registros`}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="teal"><IconTrendingUp size={24} /></ThemeIcon>}
+                    />
+                    <Kpi
+                        label="Mejor Mes"
+                        value={bestMonth?.month ?? '—'}
+                        subText={bestMonth ? `${Math.round((bestMonth.asistio / (bestMonth.asistio + bestMonth.faltas)) * 100)}% asistencia` : '—'}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="teal"><IconArrowUpRight size={24} /></ThemeIcon>}
+                    />
+                    <Kpi
+                        label="Total Faltas YTD"
+                        value={totalFaltas}
+                        valueColor="red.6"
+                        subText={`${summary.faltoConAviso} c/aviso · ${summary.faltoSinAviso} s/aviso`}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="red"><IconAlertTriangle size={24} /></ThemeIcon>}
+                    />
                 </SimpleGrid>
 
-                <Paper p="xl" radius="xl" withBorder className="glass-card">
+                <Paper p="xl" radius="xl" withBorder>
                     <Stack gap={0} mb="xl">
                         <Title order={4}>Asistencia por Mes</Title>
                         <Text size="xs" c="dimmed" fw={600}>Comparativa mensual de presencias y ausencias</Text>
@@ -332,7 +329,7 @@ export default function AnalyticsDashboard() {
                                 withLegend
                                 gridAxis="y"
                                 tickLine="y"
-                                tooltipProps={{ allowEscapeViewBox: { x: false, y: false }, offset: 10, wrapperStyle: { zIndex: 200 } }}
+                                tooltipProps={TOOLTIP_PROPS}
                             />
                         </Box>
                     ) : (
@@ -342,7 +339,7 @@ export default function AnalyticsDashboard() {
 
                 {monthEntries.length > 0 && (
                     <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
-                        <Paper p="xl" radius="xl" withBorder className="shell-glass">
+                        <Paper p="xl" radius="xl" withBorder>
                             <Text fw={800} size="lg" mb="md">Resumen por Mes</Text>
                             <Stack gap="sm">
                                 {monthEntries.map(m => {
@@ -363,7 +360,7 @@ export default function AnalyticsDashboard() {
                             </Stack>
                         </Paper>
 
-                        <Paper p="xl" radius="xl" withBorder className="glass-card">
+                        <Paper p="xl" radius="xl" withBorder>
                             <Group gap="xs" mb="md">
                                 <IconInfoCircle size={18} color="var(--mantine-color-blue-6)" />
                                 <Text fw={800} size="lg">Análisis</Text>
@@ -435,41 +432,34 @@ export default function AnalyticsDashboard() {
 
         return (
             <Stack gap="xl" className="animate-fade-in">
-                {/* KPIs */}
                 <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="lg">
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>En Riesgo</Text>
-                            <Text fw={900} size="2rem" c={churn.length > 0 ? 'orange.6' : 'teal.6'}>{churn.length}</Text>
-                            <Text size="xs" c="dimmed" fw={600}>Últimas 4 semanas</Text>
-                        </Stack>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Riesgo Crítico</Text>
-                            <Text fw={900} size="2rem" c={criticalChurn.length > 0 ? 'red.6' : 'teal.6'}>{criticalChurn.length}</Text>
-                            <Text size="xs" c="dimmed" fw={600}>Más del 75% faltas</Text>
-                        </Stack>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Tasa Global</Text>
-                            <Text fw={900} size="2rem" c={overallRate >= 80 ? 'teal.6' : overallRate >= 60 ? 'orange.6' : 'red.6'}>{overallRate}%</Text>
-                            <Text size="xs" c="dimmed" fw={600}>Asistencia YTD</Text>
-                        </Stack>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Registros</Text>
-                            <Text fw={900} size="2rem">{summary.total}</Text>
-                            <Text size="xs" c="dimmed" fw={600}>Total analizados</Text>
-                        </Stack>
-                    </Paper>
+                    <Kpi
+                        label="En Riesgo"
+                        value={churn.length}
+                        valueColor={churn.length > 0 ? 'orange.6' : 'teal.6'}
+                        subText="Últimas 4 semanas"
+                    />
+                    <Kpi
+                        label="Riesgo Crítico"
+                        value={criticalChurn.length}
+                        valueColor={criticalChurn.length > 0 ? 'red.6' : 'teal.6'}
+                        subText="Más del 75% faltas"
+                    />
+                    <Kpi
+                        label="Tasa Global"
+                        value={`${overallRate}%`}
+                        valueColor={overallRate >= 80 ? 'teal.6' : overallRate >= 60 ? 'orange.6' : 'red.6'}
+                        subText="Asistencia YTD"
+                    />
+                    <Kpi
+                        label="Registros"
+                        value={summary.total}
+                        subText="Total analizados"
+                    />
                 </SimpleGrid>
 
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
-                    {/* Churn risk */}
-                    <Paper p="xl" radius="xl" withBorder className="glass-card">
+                    <Paper p="xl" radius="xl" withBorder>
                         <Group justify="space-between" mb="lg">
                             <Stack gap={0}>
                                 <Title order={4}>Riesgo de Deserción</Title>
@@ -514,8 +504,7 @@ export default function AnalyticsDashboard() {
                         )}
                     </Paper>
 
-                    {/* Distribución de estados */}
-                    <Paper p="xl" radius="xl" withBorder className="shell-glass">
+                    <Paper p="xl" radius="xl" withBorder>
                         <Group gap="xs" mb="lg">
                             <ThemeIcon color="indigo" variant="light" size="lg" radius="md"><IconChartBar size={18} /></ThemeIcon>
                             <Stack gap={0}>
@@ -557,8 +546,7 @@ export default function AnalyticsDashboard() {
                     </Paper>
                 </SimpleGrid>
 
-                {/* Recomendaciones */}
-                <Paper p="xl" radius="xl" withBorder className="glass-card">
+                <Paper p="xl" radius="xl" withBorder>
                     <Group gap="xs" mb="lg">
                         <ThemeIcon color="blue" variant="light" size="lg" radius="md"><IconInfoCircle size={18} /></ThemeIcon>
                         <Stack gap={0}>
@@ -598,41 +586,15 @@ export default function AnalyticsDashboard() {
 
         return (
             <Stack gap="xl" className="animate-fade-in">
-                {/* KPIs */}
                 <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="lg">
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Total Miembros</Text>
-                            <Text fw={900} size="2rem">{totalGender}</Text>
-                            <Text size="xs" c="dimmed" fw={600}>En el departamento</Text>
-                        </Stack>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Hombres</Text>
-                            <Text fw={900} size="2rem" c="blue.6">{demo.gender.male}</Text>
-                            <Text size="xs" c="dimmed" fw={600}>{malePercent}% del total</Text>
-                        </Stack>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Mujeres</Text>
-                            <Text fw={900} size="2rem" c="pink.5">{demo.gender.female}</Text>
-                            <Text size="xs" c="dimmed" fw={600}>{femalePercent}% del total</Text>
-                        </Stack>
-                    </Paper>
-                    <Paper p="lg" radius="xl" withBorder className="glass-card">
-                        <Stack gap={0}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Con edad registrada</Text>
-                            <Text fw={900} size="2rem">{totalAge}</Text>
-                            <Text size="xs" c="dimmed" fw={600}>de {totalGender} miembros</Text>
-                        </Stack>
-                    </Paper>
+                    <Kpi label="Total Miembros" value={totalGender} subText="En el departamento" />
+                    <Kpi label="Hombres" value={demo.gender.male} valueColor="blue.6" subText={`${malePercent}% del total`} />
+                    <Kpi label="Mujeres" value={demo.gender.female} valueColor="pink.5" subText={`${femalePercent}% del total`} />
+                    <Kpi label="Con edad registrada" value={totalAge} subText={`de ${totalGender} miembros`} />
                 </SimpleGrid>
 
                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
-                    {/* Género */}
-                    <Paper p="xl" radius="xl" withBorder className="glass-card">
+                    <Paper p="xl" radius="xl" withBorder>
                         <Title order={4} mb="lg">Distribución por Género</Title>
                         {donutData.length > 0 ? (
                             <Stack gap="lg">
@@ -643,7 +605,7 @@ export default function AnalyticsDashboard() {
                                         thickness={30}
                                         paddingAngle={3}
                                         tooltipDataSource="segment"
-                                        tooltipProps={{ allowEscapeViewBox: { x: false, y: false }, offset: 10, wrapperStyle: { zIndex: 200 } }}
+                                        tooltipProps={TOOLTIP_PROPS}
                                     />
                                 </Center>
                                 <Stack gap="sm">
@@ -672,8 +634,7 @@ export default function AnalyticsDashboard() {
                         )}
                     </Paper>
 
-                    {/* Rangos de edad */}
-                    <Paper p="xl" radius="xl" withBorder className="glass-card">
+                    <Paper p="xl" radius="xl" withBorder>
                         <Title order={4} mb="lg">Rangos de Edad</Title>
                         {ageData.length > 0 ? (
                             <Stack gap="sm">
@@ -722,7 +683,6 @@ export default function AnalyticsDashboard() {
             .sort((a, b) => dayjs(a.month, 'MMM YYYY').unix() - dayjs(b.month, 'MMM YYYY').unix())
             .map(m => ({ mes: m.month, Asistencias: m.asistio, Faltas: m.faltas }));
 
-        // Build month-by-month heatmap grid
         const today = dayjs();
         const startOfYear = dayjs().startOf('year');
         const months: { label: string; days: { date: string; count: number }[] }[] = [];
@@ -750,50 +710,36 @@ export default function AnalyticsDashboard() {
         return (
             <Stack gap="xl" className="animate-fade-in">
                 <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="lg">
-                    <Card padding="lg" radius="xl" withBorder className="glass-card">
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Asistencias</Text>
-                                <Text fw={900} size="2rem">{annualStats?.totalServices || 0}</Text>
-                                <Text size="xs" c="dimmed" fw={600}>Año {dayjs().year()}</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="teal"><IconChartBar size={22} /></ThemeIcon>
-                        </Group>
-                    </Card>
-                    <Card padding="lg" radius="xl" withBorder className="glass-card">
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Tasa Anual</Text>
-                                <Text fw={900} size="2rem" c={annualRate >= 80 ? 'teal.6' : annualRate >= 60 ? 'orange.6' : 'red.6'}>{annualRate}%</Text>
-                                <Text size="xs" c="dimmed" fw={600}>de {summary.total} registros</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="indigo"><IconTrendingUp size={22} /></ThemeIcon>
-                        </Group>
-                    </Card>
-                    <Card padding="lg" radius="xl" withBorder className="glass-card">
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Días Activos</Text>
-                                <Text fw={900} size="2rem">{annualStats?.uniqueDates || 0}</Text>
-                                <Text size="xs" c="dimmed" fw={600}>Con al menos 1 asistencia</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="grape"><IconCalendar size={22} /></ThemeIcon>
-                        </Group>
-                    </Card>
-                    <Card padding="lg" radius="xl" withBorder className="glass-card">
-                        <Group justify="space-between" align="flex-start">
-                            <Stack gap={0}>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Total Faltas</Text>
-                                <Text fw={900} size="2rem" c="red.6">{totalFaltas}</Text>
-                                <Text size="xs" c="dimmed" fw={600}>{summary.faltoConAviso} c/aviso · {summary.faltoSinAviso} s/aviso</Text>
-                            </Stack>
-                            <ThemeIcon size="xl" radius="lg" variant="light" color="red"><IconAlertTriangle size={22} /></ThemeIcon>
-                        </Group>
-                    </Card>
+                    <Kpi
+                        label="Asistencias"
+                        value={annualStats?.totalServices || 0}
+                        subText={`Año ${dayjs().year()}`}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="teal"><IconChartBar size={22} /></ThemeIcon>}
+                    />
+                    <Kpi
+                        label="Tasa Anual"
+                        value={`${annualRate}%`}
+                        valueColor={annualRate >= 80 ? 'teal.6' : annualRate >= 60 ? 'orange.6' : 'red.6'}
+                        subText={`de ${summary.total} registros`}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="indigo"><IconTrendingUp size={22} /></ThemeIcon>}
+                    />
+                    <Kpi
+                        label="Días Activos"
+                        value={annualStats?.uniqueDates || 0}
+                        subText="Con al menos 1 asistencia"
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="grape"><IconCalendar size={22} /></ThemeIcon>}
+                    />
+                    <Kpi
+                        label="Total Faltas"
+                        value={totalFaltas}
+                        valueColor="red.6"
+                        subText={`${summary.faltoConAviso} c/aviso · ${summary.faltoSinAviso} s/aviso`}
+                        icon={<ThemeIcon size="xl" radius="lg" variant="light" color="red"><IconAlertTriangle size={22} /></ThemeIcon>}
+                    />
                 </SimpleGrid>
 
                 {monthChartData.length > 0 && (
-                    <Paper p="xl" radius="xl" withBorder className="glass-card" style={{ overflow: 'hidden' }}>
+                    <Paper p="xl" radius="xl" withBorder style={{ overflow: 'hidden' }}>
                         <Stack gap={0} mb="xl">
                             <Title order={4}>Asistencia Mensual</Title>
                             <Text size="xs" c="dimmed" fw={600}>Comparativa acumulada de presencias y ausencias por mes</Text>
@@ -810,13 +756,13 @@ export default function AnalyticsDashboard() {
                                 ]}
                                 withLegend
                                 gridAxis="y"
-                                tooltipProps={{ allowEscapeViewBox: { x: false, y: false }, offset: 10, wrapperStyle: { zIndex: 200 } }}
+                                tooltipProps={TOOLTIP_PROPS}
                             />
                         </Box>
                     </Paper>
                 )}
 
-                <Paper p="xl" radius="xl" withBorder className="glass-card">
+                <Paper p="xl" radius="xl" withBorder>
                     <Group justify="space-between" align="center" mb="lg">
                         <Stack gap={0}>
                             <Title order={4}>Mapa de Actividad {dayjs().year()}</Title>
@@ -835,7 +781,7 @@ export default function AnalyticsDashboard() {
                         <Group gap="md" align="flex-start" wrap="nowrap" pb="xs">
                             {months.map(month => (
                                 <Stack key={month.label} gap={4} align="center" style={{ minWidth: 0 }}>
-                                    <Text size="10px" fw={800} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.05em' }}>{month.label}</Text>
+                                    <Text size="10px" fw={800} tt="uppercase" c="dimmed" style={{ letterSpacing: 'var(--ls-label)' }}>{month.label}</Text>
                                     <Group gap={3} wrap="wrap" style={{ maxWidth: 90 }}>
                                         {month.days.map(d => (
                                             <Box
@@ -886,7 +832,7 @@ export default function AnalyticsDashboard() {
 
         return (
             <Stack gap="xl" className="animate-fade-in">
-                <Paper p="xl" radius="xl" withBorder className="shell-glass">
+                <Paper p="xl" radius="xl" withBorder>
                     <Select
                         label="Seleccionar servidor"
                         placeholder="Buscar servidor del departamento..."
@@ -918,43 +864,56 @@ export default function AnalyticsDashboard() {
                 )}
 
                 {selectedMemberId && loadingMember && (
-                    <Center py="xl"><Text c="dimmed" fw={600}>Cargando estadísticas...</Text></Center>
+                    <Center py="xl">
+                        <Stack align="center" gap="md">
+                            <Loader color="gold" size="md" />
+                            <Text c="dimmed" fw={600}>Cargando historial...</Text>
+                        </Stack>
+                    </Center>
                 )}
 
-                {selectedMemberId && !loadingMember && (
+                {selectedMemberId && errorMember && !loadingMember && (
+                    <Center py="xl">
+                        <Stack align="center" gap="sm">
+                            <ThemeIcon size={52} radius="xl" variant="light" color="orange">
+                                <IconAlertTriangle size={26} stroke={1.5} />
+                            </ThemeIcon>
+                            <Text fw={700} c="orange.7">No se pudo cargar el historial</Text>
+                            <Text size="sm" c="dimmed" ta="center">Intenta seleccionar otro servidor o recargar la página.</Text>
+                        </Stack>
+                    </Center>
+                )}
+
+                {selectedMemberId && !loadingMember && !errorMember && (
                     <Stack gap="xl">
                         <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="lg">
-                            <Paper p="lg" radius="xl" withBorder className="glass-card">
-                                <Stack gap={0}>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Tasa de Asistencia</Text>
-                                    <Text fw={900} size="2.2rem" c={`${rateColor}.6`}>{rate}%</Text>
-                                    <Text size="xs" c="dimmed" fw={600}>{asistio} de {total} servicios</Text>
-                                </Stack>
-                            </Paper>
-                            <Paper p="lg" radius="xl" withBorder className="glass-card">
-                                <Stack gap={0}>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Presencias</Text>
-                                    <Text fw={900} size="2.2rem" c="teal.6">{asistio}</Text>
-                                    <Text size="xs" c="dimmed" fw={600}>Asistencias confirmadas</Text>
-                                </Stack>
-                            </Paper>
-                            <Paper p="lg" radius="xl" withBorder className="glass-card">
-                                <Stack gap={0}>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Justificadas</Text>
-                                    <Text fw={900} size="2.2rem" c="yellow.6">{justificada}</Text>
-                                    <Text size="xs" c="dimmed" fw={600}>No cuentan como falta</Text>
-                                </Stack>
-                            </Paper>
-                            <Paper p="lg" radius="xl" withBorder className="glass-card">
-                                <Stack gap={0}>
-                                    <Text size="xs" c="dimmed" tt="uppercase" fw={800} style={{ letterSpacing: '0.05em' }}>Faltas s/aviso</Text>
-                                    <Text fw={900} size="2.2rem" c="red.6">{sinAviso}</Text>
-                                    <Text size="xs" c="dimmed" fw={600}>Ausencias injustificadas</Text>
-                                </Stack>
-                            </Paper>
+                            <Kpi
+                                label="Tasa de Asistencia"
+                                value={`${rate}%`}
+                                valueColor={`${rateColor}.6`}
+                                subText={`${asistio} de ${total} servicios`}
+                            />
+                            <Kpi
+                                label="Presencias"
+                                value={asistio}
+                                valueColor="teal.6"
+                                subText="Asistencias confirmadas"
+                            />
+                            <Kpi
+                                label="Justificadas"
+                                value={justificada}
+                                valueColor="yellow.6"
+                                subText="No cuentan como falta"
+                            />
+                            <Kpi
+                                label="Faltas s/aviso"
+                                value={sinAviso}
+                                valueColor="red.6"
+                                subText="Ausencias injustificadas"
+                            />
                         </SimpleGrid>
 
-                        <Paper p="lg" radius="xl" withBorder className="glass-card">
+                        <Paper p="lg" radius="xl" withBorder>
                             <Group justify="space-between" mb="md">
                                 <Stack gap={0}>
                                     <Text fw={800} size="lg">Tasa de asistencia real</Text>
@@ -965,7 +924,7 @@ export default function AnalyticsDashboard() {
                             <Progress value={rate} color={rateColor} size="lg" radius="xl" />
                         </Paper>
 
-                        <Paper shadow="sm" radius="xl" withBorder className="glass-card" style={{ overflow: 'hidden' }}>
+                        <Paper shadow="sm" radius="xl" withBorder style={{ overflow: 'hidden' }}>
                             <Table.ScrollContainer minWidth={500}>
                                 <Table verticalSpacing="sm" highlightOnHover>
                                     <Table.Thead style={{ backgroundColor: 'var(--mantine-color-gray-1)' }}>
@@ -1049,9 +1008,8 @@ export default function AnalyticsDashboard() {
                 <Group justify="space-between" align="flex-end" wrap="wrap" gap="lg">
                     <Stack gap={0}>
                         <Title order={1} style={{
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '2.4rem',
-                            letterSpacing: '-0.02em',
+                            fontSize: 'var(--text-display)',
+                            letterSpacing: 'var(--ls-display)',
                             color: 'var(--mantine-color-text)'
                         }}>
                             Panel de Impacto
@@ -1079,38 +1037,41 @@ export default function AnalyticsDashboard() {
                 </Group>
 
                 <Tabs value={activeTab} onChange={setActiveTab} variant="pills" radius="xl">
-                    <Tabs.List className="shell-glass" style={{ 
-                        padding: '6px', 
+                    <Tabs.List style={{
+                        padding: '6px',
                         borderRadius: '100px',
                         border: '1px solid var(--mantine-color-default-border)',
                         width: 'fit-content',
                         backgroundColor: 'var(--mantine-color-body)'
                     }}>
-                        <Tabs.Tab value="weekly" leftSection={<IconTrendingUp size={18} />} styles={{ tab: { fontWeight: 700 } }}>
-                            Semanal
-                        </Tabs.Tab>
-                        <Tabs.Tab value="monthly" leftSection={<IconChartBar size={18} />} styles={{ tab: { fontWeight: 700 } }}>
-                            Mensual
-                        </Tabs.Tab>
-                        <Tabs.Tab value="annual" leftSection={<IconCalendarStats size={18} />} styles={{ tab: { fontWeight: 700 } }}>
-                            Anual
-                        </Tabs.Tab>
-                        <Tabs.Tab value="demographics" leftSection={<IconUsers size={18} />} styles={{ tab: { fontWeight: 700 } }}>
-                            Demografía
-                        </Tabs.Tab>
-                        <Tabs.Tab value="insights" leftSection={<IconActivity size={18} />} styles={{ tab: { fontWeight: 700 } }}>
-                            Insights
-                        </Tabs.Tab>
-                        <Tabs.Tab value="servidor" leftSection={<IconUser size={18} />} styles={{ tab: { fontWeight: 700 } }}>
-                            Por Servidor
-                        </Tabs.Tab>
+                        <Tabs.Tab value="weekly" leftSection={<IconTrendingUp size={18} />} fw={700}>Semanal</Tabs.Tab>
+                        <Tabs.Tab value="monthly" leftSection={<IconChartBar size={18} />} fw={700}>Mensual</Tabs.Tab>
+                        <Tabs.Tab value="annual" leftSection={<IconCalendarStats size={18} />} fw={700}>Anual</Tabs.Tab>
+                        <Tabs.Tab value="demographics" leftSection={<IconUsers size={18} />} fw={700}>Demografía</Tabs.Tab>
+                        <Tabs.Tab value="insights" leftSection={<IconActivity size={18} />} fw={700}>Insights</Tabs.Tab>
+                        <Tabs.Tab value="servidor" leftSection={<IconUser size={18} />} fw={700}>Por Servidor</Tabs.Tab>
                     </Tabs.List>
 
                     <Box mt="xl">
                         {isLoading ? (
-                            <Center py="xl"><Stack align="center" gap="md"><div className="loader" style={{ width: 40, height: 40, border: '4px solid var(--mantine-color-gold-2)', borderTop: '4px solid var(--mantine-color-gold-6)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><Text c="dimmed" fw={600}>Cargando estadísticas...</Text></Stack></Center>
-                        ) : errorWeekly && weeklyStats.length === 0 ? (
-                            <Center py="xl"><Stack align="center" gap="sm"><IconAlertTriangle size={40} color="var(--mantine-color-orange-6)" /><Text fw={700} c="orange.7">No se pudieron cargar las estadísticas</Text><Text size="sm" c="dimmed" ta="center">Es posible que las funciones de análisis no estén configuradas en la base de datos.</Text></Stack></Center>
+                            <Center py="xl">
+                                <Stack align="center" gap="md">
+                                    <Loader color="gold" size="xl" />
+                                    <Text c="dimmed" fw={600}>Cargando estadísticas...</Text>
+                                </Stack>
+                            </Center>
+                        ) : hasError ? (
+                            <Center py="xl">
+                                <Stack align="center" gap="sm">
+                                    <ThemeIcon size={56} radius="xl" variant="light" color="orange">
+                                        <IconAlertTriangle size={28} stroke={1.5} />
+                                    </ThemeIcon>
+                                    <Text fw={700} c="orange.7">No se pudieron cargar los datos</Text>
+                                    <Text size="sm" c="dimmed" ta="center" maw={400}>
+                                        Hubo un error al obtener las estadísticas. Intenta recargar la página o seleccionar otro departamento.
+                                    </Text>
+                                </Stack>
+                            </Center>
                         ) : (
                             <>
                                 <Tabs.Panel value="weekly">{renderWeekly()}</Tabs.Panel>

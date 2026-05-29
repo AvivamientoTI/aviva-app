@@ -46,10 +46,11 @@ export const theme = createTheme({
         fontFamily: '"Inter", sans-serif',
         fontWeight: '700',
         sizes: {
-            h1: { fontSize: '2.5rem', lineHeight: '1.2', letterSpacing: '-0.022em' },
-            h2: { fontSize: '2.1rem', lineHeight: '1.25', letterSpacing: '-0.02em' },
-            h3: { fontSize: '1.6rem', lineHeight: '1.3', letterSpacing: '-0.015em' },
-            h4: { fontSize: '1.25rem', lineHeight: '1.4' },
+            // Ratios: H1/H2 = 1.31, H2/H3 = 1.31, H3/H4 = 1.33 — all ≥ 1.25
+            h1: { fontSize: '2.75rem', lineHeight: '1.15', letterSpacing: '-0.024em' },
+            h2: { fontSize: '2.1rem',  lineHeight: '1.25', letterSpacing: '-0.02em'  },
+            h3: { fontSize: '1.6rem',  lineHeight: '1.3',  letterSpacing: '-0.015em' },
+            h4: { fontSize: '1.2rem',  lineHeight: '1.4',  letterSpacing: '-0.01em'  },
         },
     },
 
@@ -64,12 +65,11 @@ export const theme = createTheme({
                 root: {
                     fontWeight: 700,
                     letterSpacing: '-0.01em',
-                    transition: 'all 0.2s ease',
-                    '&:active': { transform: 'scale(0.98)' },
-                    // Gradient buttons by default if variant is filled
+                    transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                    '&:active': { transform: 'scale(0.97)' },
                     background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
                     border: 'none',
-                    color: 'white', // Force white text for contrast
+                    color: 'white',
                     boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)',
                     '&:hover': {
                         background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
@@ -104,12 +104,14 @@ export const theme = createTheme({
             },
             styles: (theme) => ({
                 root: {
-                    transition: 'all 0.2s ease',
+                    transition: 'transform 200ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                     backgroundColor: 'var(--mantine-color-body)',
-                    borderColor: 'var(--mantine-color-default-border)', // Warm border
-                    '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', // Gold shadow hint
+                    borderColor: 'var(--mantine-color-default-border)',
+                    '@media (hover: hover) and (pointer: fine)': {
+                        '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        },
                     },
                 },
             }),

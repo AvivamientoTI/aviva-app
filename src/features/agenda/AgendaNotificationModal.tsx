@@ -55,7 +55,7 @@ export function AgendaNotificationModal() {
                         <Text fw={800} size="md">
                             {eventos.length === 1 ? 'Nuevo evento en la agenda' : `${eventos.length} nuevos eventos en la agenda`}
                         </Text>
-                        <Text size="xs" c="dimmed" fw={500}>Se han añadido los siguientes eventos</Text>
+                        <Text size="xs" c="dimmed" fw={500}>Revisa los detalles antes de cerrar</Text>
                     </Stack>
                 </Group>
             }

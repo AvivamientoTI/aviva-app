@@ -56,7 +56,7 @@ export function PasswordChangeModal({ opened, onClose }: PasswordChangeModalProp
 
             notifications.show({
                 title: 'Contraseña actualizada',
-                message: 'Tu contraseña ha sido cambiada exitosamente.',
+                message: 'Tu contraseña fue actualizada correctamente.',
                 color: 'green',
                 icon: <IconShieldCheck size={18} />
             });
@@ -74,6 +74,8 @@ export function PasswordChangeModal({ opened, onClose }: PasswordChangeModalProp
         }
     };
 
+    const confirmMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
     return (
         <Modal
             opened={opened}
@@ -84,43 +86,43 @@ export function PasswordChangeModal({ opened, onClose }: PasswordChangeModalProp
                     <Text fw={700}>Cambiar Contraseña</Text>
                 </Group>
             }
-            radius="md"
+            radius="lg"
         >
-            <Stack gap="md">
-                <Text size="sm" c="dimmed">
-                    Ingresa tu nueva contraseña a continuación. Te recomendamos usar una combinación de letras, números y símbolos.
-                </Text>
-
+            <Stack
+                gap="md"
+                component="form"
+                onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}
+            >
                 <PasswordInput
-                    label="Nueva Contraseña"
-                    placeholder="Tu nueva contraseña"
+                    label="Nueva contraseña"
+                    placeholder="Mínimo 8 caracteres, mayúscula, número y símbolo"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoFocus
                     leftSection={<IconLock size={16} />}
                 />
 
                 <PasswordInput
-                    label="Confirmar Contraseña"
-                    placeholder="Repite tu contraseña"
+                    label="Confirmar contraseña"
+                    placeholder="Repite la contraseña"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    error={confirmMismatch ? 'Las contraseñas no coinciden' : undefined}
                     leftSection={<IconShieldCheck size={16} />}
                 />
 
-                <Group justify="flex-end" mt="md">
-                    <Button variant="light" color="gray" onClick={onClose} disabled={loading}>
+                <Group justify="flex-end" mt="xs">
+                    <Button variant="light" color="stone" onClick={onClose} disabled={loading} type="button">
                         Cancelar
                     </Button>
-                    <Button 
-                        color="orange.7" 
-                        onClick={handlePasswordChange} 
+                    <Button
+                        type="submit"
                         loading={loading}
-                        variant="gradient"
-                        gradient={{ from: 'orange.6', to: 'yellow.6', deg: 135 }}
+                        className="btn-premium"
                     >
-                        Actualizar Contraseña
+                        Actualizar contraseña
                     </Button>
                 </Group>
             </Stack>

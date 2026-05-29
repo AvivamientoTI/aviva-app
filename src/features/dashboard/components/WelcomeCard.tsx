@@ -5,6 +5,13 @@ interface WelcomeCardProps {
     membershipLabel?: string;
 }
 
+function getGreeting(): string {
+    const h = new Date().getHours();
+    if (h >= 6 && h < 12) return 'Buenos días,';
+    if (h >= 12 && h < 19) return 'Buenas tardes,';
+    return 'Buenas noches,';
+}
+
 export function WelcomeCard({ userName, membershipLabel }: WelcomeCardProps) {
     return (
         <Box className="mesh-gradient" style={{
@@ -47,29 +54,28 @@ export function WelcomeCard({ userName, membershipLabel }: WelcomeCardProps) {
                 </Box>
 
                 <Stack gap="lg" style={{ position: 'relative', zIndex: 1 }}>
-                    <Badge 
-                        variant="white" 
-                        color="orange.9" 
-                        radius="sm" 
-                        size="lg" 
-                        style={{ 
-                            width: 'fit-content', 
+                    <Badge
+                        variant="white"
+                        color="orange.9"
+                        radius="sm"
+                        size="lg"
+                        style={{
+                            width: 'fit-content',
                             fontWeight: 900,
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                         }}
                     >
-                        PLATAFORMA GESTIÓN DE ROLES
+                        Servidores Avivamiento
                     </Badge>
 
                     <Stack gap={0}>
                         <Title order={1} style={{
-                            fontFamily: 'Inter, sans-serif',
-                            fontSize: '3.5rem',
+                            fontSize: 'clamp(2rem, 5vw, var(--text-display))',
                             lineHeight: 1,
-                            letterSpacing: '-0.02em',
+                            letterSpacing: 'var(--ls-display)',
                             color: 'white'
                         }}>
-                            Hola,<br />
+                            {getGreeting()}<br />
                             <Text span inherit fw={800}>
                                 {userName}
                             </Text>
@@ -77,44 +83,38 @@ export function WelcomeCard({ userName, membershipLabel }: WelcomeCardProps) {
                         {membershipLabel && (
                             <Box mt={10}>
                                 <Badge
-                                    variant="gradient"
-                                    gradient={{ from: 'rgba(255,255,255,0.25)', to: 'rgba(255,255,255,0.1)' }}
+                                    variant="white"
+                                    color="orange.9"
                                     size="lg"
                                     radius="sm"
                                     style={{
-                                        border: '1px solid rgba(255,255,255,0.35)',
-                                        color: 'white',
                                         fontWeight: 800,
                                         fontSize: '0.78rem',
                                         letterSpacing: '0.08em',
-                                        backdropFilter: 'blur(6px)',
                                         textTransform: 'uppercase',
                                         boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                                     }}
                                 >
-                                    ✦ {membershipLabel}
+                                    {membershipLabel}
                                 </Badge>
                             </Box>
                         )}
                     </Stack>
 
                     <Box style={{
-                        background: 'rgba(0, 0, 0, 0.2)',
-                        backdropFilter: 'blur(4px)',
-                        borderLeft: '4px solid var(--mantine-color-yellow-4)',
-                        padding: '24px',
-                        borderRadius: '0 12px 12px 0',
+                        background: 'rgba(0, 0, 0, 0.18)',
+                        padding: '20px 24px',
+                        borderRadius: '12px',
                         marginTop: '8px',
-                        maxWidth: '92%'
+                        maxWidth: '92%',
+                        border: '1px solid rgba(255,255,255,0.12)',
                     }}>
                         <Text size="xl" fs="italic" fw={600} c="white" style={{ lineHeight: 1.5 }}>
                             "Y todo lo que hagáis, hacedlo de corazón, como para el Señor y no para los hombres..."
                         </Text>
-                        <Group gap="xs" mt={12}>
-                            <Text fw={900} size="sm" c="yellow.4" style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                                COLOSENSES 3:23
-                            </Text>
-                        </Group>
+                        <Text fw={900} size="sm" c="yellow.4" mt={12} style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                            Colosenses 3:23
+                        </Text>
                     </Box>
                 </Stack>
             </Card>

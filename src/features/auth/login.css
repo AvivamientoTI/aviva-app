@@ -1,48 +1,16 @@
-/* Estilos simples y elegantes para el login */
+/* Login — warm amber identity gateway
+   Strategy: Committed. Gold carries 30–40% of the surface.
+   The login page is the brand threshold, not a utility screen. */
+
 .login-bg {
   min-height: 100vh;
   width: 100vw;
-  background: linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.login-paper {
-  border-radius: 16px;
-  box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.10);
-  background: #fff;
-  padding: 2.5rem 2rem;
-  transition: box-shadow 0.2s;
-}
-
-.login-title {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  color: #2563eb;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
-}
-
-.login-subtitle {
-  color: #64748b;
-  margin-bottom: 1.5rem;
-}
-
-.login-btn {
-  background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
-  color: #fff;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-.login-btn:hover {
-  background: linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 100%);
-}
-
-.login-error {
-  color: #ef4444;
-  font-size: 0.95rem;
-  margin-top: 0.25rem;
+  background-color: #fafaf9; /* stone.0 — warm base */
+  background-image:
+    radial-gradient(ellipse at 18% 12%, rgba(217, 119, 6, 0.13) 0px, transparent 52%),
+    radial-gradient(ellipse at 82% 88%, rgba(180, 83, 9, 0.09) 0px, transparent 52%),
+    radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.06) 0px, transparent 40%);
 }
