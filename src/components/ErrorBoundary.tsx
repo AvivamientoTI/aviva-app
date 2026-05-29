@@ -2,7 +2,7 @@ import React, { type ReactNode } from 'react';
 import { Container, Title, Text, Button, Group, Paper, Stack, ThemeIcon } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
 
-import * as Sentry from "@sentry/react";
+import * as Sentry from '@sentry/react';
 
 interface ErrorBoundaryProps {
     children: ReactNode;
@@ -12,41 +12,51 @@ interface ErrorBoundaryState {
     hasError: boolean;
     error: Error | null;
     errorInfo: React.ErrorInfo | null;
+    diagnostic: string | null;
+    resetting: boolean;
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
     constructor(props: ErrorBoundaryProps) {
         super(props);
-        this.state = { hasError: false, error: null, errorInfo: null };
+        this.state = {
+            hasError: false,
+            error: null,
+            errorInfo: null,
+            diagnostic: null,
+            resetting: false,
+        };
     }
 
     static getDerivedStateFromError(error: Error) {
-        // Actualiza el estado para que el siguiente renderizado muestre la UI de repuesto
         return { hasError: true, error };
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error("Uncaught error:", error, errorInfo);
+        console.error('Uncaught error:', error, errorInfo);
+
+        const diagnostic = JSON.stringify({
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            componentStack: errorInfo.componentStack,
+            path: window.location.pathname,
+            at: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+        }, null, 2);
+
         try {
-            localStorage.setItem('last_app_error', JSON.stringify({
-                message: error.message,
-                name: error.name,
-                stack: error.stack,
-                componentStack: errorInfo.componentStack,
-                path: window.location.pathname,
-                at: new Date().toISOString(),
-            }));
+            localStorage.setItem('last_app_error', diagnostic);
         } catch {
             // Best-effort diagnostic storage.
         }
-        alert('ERROR: ' + error.toString() + '\n\nSTACK: ' + (errorInfo?.componentStack?.slice(0, 300) ?? 'N/A'));
+
         Sentry.captureException(error, { extra: { ...errorInfo } });
-        
-        // Auto-fix para White Screen / Chunk Error en Vercel
-        const isChunkError = error.name === 'ChunkLoadError' || 
-                             error.message.includes('fetch') || 
-                             error.message.includes('dynamically imported module');
-                             
+
+        const isChunkError = error.name === 'ChunkLoadError'
+            || error.message.includes('fetch')
+            || error.message.includes('dynamically imported module');
+
         if (isChunkError) {
             const hasReloaded = sessionStorage.getItem('chunk_reload');
             if (!hasReloaded) {
@@ -55,25 +65,52 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 return;
             }
         }
-        
-        this.setState({ errorInfo });
+
+        this.setState({ errorInfo, diagnostic });
     }
 
+    getDiagnosticText = () => {
+        if (this.state.diagnostic) return this.state.diagnostic;
+
+        try {
+            return localStorage.getItem('last_app_error') || this.state.error?.toString() || 'Sin detalle tecnico disponible.';
+        } catch {
+            return this.state.error?.toString() || 'Sin detalle tecnico disponible.';
+        }
+    };
+
+    handleCopyDiagnostic = async () => {
+        const diagnostic = this.getDiagnosticText();
+
+        try {
+            await navigator.clipboard?.writeText(diagnostic);
+        } catch {
+            console.info('Diagnostic:', diagnostic);
+        }
+    };
+
     handleReset = async () => {
-        this.setState({ hasError: false, error: null, errorInfo: null });
+        this.setState({ resetting: true });
+
         try {
             const registrations = await navigator.serviceWorker?.getRegistrations?.();
-            await Promise.all((registrations ?? []).map((registration) => registration.update()));
+            await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
+
             const cacheNames = await caches?.keys?.();
             await Promise.all((cacheNames ?? []).map((cacheName) => caches.delete(cacheName)));
+
+            sessionStorage.removeItem('chunk_reload');
         } catch (error) {
             console.warn('No se pudo limpiar cache antes de recargar:', error);
         }
-        window.location.reload();
+
+        window.location.assign(`/?reset=${Date.now()}`);
     };
 
     render() {
         if (this.state.hasError) {
+            const diagnostic = this.getDiagnosticText();
+
             return (
                 <Container size="md" py={80}>
                     <Paper p="xl" radius="md" withBorder style={{ borderColor: 'var(--mantine-color-red-3)' }}>
@@ -82,27 +119,39 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                                 <IconAlertTriangle size={50} />
                             </ThemeIcon>
 
-                            <Title order={2} ta="center">¡Algo salió mal!</Title>
+                            <Title order={2} ta="center">Algo salio mal</Title>
 
                             <Text c="dimmed" ta="center" size="lg">
-                                Ha ocurrido un error inesperado en la aplicación. No te preocupes, hemos registrado el problema.
+                                Ha ocurrido un error inesperado. Copia el diagnostico para revisar la causa exacta.
                             </Text>
 
-                            {this.state.error && (
+                            <Paper bg="gray.0" p="md" w="100%" withBorder>
+                                <Text c="red" fw={600} mb="xs">
+                                    Detalle tecnico
+                                </Text>
+                                <Text size="xs" component="pre" style={{ whiteSpace: 'pre-wrap', overflowX: 'auto', maxHeight: 180 }}>
+                                    {diagnostic}
+                                </Text>
+                            </Paper>
+
+                            {this.state.errorInfo?.componentStack && (
                                 <Paper bg="gray.0" p="md" w="100%" withBorder>
-                                    <Text c="red" fw={600} mb="xs">Error: {this.state.error.toString()}</Text>
+                                    <Text c="red" fw={600} mb="xs">Componentes</Text>
                                     <Text size="xs" component="pre" style={{ whiteSpace: 'pre-wrap', overflowX: 'auto' }}>
-                                        {this.state.errorInfo?.componentStack}
+                                        {this.state.errorInfo.componentStack}
                                     </Text>
                                 </Paper>
                             )}
 
                             <Group>
+                                <Button onClick={this.handleCopyDiagnostic} variant="default">
+                                    Copiar Diagnostico
+                                </Button>
                                 <Button onClick={() => window.location.href = '/'} variant="default">
                                     Ir al Inicio
                                 </Button>
-                                <Button onClick={this.handleReset} color="red">
-                                    Recargar Página
+                                <Button onClick={this.handleReset} color="red" loading={this.state.resetting}>
+                                    Limpiar y Recargar
                                 </Button>
                             </Group>
                         </Stack>
