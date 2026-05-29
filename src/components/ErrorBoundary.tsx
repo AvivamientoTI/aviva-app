@@ -27,6 +27,18 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error("Uncaught error:", error, errorInfo);
+        try {
+            localStorage.setItem('last_app_error', JSON.stringify({
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                path: window.location.pathname,
+                at: new Date().toISOString(),
+            }));
+        } catch {
+            // Best-effort diagnostic storage.
+        }
         alert('ERROR: ' + error.toString() + '\n\nSTACK: ' + (errorInfo?.componentStack?.slice(0, 300) ?? 'N/A'));
         Sentry.captureException(error, { extra: { ...errorInfo } });
         
@@ -47,8 +59,16 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         this.setState({ errorInfo });
     }
 
-    handleReset = () => {
+    handleReset = async () => {
         this.setState({ hasError: false, error: null, errorInfo: null });
+        try {
+            const registrations = await navigator.serviceWorker?.getRegistrations?.();
+            await Promise.all((registrations ?? []).map((registration) => registration.update()));
+            const cacheNames = await caches?.keys?.();
+            await Promise.all((cacheNames ?? []).map((cacheName) => caches.delete(cacheName)));
+        } catch (error) {
+            console.warn('No se pudo limpiar cache antes de recargar:', error);
+        }
         window.location.reload();
     };
 
