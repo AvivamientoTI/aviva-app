@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { analyticsService } from '../analyticsService';
 import { supabase } from '../supabaseClient';
+import { ATTENDANCE_STATES } from '../../constants/attendance';
 
 describe('analyticsService', () => {
     beforeEach(() => vi.clearAllMocks());
@@ -45,6 +46,20 @@ describe('analyticsService', () => {
             const result = analyticsService.processAttendanceData([]);
             expect(result.summary.total).toBe(0);
             expect(result.summary.asistio).toBe(0);
+        });
+
+        it('should ignore incomplete records without attendance status', () => {
+            const mockData = [
+                { estado: ATTENDANCE_STATES.ASISTIO, configuracion_dia: { fecha: '2026-05-27', roles_cabecera: [] } },
+                { estado: null, configuracion_dia: { fecha: '2026-05-27', roles_cabecera: [] } },
+                { estado: null, configuracion_dia: { fecha: '2026-05-27', roles_cabecera: [] } },
+            ];
+
+            const result = analyticsService.processAttendanceData(mockData);
+
+            expect(result.summary.total).toBe(1);
+            expect(result.summary.asistio).toBe(1);
+            expect(Object.values(result.byMonth).reduce((sum, m) => sum + m.faltas, 0)).toBe(0);
         });
     });
 

@@ -5,6 +5,7 @@ import weekOfYear from 'dayjs/plugin/weekOfYear';
 dayjs.extend(weekOfYear);
 import type { StatsData, MonthlyStat, ChurnRiskUser, GlobalDeptHealth, DemographicData, PunctualityStat } from '../types';
 import type { Database } from '../types/database.types';
+import { ATTENDANCE_STATES } from '../constants/attendance';
 
 type AttendanceWithRelations = Database['public']['Tables']['asistencias']['Row'] & {
   configuracion_dia: {
@@ -151,11 +152,13 @@ export const analyticsService = {
     for (let i = 0; i < rawData.length; i++) {
         const r = rawData[i];
         const status = r.estado;
+        if (!status) continue;
         
         // Actualizar sumario
-        if (status === 'Asistió') summary.asistio++;
-        else if (status === 'Faltó con Aviso') summary.faltoConAviso++;
-        else if (status === 'Faltó sin Aviso') summary.faltoSinAviso++;
+        if (status === ATTENDANCE_STATES.ASISTIO) summary.asistio++;
+        else if (status === ATTENDANCE_STATES.CON_JUSTIFICACION) summary.faltoConAviso++;
+        else if (status === ATTENDANCE_STATES.SIN_JUSTIFICACION) summary.faltoSinAviso++;
+        else continue;
         
         // Actualizar por mes
         const date = dayjs(r.configuracion_dia.fecha);
@@ -165,12 +168,14 @@ export const analyticsService = {
             byMonth[monthKey] = { month: monthKey, asistio: 0, faltas: 0 };
         }
         
-        if (status === 'Asistió') {
+        if (status === ATTENDANCE_STATES.ASISTIO) {
             byMonth[monthKey].asistio++;
         } else {
             byMonth[monthKey].faltas++;
         }
     }
+
+    summary.total = summary.asistio + summary.faltoConAviso + summary.faltoSinAviso;
 
     const stats: StatsData = {
       summary,

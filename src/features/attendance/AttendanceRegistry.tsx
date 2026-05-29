@@ -17,7 +17,7 @@ import { supabase } from '../../services/supabaseClient';
 import { ATTENDANCE_STATES, JUSTIFICATION_TYPES } from '../../constants/attendance';
 import dayjs from 'dayjs';
 
-type FilterState = 'todos' | 'ausentes' | 'justificados';
+type FilterState = 'todos' | 'ausentes' | 'justificados' | 'sin_registro';
 
 interface RegistryRecord {
     id: string | number;
@@ -42,7 +42,7 @@ export default function AttendanceRegistry() {
     const [serviceDays, setServiceDays] = useState<any[]>([]);
     const [records, setRecords] = useState<RegistryRecord[]>([]);
     const [loading, setLoading] = useState(false);
-    const [filter, setFilter] = useState<FilterState>('ausentes');
+    const [filter, setFilter] = useState<FilterState>('todos');
 
     // All depts the user can see (union of managed + attendance managed)
     const allManagedDepts = (() => {
@@ -113,6 +113,7 @@ export default function AttendanceRegistry() {
         .filter(r => {
             if (filter === 'ausentes') return r.estado === ATTENDANCE_STATES.SIN_JUSTIFICACION;
             if (filter === 'justificados') return r.estado === ATTENDANCE_STATES.CON_JUSTIFICACION;
+            if (filter === 'sin_registro') return !r.estado;
             return true;
         });
 
@@ -262,6 +263,7 @@ export default function AttendanceRegistry() {
                                             { label: `Todos (${records.length})`, value: 'todos' },
                                             { label: `Ausentes (${totalAusentes})`, value: 'ausentes' },
                                             { label: `Justificados (${totalJustificados})`, value: 'justificados' },
+                                            { label: `Sin marcar (${totalSinRegistro})`, value: 'sin_registro' },
                                         ]}
                                         radius="xl"
                                         size="sm"
@@ -293,6 +295,7 @@ export default function AttendanceRegistry() {
                                                             <Text fw={700} size="sm">
                                                                 {filter === 'ausentes' ? 'No hay ausencias registradas' :
                                                                  filter === 'justificados' ? 'No hay justificaciones registradas' :
+                                                                 filter === 'sin_registro' ? 'Todos tienen asistencia marcada' :
                                                                  'Sin registros para este servicio'}
                                                             </Text>
                                                         </Stack>

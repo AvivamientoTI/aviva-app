@@ -185,6 +185,16 @@ export default function AttendanceManager() {
             notifications.show({ title: 'Error', message: 'No hay datos para guardar.', color: 'red' });
             return;
         }
+        const unmarkedCount = attendance.filter(rec => !rec.estado).length;
+        if (unmarkedCount > 0) {
+            notifications.show({
+                title: 'Asistencia incompleta',
+                message: `Faltan ${unmarkedCount} servidor(es) por marcar antes de guardar.`,
+                color: 'orange',
+                icon: <IconAlertCircle size={18} />
+            });
+            return;
+        }
         setSaving(true);
         try {
             const isJustificada = (rec: typeof attendance[0]) => rec.estado === ATTENDANCE_STATES.CON_JUSTIFICACION;

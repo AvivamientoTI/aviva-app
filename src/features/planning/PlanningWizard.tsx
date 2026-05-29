@@ -24,6 +24,10 @@ import { PlanningStepDeptMonth } from './components/PlanningStepDeptMonth';
 import { PlanningStepServiceDates } from './components/PlanningStepServiceDates';
 import { PlanningStepReview } from './components/PlanningStepReview';
 
+function getServiceKey(dateStr: string, serviceIndex: number) {
+  return `temp-${dateStr}-${serviceIndex}`;
+}
+
 export default function PlanningWizard() {
   return (
     <PlanningProvider>
@@ -99,7 +103,8 @@ function PlanningWizardContent() {
         .from('configuracion_dia')
         .select(`
           *,
-          asignaciones (*, usuario:usuarios(nombre, apellido))
+          asignaciones (*, usuario:usuarios(nombre, apellido)),
+          asistencias (id)
         `)
         .eq('rol_cabecera_id', headerState.id)
         .order('fecha', { ascending: true });
@@ -136,7 +141,9 @@ function PlanningWizardContent() {
           hora: config.hora_llegada ? config.hora_llegada.slice(0, 5) : '',
           encargado_id: config.encargado_id,
           encargado_2_id: config.encargado_2_id,
-          positionQuotas: posQuotas
+          positionQuotas: posQuotas,
+          existingConfigId: config.id,
+          hasAttendance: Array.isArray(config.asistencias) && config.asistencias.length > 0
         };
 
         if (config.asignaciones) {
@@ -243,16 +250,33 @@ function PlanningWizardContent() {
       setLoading(true);
       try {
         const savedConfigsStub: any[] = [];
+        const preservedAssignments: typeof previewAssignments = [];
+
         selectedDates.forEach(dateStr => {
           const dayConfigs = serviceConfigs[dateStr] || [];
           dayConfigs.forEach((_, idx) => {
+            const serviceKey = getServiceKey(dateStr, idx);
+            const hasAttendance = !!dayConfigs[idx]?.hasAttendance;
+
+            if (hasAttendance) {
+              preservedAssignments.push(...previewAssignments.filter(a => a.configuracion_dia_id === serviceKey));
+              return;
+            }
+
             savedConfigsStub.push({
-              id: `temp-${dateStr}-${idx}`,
+              id: serviceKey,
               fecha: dateStr,
               serviceIndex: idx
             });
           });
         });
+
+        if (savedConfigsStub.length === 0) {
+          setPreviewAssignments(preservedAssignments);
+          notify.warning('Los servicios seleccionados ya tienen asistencia registrada, por lo que se conservaron sus asignaciones actuales.', 'Servicios Protegidos');
+          setActiveStep(activeStep + 1);
+          return;
+        }
 
         const result = await generateAssignments(savedConfigsStub, serviceConfigs, positions);
 
@@ -268,7 +292,7 @@ function PlanningWizardContent() {
           };
         });
 
-        setPreviewAssignments(mapped);
+        setPreviewAssignments([...preservedAssignments, ...mapped]);
 
         notify.success(`Se asignaron ${mapped.length} puestos automáticamente using IA.`, 'Generación Exitosa');
 
@@ -322,26 +346,36 @@ function PlanningWizardContent() {
         if (updateError) throw updateError;
       }
 
-      // 2. Clear existing assignments/configs for this header (Reset approach)
-      const { data: existingConfigs } = await supabase
+      // 2. Synchronize configuracion_dia incrementally.
+      // Existing service IDs are preserved so attendance history remains attached.
+      const { data: existingConfigs, error: existingConfigsError } = await supabase
         .from('configuracion_dia')
-        .select('id')
+        .select(`
+          id,
+          fecha,
+          service_index,
+          asistencias (id),
+          asignaciones (id)
+        `)
         .eq('rol_cabecera_id', headerId);
 
-      const configIds = existingConfigs?.map(c => c.id) || [];
-      if (configIds.length > 0) {
-        await supabase.from('asignaciones').delete().in('configuracion_dia_id', configIds);
-        await supabase.from('configuracion_dia').delete().eq('rol_cabecera_id', headerId);
-      }
+      if (existingConfigsError) throw existingConfigsError;
 
-      // 3. Save configuracion_dia in bulk
-      const configsToInsert = [];
-      const configKeys: string[] = [];
+      const existingByKey = new Map<string, any>();
+      (existingConfigs || []).forEach((config: any) => {
+        existingByKey.set(getServiceKey(config.fecha, config.service_index || 0), config);
+      });
+
+      const desiredKeys = new Set<string>();
+      const tempToRealConfigId: Record<string, number> = {};
+      const protectedConfigIds = new Set<number>();
 
       for (const dateStr of selectedDates) {
         const dayConfigs = serviceConfigs[dateStr] || [];
         for (let idx = 0; idx < dayConfigs.length; idx++) {
           const config = dayConfigs[idx];
+          const serviceKey = getServiceKey(dateStr, idx);
+          desiredKeys.add(serviceKey);
           
           // Calculate gender quotas based on positions
           let cupoH = 0;
@@ -353,12 +387,12 @@ function PlanningWizardContent() {
           });
 
           // Extract encargados from previewAssignments for this service
-          const serviceAssignments = previewAssignments.filter(a => a.configuracion_dia_id === `temp-${dateStr}-${idx}`);
+          const serviceAssignments = previewAssignments.filter(a => a.configuracion_dia_id === serviceKey);
           const encargados = serviceAssignments
             .filter(a => a.posicion?.nombre?.toLowerCase().includes('encargado'))
             .map(a => Number(a.usuario_id));
 
-          configsToInsert.push({
+          const configPayload = {
             rol_cabecera_id: headerId,
             fecha: dateStr,
             service_index: idx,
@@ -369,41 +403,97 @@ function PlanningWizardContent() {
             encargado_2_id: encargados[1] || null,
             cupo_hombres: cupoH,
             cupo_mujeres: cupoM
-          });
-          configKeys.push(`temp-${dateStr}-${idx}`);
+          };
+
+          const existingConfig = existingByKey.get(serviceKey);
+          if (existingConfig) {
+            tempToRealConfigId[serviceKey] = existingConfig.id;
+            if (Array.isArray(existingConfig.asistencias) && existingConfig.asistencias.length > 0) {
+              protectedConfigIds.add(existingConfig.id);
+            }
+
+            const { error: updateConfigError } = await supabase
+              .from('configuracion_dia')
+              .update(configPayload)
+              .eq('id', existingConfig.id);
+
+            if (updateConfigError) throw updateConfigError;
+          } else {
+            const { data: savedConfig, error: insertConfigError } = await supabase
+              .from('configuracion_dia')
+              .insert(configPayload)
+              .select('id')
+              .single();
+
+            if (insertConfigError) throw insertConfigError;
+            tempToRealConfigId[serviceKey] = savedConfig.id;
+          }
         }
       }
 
-      const { data: savedConfigs, error: cError } = await supabase
-        .from('configuracion_dia')
-        .insert(configsToInsert)
-        .select();
+      for (const [serviceKey, existingConfig] of existingByKey.entries()) {
+        if (desiredKeys.has(serviceKey)) continue;
 
-      if (cError) throw cError;
-      if (!savedConfigs) throw new Error('Error al guardar configuraciones de día');
+        const attendanceCount = Array.isArray(existingConfig.asistencias) ? existingConfig.asistencias.length : 0;
+        if (attendanceCount > 0) {
+          throw new Error(
+            `No se puede eliminar el servicio del ${dayjs(existingConfig.fecha).format('DD/MM/YYYY')} porque ya tiene asistencia registrada.`
+          );
+        }
 
-      const tempToRealConfigId: Record<string, number> = {};
-      savedConfigs.forEach((sc, idx) => {
-        // Postgres returns rows in insertion order for bulk inserts
-        tempToRealConfigId[configKeys[idx]] = sc.id;
-      });
+        const { error: deleteAssignmentsError } = await supabase
+          .from('asignaciones')
+          .delete()
+          .eq('configuracion_dia_id', existingConfig.id);
 
-      // 4. Save asignaciones
-      const assignmentsChunks = [];
-      const batchSize = 500;
-      const rawAssignments = previewAssignments.map(a => ({
-        configuracion_dia_id: tempToRealConfigId[a.configuracion_dia_id as string],
-        usuario_id: Number(a.usuario_id),
-        posicion_id: Number(a.posicion_id)
-      }));
+        if (deleteAssignmentsError) throw deleteAssignmentsError;
 
-      for (let i = 0; i < rawAssignments.length; i += batchSize) {
-        assignmentsChunks.push(rawAssignments.slice(i, i + batchSize));
+        const { error: deleteConfigError } = await supabase
+          .from('configuracion_dia')
+          .delete()
+          .eq('id', existingConfig.id);
+
+        if (deleteConfigError) throw deleteConfigError;
       }
 
-      for (const chunk of assignmentsChunks) {
-        const { error: aError } = await supabase.from('asignaciones').insert(chunk);
-        if (aError) throw aError;
+      // 3. Save assignments only for services that do not already have attendance.
+      const batchSize = 500;
+      const assignmentsByConfigId = new Map<number, { configuracion_dia_id: number; usuario_id: number; posicion_id: number }[]>();
+
+      previewAssignments.forEach(a => {
+        const serviceKey = String(a.configuracion_dia_id);
+        const realConfigId = tempToRealConfigId[serviceKey];
+        if (!realConfigId || protectedConfigIds.has(realConfigId)) return;
+
+        const list = assignmentsByConfigId.get(realConfigId) || [];
+        list.push({
+          configuracion_dia_id: realConfigId,
+          usuario_id: Number(a.usuario_id),
+          posicion_id: Number(a.posicion_id)
+        });
+        assignmentsByConfigId.set(realConfigId, list);
+      });
+
+      for (const [configId, assignments] of assignmentsByConfigId.entries()) {
+        const { error: deleteAssignmentsError } = await supabase
+          .from('asignaciones')
+          .delete()
+          .eq('configuracion_dia_id', configId);
+
+        if (deleteAssignmentsError) throw deleteAssignmentsError;
+
+        for (let i = 0; i < assignments.length; i += batchSize) {
+          const chunk = assignments.slice(i, i + batchSize);
+          const { error: insertAssignmentsError } = await supabase.from('asignaciones').insert(chunk);
+          if (insertAssignmentsError) throw insertAssignmentsError;
+        }
+      }
+
+      if (protectedConfigIds.size > 0) {
+        notify.warning(
+          `${protectedConfigIds.size} servicio(s) con asistencia registrada conservaron sus asignaciones existentes.`,
+          'Asistencias protegidas'
+        );
       }
 
       notify.success('El rol ha sido guardado correctamente.', '¡Éxito!');

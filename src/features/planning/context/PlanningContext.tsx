@@ -11,6 +11,8 @@ export interface ServiceDateConfig {
     encargado_id: string | number | null;
     encargado_2_id: string | number | null;
     positionQuotas: Record<string, number>;
+    existingConfigId?: number;
+    hasAttendance?: boolean;
 }
 
 export interface HeaderState {
