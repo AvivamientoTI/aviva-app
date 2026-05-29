@@ -66,28 +66,48 @@ export default function AttendanceManager() {
         if (selectedService) {
             fetchAttendanceData();
 
-            // Realtime Sync
-            const channel = supabase
-                .channel(`attendance:${selectedService}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'asistencias',
-                        filter: `configuracion_dia_id=eq.${selectedService}`
-                    },
-                    (payload: any) => {
-                        const newRecord = payload.new as AttendanceRecordWithDetails;
-                        if (newRecord) {
-                            setAttendance(prev => prev.map(rec => rec.id === newRecord.id ? { ...rec, ...newRecord } : rec));
+            // Realtime Sync con fallback a polling si WebSocket no está disponible (iOS Safari/WebView)
+            let channel: ReturnType<typeof supabase.channel> | null = null;
+            let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+            const startPolling = () => {
+                pollInterval = setInterval(() => {
+                    fetchAttendanceData();
+                }, 10000);
+            };
+
+            try {
+                channel = supabase
+                    .channel(`attendance:${selectedService}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'asistencias',
+                            filter: `configuracion_dia_id=eq.${selectedService}`
+                        },
+                        (payload: any) => {
+                            const newRecord = payload.new as AttendanceRecordWithDetails;
+                            if (newRecord) {
+                                setAttendance(prev => prev.map(rec => rec.id === newRecord.id ? { ...rec, ...newRecord } : rec));
+                            }
                         }
-                    }
-                )
-                .subscribe();
+                    )
+                    .subscribe((status, err) => {
+                        if (err || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                            console.warn('WebSocket no disponible, activando polling cada 10s:', err ?? status);
+                            startPolling();
+                        }
+                    });
+            } catch (err) {
+                console.warn('WebSocket bloqueado, activando polling cada 10s:', err);
+                startPolling();
+            }
 
             return () => {
-                supabase.removeChannel(channel);
+                if (channel) supabase.removeChannel(channel);
+                if (pollInterval) clearInterval(pollInterval);
             };
         } else {
             setAttendance([]);
