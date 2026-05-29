@@ -12,7 +12,6 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { theme } from './theme';
 import { inject } from '@vercel/analytics';
-import { registerSW } from 'virtual:pwa-register';
 import * as Sentry from "@sentry/react";
 
 if (import.meta.env.PROD) {
@@ -37,15 +36,15 @@ window.addEventListener('vite:preloadError', (event) => {
   window.location.reload();
 });
 
-const updateSW = registerSW({
-  immediate: true,
-  onNeedRefresh() {
-    void updateSW(true);
-  },
-  onRegisteredSW(_swUrl, registration) {
-    void registration?.update();
-  },
-});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+      .then(() => caches?.keys?.())
+      .then((cacheNames) => Promise.all((cacheNames ?? []).map((cacheName) => caches.delete(cacheName))))
+      .catch((error) => console.warn('No se pudo limpiar la PWA anterior:', error));
+  });
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
