@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Center,
     Container,
@@ -55,6 +55,7 @@ export default function AttendanceManager() {
     const [cultosTime, setCultosTime] = useState<Record<string | number, string>>({});
 
     const permissions = usePermissions();
+    const isDirty = useRef(false);
 
     useEffect(() => {
         if (selectedDept && selectedDate) {
@@ -72,7 +73,7 @@ export default function AttendanceManager() {
 
             const startPolling = () => {
                 pollInterval = setInterval(() => {
-                    fetchAttendanceData();
+                    if (!isDirty.current) fetchAttendanceData();
                 }, 10000);
             };
 
@@ -88,6 +89,7 @@ export default function AttendanceManager() {
                             filter: `configuracion_dia_id=eq.${selectedService}`
                         },
                         (payload: any) => {
+                            if (isDirty.current) return;
                             const newRecord = payload.new as AttendanceRecordWithDetails;
                             if (newRecord) {
                                 setAttendance(prev => prev.map(rec => rec.id === newRecord.id ? { ...rec, ...newRecord } : rec));
@@ -115,6 +117,7 @@ export default function AttendanceManager() {
     }, [selectedService]);
 
     function handleAttendanceChange(recordId: string | number, newState: string) {
+        isDirty.current = true;
         const now = new Date().toISOString();
         setAttendance(prev => prev.map(rec =>
             String(rec.id) === String(recordId)
@@ -127,6 +130,7 @@ export default function AttendanceManager() {
     }
 
     function handleJustificationTypeChange(recordId: string | number, tipo: string | null) {
+        isDirty.current = true;
         setAttendance(prev => prev.map(rec =>
             String(rec.id) === String(recordId)
                 ? { ...rec, tipo_justificacion: tipo as JustificationType | null, justificacion: tipo !== 'otro' ? null : rec.justificacion }
@@ -135,6 +139,7 @@ export default function AttendanceManager() {
     }
 
     function handleJustificationChange(recordId: string | number, text: string) {
+        isDirty.current = true;
         setAttendance(prev => prev.map(rec =>
             String(rec.id) === String(recordId) ? { ...rec, justificacion: text } : rec
         ));
@@ -173,6 +178,7 @@ export default function AttendanceManager() {
                 return;
             }
             const data = await attendanceService.fetchAttendanceWithDetails(Number(selectedService), Number(selectedDept));
+            isDirty.current = false;
             setAttendance(data);
             
             // Cargar turnos dominicales iniciales si existen
@@ -233,6 +239,7 @@ export default function AttendanceManager() {
                 registrado_por: userProfile?.usuario_id ?? null
             }));
             await attendanceService.updateAttendanceRecords(recordsToUpdate);
+            isDirty.current = false;
             notifications.show({ title: '¡Éxito!', message: 'Asistencia guardada.', color: 'green' });
             fetchAttendanceData();
             sendAttendanceNotifications(Number(selectedService));
