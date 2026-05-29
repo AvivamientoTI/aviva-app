@@ -1,4 +1,4 @@
-import { Card, Box, Stack, Badge, Title, Text, Group } from '@mantine/core';
+import { Card, Box, Stack, Badge, Title, Text } from '@mantine/core';
 
 interface WelcomeCardProps {
     userName: string;

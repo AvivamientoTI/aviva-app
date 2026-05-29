@@ -82,10 +82,10 @@ export default function Dashboard() {
                     {/* Skeleton for Welcome & Upcoming */}
                     <Grid gutter="lg">
                         <Grid.Col span={{ base: 12, md: 7 }}>
-                            <Skeleton height={{ base: 200, sm: 280 }} radius="lg" />
+                            <Skeleton h={{ base: 200, sm: 280 }} radius="lg" />
                         </Grid.Col>
                         <Grid.Col span={{ base: 12, md: 5 }}>
-                            <Skeleton height={{ base: 180, sm: 280 }} radius="xl" />
+                            <Skeleton h={{ base: 180, sm: 280 }} radius="xl" />
                         </Grid.Col>
                     </Grid>
 
@@ -100,10 +100,10 @@ export default function Dashboard() {
                     {/* Skeleton for Charts/Lists */}
                     <Grid>
                         <Grid.Col span={{ base: 12, md: 8 }}>
-                            <Skeleton height={{ base: 200, sm: 300 }} radius="md" />
+                            <Skeleton h={{ base: 200, sm: 300 }} radius="md" />
                         </Grid.Col>
                         <Grid.Col span={{ base: 12, md: 4 }}>
-                            <Skeleton height={{ base: 200, sm: 300 }} radius="md" />
+                            <Skeleton h={{ base: 200, sm: 300 }} radius="md" />
                         </Grid.Col>
                     </Grid>
                 </Stack>
