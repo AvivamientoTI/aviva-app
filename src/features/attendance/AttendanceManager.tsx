@@ -252,15 +252,6 @@ export default function AttendanceManager() {
     }
 
     async function handleSave() {
-        if (isLocked) {
-            notifications.show({
-                title: 'Registro cerrado',
-                message: 'No se pueden realizar cambios después de la medianoche del día del servicio.',
-                color: 'red',
-                icon: <IconLock size={18} />
-            });
-            return;
-        }
         if (!selectedService || attendance.length === 0) {
             notifications.show({ title: 'Error', message: 'No hay datos para guardar.', color: 'red' });
             return;
@@ -355,8 +346,7 @@ export default function AttendanceManager() {
         }
     }
 
-    // Bloqueado si la fecha del servicio ya pasó (después de medianoche del día del servicio)
-    const isLocked = selectedDate ? dayjs(selectedDate).endOf('day').isBefore(dayjs()) : false;
+    const isLocked = false;
 
     // Ordenado alfabético memoizado — evita recomputar en cada render
     const sortedAttendance = useMemo(() =>
@@ -560,17 +550,6 @@ export default function AttendanceManager() {
                                 </Group>
                             </Paper>
                         </SimpleGrid>
-
-                        {isLocked && (
-                            <Alert
-                                icon={<IconLock size={18} />}
-                                title="Registro cerrado"
-                                color="orange"
-                                radius="xl"
-                            >
-                                La asistencia de esta fecha está cerrada. Solo puede modificarse hasta la medianoche del día del servicio.
-                            </Alert>
-                        )}
 
                         {/* Barra de progreso de marcación */}
                         {attendance.length > 0 && (() => {
