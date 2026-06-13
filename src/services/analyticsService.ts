@@ -10,9 +10,11 @@ import { ATTENDANCE_STATES } from '../constants/attendance';
 type AttendanceWithRelations = Database['public']['Tables']['asistencias']['Row'] & {
   configuracion_dia: {
     fecha: string;
+    // Relación muchos-a-uno (el FK rol_cabecera_id vive en configuracion_dia):
+    // PostgREST la devuelve como objeto, no como array.
     roles_cabecera: {
       departamento_id: number;
-    }[];
+    } | null;
   };
 };
 
@@ -274,7 +276,7 @@ export const analyticsService = {
       .select(`
         usuario_id,
         estado,
-        usuario:usuarios (nombre, apellido),
+        usuario:usuarios!asistencias_usuario_id_fkey (nombre, apellido),
         configuracion_dia!inner (
           fecha,
           roles_cabecera!inner (
@@ -336,7 +338,7 @@ export const analyticsService = {
 
     const statsByDept: Record<number, { total: number; present: number; users: Set<string> }> = {};
     for (const r of (data || []) as any[]) {
-      const deptId = (r.configuracion_dia as any).roles_cabecera?.[0]?.departamento_id;
+      const deptId = (r.configuracion_dia as any).roles_cabecera?.departamento_id;
       if (!deptId) continue;
       if (!statsByDept[deptId]) statsByDept[deptId] = { total: 0, present: 0, users: new Set() };
       statsByDept[deptId].total++;

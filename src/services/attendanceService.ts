@@ -103,7 +103,7 @@ export const attendanceService = {
     async fetchAttendance(configDiaId: number | string): Promise<any[]> {
         const { data, error } = await supabase
             .from('asistencias')
-            .select('id, estado, justificacion, hora_registro, usuario_id, configuracion_dia_id, usuario:usuarios(nombre, apellido)')
+            .select('id, estado, justificacion, hora_registro, usuario_id, configuracion_dia_id, usuario:usuarios!asistencias_usuario_id_fkey(nombre, apellido)')
             .eq('configuracion_dia_id', Number(configDiaId));
 
         if (error) throw error;

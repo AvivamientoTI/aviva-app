@@ -63,6 +63,44 @@ describe('analyticsService', () => {
         });
     });
 
+    describe('fetchGlobalStats', () => {
+        it('agrupa por departamento usando la forma de objeto (M2O) de roles_cabecera', async () => {
+            // PostgREST devuelve roles_cabecera como OBJETO (no array) porque el FK
+            // rol_cabecera_id vive en configuracion_dia (relación muchos-a-uno).
+            const mockDepts = [
+                { id: 1, nombre: 'Servidores' },
+                { id: 2, nombre: 'Sonido' },
+            ];
+            const mockAttendance = [
+                { estado: 'Asistió', usuario_id: 10, configuracion_dia: { fecha: '2026-05-01', roles_cabecera: { departamento_id: 1 } } },
+                { estado: 'Asistió', usuario_id: 11, configuracion_dia: { fecha: '2026-05-08', roles_cabecera: { departamento_id: 1 } } },
+                { estado: 'Faltó sin Aviso', usuario_id: 10, configuracion_dia: { fecha: '2026-05-15', roles_cabecera: { departamento_id: 1 } } },
+                { estado: 'Faltó sin Aviso', usuario_id: 20, configuracion_dia: { fecha: '2026-05-01', roles_cabecera: { departamento_id: 2 } } },
+            ];
+
+            (supabase.from as any)
+                .mockReturnValueOnce({
+                    select: vi.fn().mockResolvedValue({ data: mockDepts, error: null }),
+                })
+                .mockReturnValueOnce({
+                    select: vi.fn().mockReturnValue({
+                        gte: vi.fn().mockResolvedValue({ data: mockAttendance, error: null }),
+                    }),
+                });
+
+            const result = await analyticsService.fetchGlobalStats();
+            const servidores = result.find(d => d.id === 1)!;
+            const sonido = result.find(d => d.id === 2)!;
+
+            // Dept 1: 2 de 3 presentes => 67%, 2 servidores únicos (10, 11)
+            expect(servidores.attendanceRate).toBe(67);
+            expect(servidores.totalServers).toBe(2);
+            // Dept 2: 0 de 1 presente => 0%, 1 servidor
+            expect(sonido.attendanceRate).toBe(0);
+            expect(sonido.totalServers).toBe(1);
+        });
+    });
+
     describe('fetchUpcomingServices', () => {
         it('should return upcoming service assignments for a user', async () => {
             const mockData = [

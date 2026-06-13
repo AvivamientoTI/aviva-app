@@ -144,7 +144,7 @@ export const conversationalService = {
             .from('asistencias')
             .select(`
                 estado,
-                usuario:usuarios(nombre, apellido),
+                usuario:usuarios!asistencias_usuario_id_fkey(nombre, apellido),
                 configuracion_dia!inner(
                     fecha,
                     roles_cabecera!inner(departamento_id)
@@ -243,7 +243,7 @@ export const conversationalService = {
         const { data } = await supabase
             .from('asistencias')
             .select(`
-                usuario:usuarios(nombre, apellido),
+                usuario:usuarios!asistencias_usuario_id_fkey(nombre, apellido),
                 configuracion_dia!inner(fecha, roles_cabecera!inner(departamento_id))
             `)
             .eq('estado', ATTENDANCE_STATES.SIN_JUSTIFICACION)
