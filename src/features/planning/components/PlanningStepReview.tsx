@@ -39,7 +39,7 @@ function buildCandidates(
     previewAssignments: DraftAssignment[],
     blockedIds: Set<string>,
     isSecurity: boolean,
-    isIntercesion: boolean = false
+    allowsRepeatedServers: boolean = false
 ): { value: string; label: string }[] {
     const pos = editingAssignment.posicion;
     const dateStr = getAssignmentDate(editingAssignment);
@@ -48,7 +48,7 @@ function buildCandidates(
     let candidates = allUsers.filter(u => u.activo !== false);
     candidates = candidates.filter(u => !blockedIds.has(String(u.id)));
 
-    if (dateStr && !isIntercesion) {
+    if (dateStr && !allowsRepeatedServers) {
         const editingSIdx = getServiceIndex(editingAssignment);
 
         const assignedTodayInDraft = new Set(
@@ -128,12 +128,13 @@ export const PlanningStepReview = () => {
         const deptName = currentDept?.nombre?.toLowerCase() || '';
         const isSecurity = deptName.includes('seguridad');
         const isIntercesion = deptName.includes('intercesi');
+        const allowsRepeatedServers = isIntercesion || deptName.includes('producci');
         const sIdx = getServiceIndex(assignment);
 
         try {
             const blockedIds = new Set<string>();
             // Intercesión allows repeat assignments — skip global conflict check
-            if (dateToCheck && !isIntercesion) {
+            if (dateToCheck && !allowsRepeatedServers) {
                 const available = await getUsersNotAssignedOnDate(
                     dateToCheck,
                     allUsers,
@@ -145,11 +146,11 @@ export const PlanningStepReview = () => {
                     if (!availableIds.has(String(u.id))) blockedIds.add(String(u.id));
                 });
             }
-            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds, !!isSecurity, isIntercesion);
+            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds, !!isSecurity, allowsRepeatedServers);
             setSelectOptions(options);
         } catch (err) {
             console.error('Error calculando opciones de sustitución:', err);
-            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set(), !!isSecurity, isIntercesion);
+            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set(), !!isSecurity, allowsRepeatedServers);
             setSelectOptions(options);
         } finally {
             setIsLoadingGlobal(false);

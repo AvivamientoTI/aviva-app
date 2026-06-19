@@ -110,6 +110,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
             const deptNombre = deptInfo?.nombre?.toLowerCase() || '';
             const isSecurity = deptNombre.includes('seguridad');
             const isIntercesion = deptNombre.includes('intercesi');
+            const allowsRepeatedServers = isIntercesion || deptNombre.includes('producci');
 
             const { data: mData } = await supabase
                 .from('membresias')
@@ -205,7 +206,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                     const serviceConfig = dayConfigs[sIdx];
                     if (!serviceConfig) continue;
 
-                    let eligibleUsers = isIntercesion
+                    let eligibleUsers = allowsRepeatedServers
                         ? deptUsers
                         : await getUsersNotAssignedOnDate(
                             dateStr,
@@ -230,7 +231,7 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                             if (assignedPositions.has(slotKey)) continue;
 
                             let candidates = eligibleUsers.filter(u => {
-                                if (!isIntercesion && assignments.some(a => String(a.configuracion_dia_id) === String(config.id) && String(a.usuario_id) === String(u.id))) return false;
+                                if (!allowsRepeatedServers && assignments.some(a => String(a.configuracion_dia_id) === String(config.id) && String(a.usuario_id) === String(u.id))) return false;
                                 const reqGen = String(pos.genero_requerido || 'A').toUpperCase();
                                 if (reqGen !== 'A' && String(u.genero).toUpperCase() !== reqGen) return false;
                                 if (pass.name === 'Leadership' && !(usersMap[String(u.id)]?.isInternalLeader)) return false;
