@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text, ActionIcon, Modal, Button, Select, Tooltip } from '@mantine/core';
-import { IconUser, IconCalendar, IconTrash, IconEdit, IconSparkles, IconAlertTriangle } from '@tabler/icons-react';
+import { Avatar, Badge, Center, Group, Paper, RingProgress, Stack, Table, Text, ActionIcon, Modal, Button, Select, Tooltip, type ComboboxData } from '@mantine/core';
+import { IconUser, IconCalendar, IconTrash, IconEdit, IconSparkles, IconAlertTriangle, IconShieldCheck } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { getUniformeColor } from '../../../utils/calendar/colorMapper';
 import { usePlanning, type DraftAssignment } from '../context/PlanningContext';
 import { useDepartmentUsers } from '../hooks/useDepartmentUsers';
 import { useDepartments } from '../../../hooks/queries/useDepartments';
 import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
+import { evaluarCandidatosParaSlot, TIPO_SEMANA_ADORACION } from '../../../services/servidorRestriccionesService';
 import type { PublicUser } from '../../../types';
 
 import { formatName } from '../../../utils/formatName';
@@ -40,7 +41,7 @@ function buildCandidates(
     blockedIds: Set<string>,
     isSecurity: boolean,
     allowsRepeatedServers: boolean = false
-): { value: string; label: string }[] {
+): PublicUser[] {
     const pos = editingAssignment.posicion;
     const dateStr = getAssignmentDate(editingAssignment);
     const currentUserId = String(editingAssignment.usuario_id);
@@ -87,10 +88,7 @@ function buildCandidates(
         candidates.push(originalUser);
     }
 
-    return candidates.sort((a,b) => a.nombre.localeCompare(b.nombre)).map(u => ({
-        value: String(u.id),
-        label: formatName(u.nombre, u.apellido)
-    }));
+    return candidates.sort((a, b) => a.nombre.localeCompare(b.nombre));
 }
 
 export const PlanningStepReview = () => {
@@ -109,7 +107,8 @@ export const PlanningStepReview = () => {
     const [editingAssignment, setEditingAssignment] = useState<DraftAssignment | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
-    const [selectOptions, setSelectOptions] = useState<{ value: string; label: string }[]>([]);
+    const [selectOptions, setSelectOptions] = useState<ComboboxData>([]);
+    const [restrictedIds, setRestrictedIds] = useState<Set<string>>(new Set());
 
     const handleDelete = (id: string) => {
         setPreviewAssignments((prev) => prev.filter(a => a.id !== id));
@@ -146,12 +145,49 @@ export const PlanningStepReview = () => {
                     if (!availableIds.has(String(u.id))) blockedIds.add(String(u.id));
                 });
             }
-            const options = buildCandidates(allUsers, assignment, previewAssignments, blockedIds, !!isSecurity, allowsRepeatedServers);
-            setSelectOptions(options);
+            const candidateUsers = buildCandidates(allUsers, assignment, previewAssignments, blockedIds, !!isSecurity, allowsRepeatedServers);
+
+            // Evaluar restricciones de Servidores para separar candidatos disponibles vs. con restricción
+            const cfg = (serviceConfigs[dateToCheck] || [])[sIdx];
+            const asignadosEseDia = previewAssignments
+                .filter(a => getAssignmentDate(a) === dateToCheck && a.id !== assignment.id)
+                .map(a => Number(a.usuario_id));
+            const evalMap = await evaluarCandidatosParaSlot({
+                departmentId: Number(selectedDeptId),
+                fecha: dateToCheck,
+                posicionId: Number(assignment.posicion_id),
+                uniformeColor: cfg?.uniform,
+                esSemanaAdoracion: (cfg?.type || '') === TIPO_SEMANA_ADORACION,
+                candidateIds: candidateUsers.map(u => Number(u.id)),
+                asignadosEseDia,
+            });
+
+            const disponibles: { value: string; label: string }[] = [];
+            const conRestriccion: { value: string; label: string }[] = [];
+            const restricted = new Set<string>();
+            candidateUsers.forEach(u => {
+                const ev = evalMap.get(Number(u.id));
+                const nombre = formatName(u.nombre, u.apellido);
+                if (ev?.bloqueado) {
+                    restricted.add(String(u.id));
+                    conRestriccion.push({ value: String(u.id), label: `${nombre} — ⚠ ${ev.razon}` });
+                } else {
+                    disponibles.push({ value: String(u.id), label: nombre });
+                }
+            });
+
+            const grouped: { group: string; items: { value: string; label: string }[] }[] = [];
+            if (disponibles.length) grouped.push({ group: 'Disponibles', items: disponibles });
+            if (conRestriccion.length) grouped.push({ group: 'Con restricción (incluir de todas formas)', items: conRestriccion });
+
+            setRestrictedIds(restricted);
+            setSelectOptions(grouped);
         } catch (err) {
             console.error('Error calculando opciones de sustitución:', err);
-            const options = buildCandidates(allUsers, assignment, previewAssignments, new Set(), !!isSecurity, allowsRepeatedServers);
-            setSelectOptions(options);
+            const fallback = buildCandidates(allUsers, assignment, previewAssignments, new Set(), !!isSecurity, allowsRepeatedServers)
+                .map(u => ({ value: String(u.id), label: formatName(u.nombre, u.apellido) }));
+            setRestrictedIds(new Set());
+            setSelectOptions(fallback);
         } finally {
             setIsLoadingGlobal(false);
         }
@@ -162,12 +198,14 @@ export const PlanningStepReview = () => {
         const selectedUser = deptUsers?.find(u => String(u.id) === selectedUserId);
         if (!selectedUser) return;
 
+        const isOverride = restrictedIds.has(selectedUserId);
         setPreviewAssignments((prev) => prev.map(a => {
             if (a.id === editingAssignment.id) {
                 return {
                     ...a,
                     usuario_id: selectedUser.id,
-                    usuario: { ...a.usuario, nombre: selectedUser.nombre, apellido: selectedUser.apellido }
+                    usuario: { ...a.usuario, nombre: selectedUser.nombre, apellido: selectedUser.apellido },
+                    override_restriccion: isOverride
                 };
             }
             return a;
@@ -272,6 +310,11 @@ export const PlanningStepReview = () => {
                                                                                 )}
                                                                             </Group>
                                                                             <Group gap={4} mt={2}>
+                                                                                {assignment.override_restriccion && (
+                                                                                    <Tooltip label="Incluido manualmente a pesar de una restricción" withArrow color="orange">
+                                                                                        <Badge variant="light" size="xs" color="orange" leftSection={<IconShieldCheck size={11} />} styles={{ label: { textTransform: 'none' }}}>Incluido con override</Badge>
+                                                                                    </Tooltip>
+                                                                                )}
                                                                                 {assignment.aiMetadata?.reasons.map((r, ri) => (
                                                                                     <Badge key={ri} variant="dot" size="xs" color="blue" styles={{ label: { textTransform: 'none' }}}>{r}</Badge>
                                                                                 ))}
@@ -313,6 +356,7 @@ export const PlanningStepReview = () => {
                     )}
                     <Select
                         label="Seleccionar Voluntario"
+                        description={restrictedIds.size > 0 ? 'Los marcados con ⚠ tienen una restricción; al elegirlos quedan registrados como inclusión manual.' : undefined}
                         data={selectOptions}
                         value={selectedUserId}
                         onChange={setSelectedUserId}

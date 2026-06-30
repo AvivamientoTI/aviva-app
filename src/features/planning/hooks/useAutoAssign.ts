@@ -1,7 +1,17 @@
 import { useState } from 'react';
+import dayjs from 'dayjs';
 import { supabase } from '../../../services/supabaseClient';
 import { getUsersNotAssignedOnDate } from '../../../utils/exclusionLogic';
 import { suspensionService } from '../../../services/suspensionService';
+import {
+    loadServidorRestricciones,
+    resolverUniformeRequerido,
+    evaluarBloqueoServidor,
+    gruposDeUsuario,
+    TIPO_SEMANA_ADORACION,
+    type ServidorRuntime,
+    type SlotContext,
+} from '../../../services/servidorRestriccionesService';
 import type { Position, PublicUser } from '../../../types';
 
 interface ServiceDateConfig {
@@ -57,43 +67,6 @@ interface OtherMembershipResponse {
     departamento_id: number;
     rol_jerarquico: string;
 }
-
-// Servidores que sirven cada 3 meses — reciben menor prioridad en el algoritmo
-const QUARTERLY_SERVERS = new Set([
-    'alejandro melendez',
-    'andrea callimore',
-    'omar salazar',
-    'jeinnel newball',
-    'priscila clarke',
-    'andre arias',
-    'cinthya marin',
-    'deykell taylor',
-    'diandra wilson',
-    'marla brack',
-    'dunia lopez',
-    'elena zuniga',
-    'floribeth zuniga',
-    'hillary ramirez',
-    'holiber hall',
-    'jairon arias',
-    'jerrylin lemones',
-    'joislin newball',
-    'kenisha galagarza',
-    'marco murillo',
-    'merielen somarribas',
-    'natalia solano',
-    'yasling rodriguez',
-    'tanasha daviey',
-    'jose funes',
-]);
-
-const normalizeForQuarterly = (str: string) =>
-    str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-
-const isQuarterlyServer = (user: PublicUser) => {
-    const fullName = normalizeForQuarterly(`${user.nombre} ${user.apellido}`);
-    return QUARTERLY_SERVERS.has(fullName);
-};
 
 export const useAutoAssign = (selectedDept: string | number | null) => {
     const [loading, setLoading] = useState(false);
@@ -190,6 +163,37 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
             const configsSorted = [...savedConfigs].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
             const planUsageCount: Record<string, number> = {};
 
+            // 5. Restricciones de Servidores (solo aplican al departamento Servidores, id 2)
+            const isServidores = Number(selectedDept) === 2;
+            const restrData = isServidores ? await loadServidorRestricciones() : null;
+
+            // Historial extendido (6 meses) para frecuencia y topes mensuales
+            const lastServed: Record<string, string> = {};       // último servicio conocido (incl. plan)
+            const monthTotal: Record<string, number> = {};       // asignaciones del mes objetivo
+            const monthDom: Record<string, number> = {};
+            const monthWeek: Record<string, number> = {};
+            const conteoGruposPorDia: Record<string, Map<number, number>> = {};
+            if (isServidores && configsSorted.length > 0) {
+                const ref = dayjs(configsSorted[0].fecha);
+                const monthStart = ref.startOf('month').format('YYYY-MM-DD');
+                const monthEnd = ref.endOf('month').format('YYYY-MM-DD');
+                const sixMonthsAgo = ref.subtract(6, 'month').format('YYYY-MM-DD');
+                const { data: extHistory } = await supabase
+                    .from('asignaciones')
+                    .select('usuario_id, configuracion_dia!inner(fecha)')
+                    .gte('configuracion_dia.fecha', sixMonthsAgo) as { data: { usuario_id: number; configuracion_dia: { fecha: string } }[] | null };
+                (extHistory || []).forEach(h => {
+                    const uid = String(h.usuario_id);
+                    const f = h.configuracion_dia.fecha;
+                    if (!lastServed[uid] || f > lastServed[uid]) lastServed[uid] = f;
+                    if (f >= monthStart && f <= monthEnd) {
+                        monthTotal[uid] = (monthTotal[uid] || 0) + 1;
+                        if (dayjs(f).day() === 0) monthDom[uid] = (monthDom[uid] || 0) + 1;
+                        else monthWeek[uid] = (monthWeek[uid] || 0) + 1;
+                    }
+                });
+            }
+
             const passes = [
                 { name: 'Leadership', predicate: (p: Position) => p.nombre.toLowerCase().includes('encargado') },
                 { name: 'Gender Restricted', predicate: (p: Position) => !!p.genero_requerido && p.genero_requerido !== 'A' },
@@ -222,23 +226,60 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                     
                     eligibleUsers = eligibleUsers.filter(u => !suspendedIds.includes(String(u.id)));
 
+                    // Contexto del slot para el motor de restricciones (solo Servidores)
+                    const diaSemana = dayjs(dateStr).day();
+                    const slotCtxBase = restrData ? {
+                        fecha: dateStr,
+                        diaSemana,
+                        esDomingo: diaSemana === 0,
+                        esSemanaAdoracion: (serviceConfig.type || '') === TIPO_SEMANA_ADORACION,
+                        uniformeRequeridoId: resolverUniformeRequerido(serviceConfig.uniform, restrData),
+                    } : null;
+
                     for (const pos of positions) {
                         if (!pass.predicate(pos)) continue;
-                        
+
+                        const ctx: SlotContext | null = slotCtxBase ? { ...slotCtxBase, posicionId: Number(pos.id) } : null;
                         const quota = serviceConfig.positionQuotas[pos.id] || 0;
                         for (let q = 0; q < quota; q++) {
                             const slotKey = `${config.id}-${pos.id}-${q}`;
                             if (assignedPositions.has(slotKey)) continue;
 
-                            let candidates = eligibleUsers.filter(u => {
+                            const candidates = eligibleUsers.filter(u => {
                                 if (!allowsRepeatedServers && assignments.some(a => String(a.configuracion_dia_id) === String(config.id) && String(a.usuario_id) === String(u.id))) return false;
                                 const reqGen = String(pos.genero_requerido || 'A').toUpperCase();
                                 if (reqGen !== 'A' && String(u.genero).toUpperCase() !== reqGen) return false;
                                 if (pass.name === 'Leadership' && !(usersMap[String(u.id)]?.isInternalLeader)) return false;
+                                // Filtro duro de restricciones de Servidores
+                                if (restrData && ctx) {
+                                    const uid = String(u.id);
+                                    // Tope global: cada servidor sirve a lo sumo 1 vez al mes (encargados exentos)
+                                    if (!usersMap[uid]?.isInternalLeader && (monthTotal[uid] || 0) >= 1) return false;
+                                    const rt: ServidorRuntime = {
+                                        esLiderExterno: !!usersMap[uid]?.isExternalLeader,
+                                        ultimoServicio: lastServed[uid] || null,
+                                        asignacionesMes: monthTotal[uid] || 0,
+                                        asignacionesMesDomingo: monthDom[uid] || 0,
+                                        asignacionesMesEntreSemana: monthWeek[uid] || 0,
+                                        conteoGruposEseDia: conteoGruposPorDia[dateStr] || (conteoGruposPorDia[dateStr] = new Map<number, number>()),
+                                    };
+                                    if (evaluarBloqueoServidor(Number(u.id), ctx, restrData, rt).bloqueado) return false;
+                                }
                                 return true;
                             });
 
                             if (candidates.length === 0) continue;
+
+                            // Co-asignación (preferente): IDs ya asignados en este servicio
+                            const sameConfigIds = new Set(
+                                assignments.filter(a => String(a.configuracion_dia_id) === String(config.id)).map(a => String(a.usuario_id))
+                            );
+                            const tienePareja = (uid: string) => {
+                                const parejas = restrData?.coasignacionParejas.get(Number(uid));
+                                if (!parejas) return false;
+                                for (const p of parejas) if (sameConfigIds.has(String(p))) return true;
+                                return false;
+                            };
 
                             // Scoring
                             candidates.sort((u1, u2) => {
@@ -256,9 +297,9 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                                 if (usersMap[uid1]?.isExternalLeader) s1 -= 40;
                                 if (usersMap[uid2]?.isExternalLeader) s2 -= 40;
 
-                                // Penalizar servidores trimestrales — sirven cada 3 meses
-                                if (isQuarterlyServer(u1)) s1 -= 100;
-                                if (isQuarterlyServer(u2)) s2 -= 100;
+                                // Preferir co-asignación: si su pareja ya sirve en este servicio
+                                if (tienePareja(uid1)) s1 += 60;
+                                if (tienePareja(uid2)) s2 += 60;
 
                                 if (pass.name === 'General') {
                                     const team = assignments.filter(a => String(a.configuracion_dia_id) === String(config.id));
@@ -283,7 +324,6 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                             if (totalSrv < 3) reasons.push('Integración de nuevo');
                             if ((recentCount[String(selected.id)] || 0) === 0) reasons.push('Equidad: No ha servido');
                             if (!usersMap[String(selected.id)]?.isExternalLeader) reasons.push('Sin liderazgo externo');
-                            if (isQuarterlyServer(selected)) reasons.push('Servidor trimestral (baja prioridad)');
 
                             assignments.push({
                                 configuracion_dia_id: config.id,
@@ -299,6 +339,17 @@ export const useAutoAssign = (selectedDept: string | number | null) => {
                             
                             assignedPositions.add(slotKey);
                             planUsageCount[String(selected.id)] = (planUsageCount[String(selected.id)] || 0) + 1;
+
+                            // Actualizar estado del motor de restricciones
+                            if (restrData) {
+                                const sid = String(selected.id);
+                                monthTotal[sid] = (monthTotal[sid] || 0) + 1;
+                                if (diaSemana === 0) monthDom[sid] = (monthDom[sid] || 0) + 1;
+                                else monthWeek[sid] = (monthWeek[sid] || 0) + 1;
+                                if (!lastServed[sid] || dateStr > lastServed[sid]) lastServed[sid] = dateStr;
+                                const conteo = conteoGruposPorDia[dateStr] || (conteoGruposPorDia[dateStr] = new Map<number, number>());
+                                gruposDeUsuario(Number(selected.id), restrData).forEach(gid => conteo.set(gid, (conteo.get(gid) || 0) + 1));
+                            }
                         }
                     }
                 }

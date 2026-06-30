@@ -155,7 +155,8 @@ function PlanningWizardContent() {
                fecha: config.fecha,
                configuracion_dia_id: pseudoTargetId,
                posicion: positions.find(p => String(p.id) === String(a.posicion_id)),
-               usuario: a.usuario
+               usuario: a.usuario,
+               override_restriccion: a.override_restriccion ?? false
              });
           });
         }
@@ -458,7 +459,7 @@ function PlanningWizardContent() {
 
       // 3. Save assignments only for services that do not already have attendance.
       const batchSize = 500;
-      const assignmentsByConfigId = new Map<number, { configuracion_dia_id: number; usuario_id: number; posicion_id: number }[]>();
+      const assignmentsByConfigId = new Map<number, { configuracion_dia_id: number; usuario_id: number; posicion_id: number; override_restriccion: boolean }[]>();
 
       previewAssignments.forEach(a => {
         const serviceKey = String(a.configuracion_dia_id);
@@ -469,7 +470,8 @@ function PlanningWizardContent() {
         list.push({
           configuracion_dia_id: realConfigId,
           usuario_id: Number(a.usuario_id),
-          posicion_id: Number(a.posicion_id)
+          posicion_id: Number(a.posicion_id),
+          override_restriccion: a.override_restriccion ?? false
         });
         assignmentsByConfigId.set(realConfigId, list);
       });

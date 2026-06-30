@@ -28,6 +28,7 @@ export interface DraftAssignment {
     posicion?: Position;
     usuario?: { nombre: string; apellido: string };
     configuracion_dia_id?: number | string;
+    override_restriccion?: boolean;
     aiMetadata?: {
         reasons: string[];
         usageInPlan: number;
