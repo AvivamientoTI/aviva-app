@@ -1,4 +1,4 @@
-# Ujieres App
+# Aviva Appp
 
 Aplicacion web progresiva para la gestion operativa de servidores, ujieres, asistencia, calendario, planificacion mensual y analitica interna de la Iglesia Avivamiento y Poder.
 
