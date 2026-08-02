@@ -34,7 +34,7 @@ export function generateICS(events: ServiceEvent[], serverName: string): string 
         const dtEnd = icsDate(dayjs(ev.fecha).add(1, 'day').format('YYYY-MM-DD'));
         const summary = ev.posicion
             ? `Servicio: ${ev.posicion}`
-            : 'Servicio en Ujieres';
+            : 'Servicio en Aviva';
         const description = [
             serverName && `Servidor: ${serverName}`,
             ev.tipoServicio && `Tipo: ${ev.tipoServicio}`,
@@ -44,7 +44,7 @@ export function generateICS(events: ServiceEvent[], serverName: string): string 
 
         return [
             'BEGIN:VEVENT',
-            `UID:${uuid()}@ujieres-app`,
+            `UID:${uuid()}@aviva-app`,
             `DTSTAMP:${now}Z`,
             `DTSTART;VALUE=DATE:${dtStart}`,
             `DTEND;VALUE=DATE:${dtEnd}`,
@@ -58,7 +58,7 @@ export function generateICS(events: ServiceEvent[], serverName: string): string 
     return [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//Ujieres App//Rol de Servicios//ES',
+        'PRODID:-//Aviva App//Rol de Servicios//ES',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
         vEvents,
@@ -84,7 +84,7 @@ export function downloadICS(events: ServiceEvent[], serverName: string, fileName
 export function googleCalendarUrl(ev: ServiceEvent): string {
     const base = 'https://www.google.com/calendar/render?action=TEMPLATE';
     const dates = `${icsDate(ev.fecha)}/${icsDate(dayjs(ev.fecha).add(1, 'day').format('YYYY-MM-DD'))}`;
-    const text = encodeURIComponent(ev.posicion ? `Servicio: ${ev.posicion}` : 'Servicio en Ujieres');
+    const text = encodeURIComponent(ev.posicion ? `Servicio: ${ev.posicion}` : 'Servicio en Aviva');
     const details = encodeURIComponent([
         ev.tipoServicio && `Tipo: ${ev.tipoServicio}`,
         ev.uniforme && `Uniforme: ${ev.uniforme}`,
@@ -97,7 +97,7 @@ export function outlookCalendarUrl(ev: ServiceEvent): string {
     const base = 'https://outlook.live.com/calendar/0/deeplink/compose';
     const startdt = encodeURIComponent(`${ev.fecha}T00:00:00`);
     const enddt   = encodeURIComponent(`${dayjs(ev.fecha).add(1, 'day').format('YYYY-MM-DD')}T00:00:00`);
-    const subject = encodeURIComponent(ev.posicion ? `Servicio: ${ev.posicion}` : 'Servicio en Ujieres');
+    const subject = encodeURIComponent(ev.posicion ? `Servicio: ${ev.posicion}` : 'Servicio en Aviva');
     const body    = encodeURIComponent([
         ev.tipoServicio && `Tipo: ${ev.tipoServicio}`,
         ev.uniforme && `Uniforme: ${ev.uniforme}`,

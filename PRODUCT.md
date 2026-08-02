@@ -1,4 +1,4 @@
-# PRODUCT.md — Ujieres App
+# PRODUCT.md — Aviva App
 
 ## Product Purpose
 Operational management platform for church volunteer servers ("ujieres") at Iglesia Avivamiento y Poder. Centralizes attendance tracking, monthly scheduling, event management, and analytics — replacing manual spreadsheet workflows. The app reduces administrative overhead and brings visibility and fairness to volunteer coordination.
@@ -15,7 +15,7 @@ product
 Typical session: a lider opens the dashboard before a weekly service, reviews the upcoming calendar, checks attendance stats, and runs the monthly planning wizard. On service day, an encargado logs attendance on a phone from the church entrance.
 
 ## Brand
-- **Name**: Ujieres / Servidores Avivamiento y Poder
+- **Name**: Aviva App / Servidores Avivamiento y Poder
 - **Tone**: Professional, trustworthy, warm. Not casual. Not corporate cold. Volunteers serving with dignity.
 - **Primary color**: Orange-gold (`#d97706`, `#b45309`) — the flame that represents the church's identity
 - **Neutrals**: Warm stone tones (not cool gray)

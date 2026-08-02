@@ -458,7 +458,7 @@ function render(ctx: CanvasRenderingContext2D, grouped: Record<string, any>, dep
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(
-        `REPORTE OFICIAL  •  GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')}  •  © UJIERES APP SYSTEM`,
+        `REPORTE OFICIAL  •  GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')}  •  © AVIVA APP SYSTEM`,
         gridX + GRID_W / 2, y
     );
     ctx.textAlign = 'left';

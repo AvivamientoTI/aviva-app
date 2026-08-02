@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo.png', 'logo.svg'],
       manifest: {
-        name: 'Aviva Ujieres App',
+        name: 'Aviva App',
         short_name: 'Aviva App',
         description: 'Portal de gestión para servidores y ujieres',
         theme_color: '#ca8a04',

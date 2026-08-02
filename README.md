@@ -1,10 +1,10 @@
-# Aviva Appp
+# Aviva App
 
 Aplicacion web progresiva para la gestion operativa de servidores, ujieres, asistencia, calendario, planificacion mensual y analitica interna de la Iglesia Avivamiento y Poder.
 
 ## Descripcion General
 
-Ujieres App centraliza procesos que normalmente se gestionan de forma manual: asignacion de servidores por fecha y posicion, registro de asistencia, revision de ausencias, administracion de departamentos, suspensiones, disponibilidad, reportes y comunicacion de eventos internos.
+Aviva App centraliza procesos que normalmente se gestionan de forma manual: asignacion de servidores por fecha y posicion, registro de asistencia, revision de ausencias, administracion de departamentos, suspensiones, disponibilidad, reportes y comunicacion de eventos internos.
 
 El proyecto esta orientado a lideres, sublideres, encargados y servidores. Su proposito principal es reducir la carga administrativa de la coordinacion del ministerio, mejorar la trazabilidad de asistencia y facilitar una planificacion mensual mas equitativa.
 
@@ -103,7 +103,7 @@ Supabase
 ## Estructura del Proyecto
 
 ```text
-ujieres-app/
+aviva-app/
 |-- public/
 |   |-- logo-iglesia.png
 |   `-- vite.svg
@@ -414,7 +414,7 @@ TODO: El repositorio no define `engines` en `package.json`. Se recomienda fijar 
 
 ```bash
 git clone <url-del-repositorio>
-cd ujieres-app
+cd aviva-app
 ```
 
 2. Instalar dependencias:

@@ -20,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'ujieres-app'
+      'X-Client-Info': 'aviva-app'
     }
   }
 })

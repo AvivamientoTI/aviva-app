@@ -37,6 +37,8 @@ test-results
 .env.production
 .env.staging
 .env.*
+# ...but the documented contract (no real values) must be tracked
+!.env.example
 
 # OS
 Thumbs.db
