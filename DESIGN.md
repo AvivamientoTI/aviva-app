@@ -1,4 +1,4 @@
-# DESIGN.md — Ujieres App
+# DESIGN.md — Aviva App
 
 Generated from codebase analysis (`src/theme.js`, `src/index.css`, layout and component files).
 

@@ -97,11 +97,11 @@ export const exportHelper = {
             ctx.font = `700 ${Math.round(11 * ratio)}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.fillText(subtitleText, titleX, headerY + headerH * 0.68);
 
-            // Brand "UJIERES APP"
+            // Brand "AVIVA APP"
             ctx.fillStyle = '#d97706';
             ctx.font = `900 ${Math.round(13 * ratio)}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.textAlign = 'right';
-            ctx.fillText('UJIERES APP', headerX + headerW - Math.round(20 * ratio), headerY + headerH / 2);
+            ctx.fillText('AVIVA APP', headerX + headerW - Math.round(20 * ratio), headerY + headerH / 2);
             ctx.textAlign = 'left';
 
             // 5. Dibujar contenido
@@ -114,7 +114,7 @@ export const exportHelper = {
             ctx.font = `600 ${Math.round(9 * ratio)}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillText(
-                `REPORTE OFICIAL  •  GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')}  •  © UJIERES APP SYSTEM`,
+                `REPORTE OFICIAL  •  GENERADO EL ${dayjs().format('DD/MM/YYYY HH:mm')}  •  © AVIVA APP SYSTEM`,
                 totalWidth / 2,
                 footerY + FOOTER_H / 2
             );

@@ -1,4 +1,4 @@
-# Certificado de Preparación para Producción: Ujieres-App
+# Certificado de Preparación para Producción: Aviva-App
 
 Este documento certifica que la aplicación ha pasado por un proceso de endurecimiento (*hardening*) y optimización para soportar una base de usuarios de +200 voluntarios con alta disponibilidad y seguridad.
 
