@@ -107,8 +107,11 @@ export default function AnalyticsDashboard() {
         queryFn: () => analyticsService.fetchAttendanceStats(deptId!, 'YTD'),
         enabled: deptId != null,
         retry: 1,
-        refetchInterval: 1000 * 60 * 60, // refetch every hour
-        refetchIntervalInBackground: true
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: weeklyStatsData, isLoading: loadingWeekly, isError: errorWeekly } = useQuery({
@@ -116,8 +119,11 @@ export default function AnalyticsDashboard() {
         queryFn: () => analyticsService.fetchWeeklyStats(deptId!),
         enabled: deptId != null,
         retry: 1,
-        refetchInterval: 1000 * 60 * 60, // refetch every hour
-        refetchIntervalInBackground: true
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: annualStatsData, isLoading: loadingAnnual, isError: errorAnnual } = useQuery({
@@ -125,8 +131,11 @@ export default function AnalyticsDashboard() {
         queryFn: () => analyticsService.fetchAnnualStats(deptId!),
         enabled: deptId != null,
         retry: 1,
-        refetchInterval: 1000 * 60 * 60, // refetch every hour
-        refetchIntervalInBackground: true
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: churnRiskData, isLoading: loadingChurn, isError: errorChurn } = useQuery({
@@ -134,8 +143,11 @@ export default function AnalyticsDashboard() {
         queryFn: () => analyticsService.fetchChurnRisk(deptId!),
         enabled: deptId != null,
         retry: 1,
-        refetchInterval: 1000 * 60 * 60, // refetch every hour
-        refetchIntervalInBackground: true
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: demographicData, isLoading: loadingDemographic, isError: errorDemographic } = useQuery({
@@ -143,8 +155,11 @@ export default function AnalyticsDashboard() {
         queryFn: () => analyticsService.fetchDemographicDist(deptId!),
         enabled: deptId != null,
         retry: 1,
-        refetchInterval: 1000 * 60 * 60, // refetch every hour
-        refetchIntervalInBackground: true
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: punctualityData, isLoading: loadingPunctuality, isError: errorPunctuality } = useQuery({
@@ -152,8 +167,11 @@ export default function AnalyticsDashboard() {
         queryFn: () => analyticsService.fetchPunctualityTrends(deptId!),
         enabled: deptId != null,
         retry: 1,
-        refetchInterval: 1000 * 60 * 60, // refetch every hour
-        refetchIntervalInBackground: true
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: deptMembers } = useQuery({
