@@ -106,42 +106,72 @@ export default function AnalyticsDashboard() {
         queryKey: ['analytics', 'monthly', deptId],
         queryFn: () => analyticsService.fetchAttendanceStats(deptId!, 'YTD'),
         enabled: deptId != null,
-        retry: 1
+        retry: 1,
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: weeklyStatsData, isLoading: loadingWeekly, isError: errorWeekly } = useQuery({
         queryKey: ['analytics', 'weekly', deptId],
         queryFn: () => analyticsService.fetchWeeklyStats(deptId!),
         enabled: deptId != null,
-        retry: 1
+        retry: 1,
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: annualStatsData, isLoading: loadingAnnual, isError: errorAnnual } = useQuery({
         queryKey: ['analytics', 'annual', deptId],
         queryFn: () => analyticsService.fetchAnnualStats(deptId!),
         enabled: deptId != null,
-        retry: 1
+        retry: 1,
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: churnRiskData, isLoading: loadingChurn, isError: errorChurn } = useQuery({
         queryKey: ['analytics', 'churn', deptId],
         queryFn: () => analyticsService.fetchChurnRisk(deptId!),
         enabled: deptId != null,
-        retry: 1
+        retry: 1,
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: demographicData, isLoading: loadingDemographic, isError: errorDemographic } = useQuery({
         queryKey: ['analytics', 'demographics', deptId],
         queryFn: () => analyticsService.fetchDemographicDist(deptId!),
         enabled: deptId != null,
-        retry: 1
+        retry: 1,
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: punctualityData, isLoading: loadingPunctuality, isError: errorPunctuality } = useQuery({
         queryKey: ['analytics', 'punctuality', deptId],
         queryFn: () => analyticsService.fetchPunctualityTrends(deptId!),
         enabled: deptId != null,
-        retry: 1
+        retry: 1,
+        staleTime: 1000 * 60 * 5,
+        refetchInterval: 1000 * 60 * 60,
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true
     });
 
     const { data: deptMembers } = useQuery({

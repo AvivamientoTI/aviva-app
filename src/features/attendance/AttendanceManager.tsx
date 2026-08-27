@@ -39,6 +39,7 @@ import { attendanceService, type ServiceDay, type AttendanceRecordWithDetails } 
 import { supabase } from '../../services/supabaseClient';
 import { IconBell, IconLock } from '@tabler/icons-react';
 import dayjs from 'dayjs';
+import { useQueryClient } from '@tanstack/react-query';
 import { ATTENDANCE_STATES, JUSTIFICATION_TYPES, type JustificationType } from '../../constants/attendance';
 
 const UNMARKED_ATTENDANCE_VALUE = '__sin_marcar__';
@@ -60,6 +61,7 @@ export default function AttendanceManager() {
     const [hasUnsavedDraft, setHasUnsavedDraft] = useState(false);
 
     const permissions = usePermissions();
+    const queryClient = useQueryClient();
     const isDirty = useRef(false);
     const notifiedServices = useRef<Set<string>>(new Set());
 
@@ -235,6 +237,12 @@ export default function AttendanceManager() {
                 registrado_por: userProfile?.usuario_id ?? null
             }));
             await attendanceService.updateAttendanceRecords(recordsToUpdate);
+
+            queryClient.invalidateQueries({ queryKey: ['analytics'] });
+            queryClient.invalidateQueries({ queryKey: ['personalStats'] });
+            queryClient.invalidateQueries({ queryKey: ['deptStats'] });
+            queryClient.invalidateQueries({ queryKey: ['upcomingServices'] });
+
             isDirty.current = false;
             setHasUnsavedDraft(false);
             clearDraft();
