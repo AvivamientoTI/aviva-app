@@ -18,6 +18,33 @@ type AttendanceWithRelations = Database['public']['Tables']['asistencias']['Row'
   };
 };
 
+const SUPABASE_PAGE_SIZE = 1000;
+
+/**
+ * PostgREST caps unpaginated selects at ~1000 rows. Departments with months of
+ * attendance history routinely exceed that, so aggregation queries must page
+ * through the full result set instead of silently truncating it.
+ */
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await buildQuery(from, from + SUPABASE_PAGE_SIZE - 1);
+    if (error) throw error;
+
+    const page = data || [];
+    rows.push(...page);
+
+    if (page.length < SUPABASE_PAGE_SIZE) break;
+    from += SUPABASE_PAGE_SIZE;
+  }
+
+  return rows;
+}
+
 export const analyticsService = {
   /**
    * Obtiene los próximos servicios para un usuario específico
@@ -95,22 +122,24 @@ export const analyticsService = {
       ? dayjs().startOf('year').format('YYYY-MM-DD')
       : dayjs().subtract(range, 'month').startOf('month').format('YYYY-MM-DD');
 
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        configuracion_dia!inner (
-          fecha,
-          roles_cabecera!inner (
-            departamento_id
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('asistencias')
+        .select(`
+          estado,
+          configuracion_dia!inner (
+            fecha,
+            roles_cabecera!inner (
+              departamento_id
+            )
           )
-        )
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startDate);
-
-    if (error) throw error;
-    return this.processAttendanceData(data || []);
+        `)
+        .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+        .gte('configuracion_dia.fecha', startDate)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+    return this.processAttendanceData(data);
   },
 
   async fetchUserAttendanceStats(userId: number, deptId: number, range: 'YTD' | number = 2): Promise<StatsData> {
@@ -118,23 +147,25 @@ export const analyticsService = {
       ? dayjs().startOf('year').format('YYYY-MM-DD')
       : dayjs().subtract(range, 'month').startOf('month').format('YYYY-MM-DD');
 
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        configuracion_dia!inner (
-          fecha,
-          roles_cabecera!inner (
-            departamento_id
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('asistencias')
+        .select(`
+          estado,
+          configuracion_dia!inner (
+            fecha,
+            roles_cabecera!inner (
+              departamento_id
+            )
           )
-        )
-      `)
-      .eq('usuario_id', userId)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startDate);
-
-    if (error) throw error;
-    return this.processAttendanceData(data || []);
+        `)
+        .eq('usuario_id', userId)
+        .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+        .gte('configuracion_dia.fecha', startDate)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+    return this.processAttendanceData(data);
   },
 
   processAttendanceData(data: any[]): StatsData {
@@ -148,36 +179,46 @@ export const analyticsService = {
       faltoSinAviso: 0,
     };
     
-    const byMonth: Record<string, MonthlyStat> = {};
+    const byMonthUnsorted: Record<string, MonthlyStat> = {};
+    const sortKeys: Record<string, string> = {};
     const lastMonthStr = dayjs().subtract(1, 'month').format('MMM YYYY');
 
     for (let i = 0; i < rawData.length; i++) {
         const r = rawData[i];
         const status = r.estado;
         if (!status) continue;
-        
+
         // Actualizar sumario
         if (status === ATTENDANCE_STATES.ASISTIO) summary.asistio++;
         else if (status === ATTENDANCE_STATES.CON_JUSTIFICACION) summary.faltoConAviso++;
         else if (status === ATTENDANCE_STATES.SIN_JUSTIFICACION) summary.faltoSinAviso++;
         else continue;
-        
+
         // Actualizar por mes
         const date = dayjs(r.configuracion_dia.fecha);
         const monthKey = date.format('MMM YYYY');
-        
-        if (!byMonth[monthKey]) {
-            byMonth[monthKey] = { month: monthKey, asistio: 0, faltas: 0 };
+
+        if (!byMonthUnsorted[monthKey]) {
+            byMonthUnsorted[monthKey] = { month: monthKey, asistio: 0, faltas: 0 };
+            sortKeys[monthKey] = date.format('YYYY-MM');
         }
-        
+
         if (status === ATTENDANCE_STATES.ASISTIO) {
-            byMonth[monthKey].asistio++;
+            byMonthUnsorted[monthKey].asistio++;
         } else {
-            byMonth[monthKey].faltas++;
+            byMonthUnsorted[monthKey].faltas++;
         }
     }
 
     summary.total = summary.asistio + summary.faltoConAviso + summary.faltoSinAviso;
+
+    // Reconstruir en orden cronológico: rawData ya no llega ordenada por fecha
+    // (se pagina por id para no chocar con el límite de filas de PostgREST),
+    // así que el orden de inserción original ya no refleja el orden real de los meses.
+    const byMonth: Record<string, MonthlyStat> = {};
+    for (const monthKey of Object.keys(byMonthUnsorted).sort((a, b) => sortKeys[a].localeCompare(sortKeys[b]))) {
+        byMonth[monthKey] = byMonthUnsorted[monthKey];
+    }
 
     const stats: StatsData = {
       summary,
@@ -192,25 +233,27 @@ export const analyticsService = {
   async fetchWeeklyStats(deptId: number): Promise<any[]> {
     const startDate = dayjs().subtract(12, 'week').startOf('week').format('YYYY-MM-DD');
 
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        configuracion_dia!inner (
-          fecha,
-          roles_cabecera!inner (
-            departamento_id
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('asistencias')
+        .select(`
+          estado,
+          configuracion_dia!inner (
+            fecha,
+            roles_cabecera!inner (
+              departamento_id
+            )
           )
-        )
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startDate);
-
-    if (error) throw error;
+        `)
+        .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+        .gte('configuracion_dia.fecha', startDate)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
     const byWeek: Record<string, { weekStart: string; present: number; absent: number; total: number }> = {};
 
-    for (const r of (data || []) as any[]) {
+    for (const r of data as any[]) {
       const date = dayjs((r.configuracion_dia as any).fecha);
       const weekKey = date.startOf('week').format('YYYY-MM-DD');
       if (!byWeek[weekKey]) {
@@ -234,24 +277,26 @@ export const analyticsService = {
   async fetchAnnualStats(deptId: number): Promise<any> {
     const startOfYear = dayjs().startOf('year').format('YYYY-MM-DD');
 
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        configuracion_dia!inner (
-          fecha,
-          roles_cabecera!inner (
-            departamento_id
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('asistencias')
+        .select(`
+          estado,
+          configuracion_dia!inner (
+            fecha,
+            roles_cabecera!inner (
+              departamento_id
+            )
           )
-        )
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startOfYear);
-
-    if (error) throw error;
+        `)
+        .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+        .gte('configuracion_dia.fecha', startOfYear)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
     const byDate: Record<string, number> = {};
-    for (const r of (data || []) as any[]) {
+    for (const r of data as any[]) {
       const fecha = (r.configuracion_dia as any).fecha as string;
       if (r.estado === 'Asistió') {
         byDate[fecha] = (byDate[fecha] || 0) + 1;
@@ -262,7 +307,7 @@ export const analyticsService = {
 
     return {
       year: dayjs().year(),
-      totalServices: (data || []).filter((r: any) => r.estado === 'Asistió').length,
+      totalServices: data.filter((r: any) => r.estado === 'Asistió').length,
       uniqueDates: heatmapData.length,
       heatmapData
     };
@@ -271,26 +316,28 @@ export const analyticsService = {
   async fetchChurnRisk(deptId: number): Promise<ChurnRiskUser[]> {
     const startDate = dayjs().subtract(4, 'week').format('YYYY-MM-DD');
 
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        usuario_id,
-        estado,
-        usuario:usuarios!asistencias_usuario_id_fkey (nombre, apellido),
-        configuracion_dia!inner (
-          fecha,
-          roles_cabecera!inner (
-            departamento_id
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('asistencias')
+        .select(`
+          usuario_id,
+          estado,
+          usuario:usuarios!asistencias_usuario_id_fkey (nombre, apellido),
+          configuracion_dia!inner (
+            fecha,
+            roles_cabecera!inner (
+              departamento_id
+            )
           )
-        )
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startDate);
-
-    if (error) throw error;
+        `)
+        .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+        .gte('configuracion_dia.fecha', startDate)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
     const byUser: Record<string, any> = {};
-    for (const r of (data || []) as any[]) {
+    for (const r of data as any[]) {
       const uid = String(r.usuario_id);
       if (!byUser[uid]) {
         byUser[uid] = {
@@ -320,24 +367,26 @@ export const analyticsService = {
     const { data: depts } = await supabase.from('departamentos').select('id, nombre');
     if (!depts) return [];
 
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        usuario_id,
-        configuracion_dia!inner (
-          fecha,
-          roles_cabecera!inner (
-            departamento_id
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('asistencias')
+        .select(`
+          estado,
+          usuario_id,
+          configuracion_dia!inner (
+            fecha,
+            roles_cabecera!inner (
+              departamento_id
+            )
           )
-        )
-      `)
-      .gte('configuracion_dia.fecha', last3Months);
-
-    if (error) throw error;
+        `)
+        .gte('configuracion_dia.fecha', last3Months)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
     const statsByDept: Record<number, { total: number; present: number; users: Set<string> }> = {};
-    for (const r of (data || []) as any[]) {
+    for (const r of data as any[]) {
       const deptId = (r.configuracion_dia as any).roles_cabecera?.departamento_id;
       if (!deptId) continue;
       if (!statsByDept[deptId]) statsByDept[deptId] = { total: 0, present: 0, users: new Set() };
@@ -361,24 +410,26 @@ export const analyticsService = {
   async fetchPunctualityTrends(deptId: number): Promise<PunctualityStat[]> {
     const startDate = dayjs().subtract(3, 'month').format('YYYY-MM-DD');
 
-    const { data, error } = await supabase
-      .from('asistencias')
-      .select(`
-        estado,
-        configuracion_dia!inner (
-          fecha,
-          roles_cabecera!inner (
-            departamento_id
+    const data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('asistencias')
+        .select(`
+          estado,
+          configuracion_dia!inner (
+            fecha,
+            roles_cabecera!inner (
+              departamento_id
+            )
           )
-        )
-      `)
-      .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
-      .gte('configuracion_dia.fecha', startDate);
-
-    if (error) throw error;
+        `)
+        .eq('configuracion_dia.roles_cabecera.departamento_id', deptId)
+        .gte('configuracion_dia.fecha', startDate)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
     const counts: Record<string, number> = {};
-    for (const r of (data || []) as any[]) {
+    for (const r of data as any[]) {
       const label = r.estado || 'Sin registro';
       counts[label] = (counts[label] || 0) + 1;
     }

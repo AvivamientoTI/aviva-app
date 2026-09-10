@@ -9,7 +9,10 @@ import '@mantine/notifications/styles.css';
 import App from './App';
 import './index.css';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/es';
+
+dayjs.extend(customParseFormat);
 import { theme } from './theme';
 import { inject } from '@vercel/analytics';
 import * as Sentry from "@sentry/react";

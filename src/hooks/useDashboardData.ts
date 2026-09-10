@@ -65,6 +65,9 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         queryFn: () => analyticsService.fetchUpcomingServices(userId!),
         enabled: !!userId,
         staleTime: 1000 * 30,
+        refetchInterval: 1000 * 60 * 5,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
         select: (data) => data as UpcomingService[]
     });
 
@@ -76,6 +79,9 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         queryFn: () => analyticsService.fetchUpcomingCount(userId!),
         enabled: !!userId,
         staleTime: 1000 * 30,
+        refetchInterval: 1000 * 60 * 5,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
     });
 
     // Personal stats — always shown for all users
@@ -88,6 +94,9 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         queryFn: () => analyticsService.fetchUserAttendanceStats(userId!, servidoresDeptId!, 'YTD'),
         enabled: !!userId && !!servidoresDeptId,
         staleTime: 1000 * 30,
+        refetchInterval: 1000 * 60 * 60,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
         select: (data) => data as StatsData
     });
 
@@ -100,6 +109,9 @@ export const useDashboardData = (selectedDeptId: number | null) => {
         queryFn: () => analyticsService.fetchAttendanceStats((managedDeptId ?? effectiveDeptId)!, 'YTD'),
         enabled: isLeader && !!(managedDeptId ?? effectiveDeptId),
         staleTime: 1000 * 30,
+        refetchInterval: 1000 * 60 * 60,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
         select: (data) => data as StatsData
     });
 
