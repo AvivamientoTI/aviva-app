@@ -84,7 +84,11 @@ describe('analyticsService', () => {
                 })
                 .mockReturnValueOnce({
                     select: vi.fn().mockReturnValue({
-                        gte: vi.fn().mockResolvedValue({ data: mockAttendance, error: null }),
+                        gte: vi.fn().mockReturnValue({
+                            order: vi.fn().mockReturnValue({
+                                range: vi.fn().mockResolvedValue({ data: mockAttendance, error: null }),
+                            }),
+                        }),
                     }),
                 });
 
@@ -160,7 +164,11 @@ describe('analyticsService', () => {
             (supabase.from as any).mockReturnValueOnce({
                 select: vi.fn().mockReturnValue({
                     eq: vi.fn().mockReturnValue({
-                        gte: vi.fn().mockResolvedValue({ data: mockAttendance, error: null })
+                        gte: vi.fn().mockReturnValue({
+                            order: vi.fn().mockReturnValue({
+                                range: vi.fn().mockResolvedValue({ data: mockAttendance, error: null })
+                            })
+                        })
                     })
                 })
             });
@@ -176,7 +184,11 @@ describe('analyticsService', () => {
             (supabase.from as any).mockReturnValueOnce({
                 select: vi.fn().mockReturnValue({
                     eq: vi.fn().mockReturnValue({
-                        gte: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB Error' } })
+                        gte: vi.fn().mockReturnValue({
+                            order: vi.fn().mockReturnValue({
+                                range: vi.fn().mockResolvedValue({ data: null, error: { message: 'DB Error' } })
+                            })
+                        })
                     })
                 })
             });
@@ -196,7 +208,11 @@ describe('analyticsService', () => {
             (supabase.from as any).mockReturnValueOnce({
                 select: vi.fn().mockReturnValue({
                     eq: vi.fn().mockReturnValue({
-                        gte: vi.fn().mockResolvedValue({ data: mockAttendance, error: null })
+                        gte: vi.fn().mockReturnValue({
+                            order: vi.fn().mockReturnValue({
+                                range: vi.fn().mockResolvedValue({ data: mockAttendance, error: null })
+                            })
+                        })
                     })
                 })
             });

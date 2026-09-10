@@ -256,17 +256,58 @@ export default function Dashboard() {
                             color="stone"
                         />
                     </Box>
-                    <Box className="animate-fade-in card-stagger-5">
-                        <StatCard
-                            title="Departamentos"
-                            value={Array.from(new Set([
-                                ...(attendanceManagedDepartments?.map(d => d.id) || []),
-                                ...(userMemberships?.map(m => m.departamento?.id).filter(Boolean) || [])
-                            ])).length}
-                            icon={<IconUsers size={24} />}
-                            color="orange"
-                        />
-                    </Box>
+                  <Box className="animate-fade-in card-stagger-5">
+  <Menu shadow="md" width={260} position="bottom" withArrow>
+    <Menu.Target>
+      <Box
+        style={{
+          cursor: 'pointer',
+        }}
+      >
+        <StatCard
+          title="Departamentos"
+          value={Array.from(
+            new Set([
+              ...(attendanceManagedDepartments?.map(d => d.id) || []),
+              ...(userMemberships
+                ?.map(m => m.departamento?.id)
+                .filter(Boolean) || []),
+            ])
+          ).length}
+          icon={<IconUsers size={24} />}
+          color="orange"
+        />
+      </Box>
+    </Menu.Target>
+
+    <Menu.Dropdown>
+      <Menu.Label>Mis departamentos</Menu.Label>
+
+      {userMemberships
+        ?.filter(m => m.departamento)
+        .filter(
+          (m, index, self) =>
+            index ===
+            self.findIndex(
+              x => x.departamento?.id === m.departamento?.id
+            )
+        )
+        .map(m => (
+          <Menu.Item key={m.departamento!.id}>
+            <Stack gap={2}>
+              <Text fw={700}>
+                {m.departamento!.nombre}
+              </Text>
+
+              <Text size="xs" c="dimmed">
+                {m.rol_jerarquico || 'Sin rol'}
+              </Text>
+            </Stack>
+          </Menu.Item>
+        ))}
+    </Menu.Dropdown>
+  </Menu>
+</Box>
                 </SimpleGrid>
             </Box>
 
