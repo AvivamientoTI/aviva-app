@@ -113,16 +113,15 @@ export default defineConfig(({ mode }) => {
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('@mantine') || id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'frameworks';
-            }
-            if (id.includes('@supabase')) {
-              return 'supabase';
-            }
-            if (id.includes('dayjs') || id.includes('html-to-image') || id.includes('react-big-calendar')) {
-              return 'utils';
-            }
+          if (!id.includes('node_modules')) return;
+          if (/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom|@remix-run\/router)\//.test(id)) {
+            return 'react';
+          }
+          if (/node_modules\/@mantine\/(core|hooks|notifications)\//.test(id)) {
+            return 'mantine';
+          }
+          if (id.includes('@supabase')) {
+            return 'supabase';
           }
         }
       }
