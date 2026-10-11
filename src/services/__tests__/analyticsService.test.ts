@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { analyticsService } from '../analyticsService';
 import { supabase } from '../supabaseClient';
 import { ATTENDANCE_STATES } from '../../constants/attendance';
+import dayjs from 'dayjs';
 
 describe('analyticsService', () => {
     beforeEach(() => vi.clearAllMocks());
@@ -199,10 +200,13 @@ describe('analyticsService', () => {
 
     describe('fetchPunctualityTrends', () => {
         it('should group attendance records by estado and return counts', async () => {
+            const recent = (daysAgo: number) => dayjs().subtract(daysAgo, 'day').format('YYYY-MM-DD');
             const mockAttendance = [
-                { estado: 'Asistió', configuracion_dia: { fecha: '2026-01-01', roles_cabecera: [{ departamento_id: 1 }] } },
-                { estado: 'Asistió', configuracion_dia: { fecha: '2026-01-08', roles_cabecera: [{ departamento_id: 1 }] } },
-                { estado: 'Faltó sin Aviso', configuracion_dia: { fecha: '2026-01-15', roles_cabecera: [{ departamento_id: 1 }] } },
+                { estado: 'Asistió', configuracion_dia: { fecha: recent(1), roles_cabecera: { departamento_id: 1 } } },
+                { estado: 'Asistió', configuracion_dia: { fecha: recent(8), roles_cabecera: { departamento_id: 1 } } },
+                { estado: 'Faltó sin Aviso', configuracion_dia: { fecha: recent(15), roles_cabecera: { departamento_id: 1 } } },
+                // Fuera de la ventana de 3 meses: la descarga compartida lo trae, pero se filtra en memoria.
+                { estado: 'Asistió', configuracion_dia: { fecha: recent(200), roles_cabecera: { departamento_id: 1 } } },
             ];
 
             (supabase.from as any).mockReturnValueOnce({
@@ -222,6 +226,69 @@ describe('analyticsService', () => {
             const falto = result.find(r => r.label === 'Faltó sin Aviso');
             expect(asistio?.count).toBe(2);
             expect(falto?.count).toBe(1);
+        });
+    });
+
+    describe('descarga compartida del departamento', () => {
+        const makeRows = (n: number) => Array.from({ length: n }, (_, i) => ({
+            estado: i % 2 === 0 ? 'Asistió' : 'Faltó sin Aviso',
+            configuracion_dia: {
+                fecha: dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
+                roles_cabecera: { departamento_id: 7 },
+            },
+        }));
+
+        // Simula PostgREST: devuelve la porción pedida con `.range(from, to)` y el total en `count`.
+        const mockPagedTable = (rows: any[]) => {
+            const range = vi.fn().mockImplementation((from: number, to: number) =>
+                Promise.resolve({ data: rows.slice(from, to + 1), error: null, count: rows.length })
+            );
+            (supabase.from as any).mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockReturnValue({
+                        gte: vi.fn().mockReturnValue({
+                            order: vi.fn().mockReturnValue({ range })
+                        })
+                    })
+                })
+            });
+            return range;
+        };
+
+        it('pide las páginas restantes en paralelo y no pierde filas', async () => {
+            const range = mockPagedTable(makeRows(2500));
+
+            const stats = await analyticsService.fetchAttendanceStats(7, 'YTD');
+
+            expect(stats.summary.total).toBe(2500);
+            expect(range).toHaveBeenCalledTimes(3);
+            expect(range.mock.calls.map(c => c[0]).sort((a, b) => a - b)).toEqual([0, 1000, 2000]);
+        });
+
+        it('vistas simultáneas del mismo departamento comparten una sola descarga', async () => {
+            const range = mockPagedTable(makeRows(1500));
+
+            const [monthly, weekly, annual, punctuality] = await Promise.all([
+                analyticsService.fetchAttendanceStats(7, 'YTD'),
+                analyticsService.fetchWeeklyStats(7),
+                analyticsService.fetchAnnualStats(7),
+                analyticsService.fetchPunctualityTrends(7),
+            ]);
+
+            expect(range).toHaveBeenCalledTimes(2);
+            expect(monthly.summary.total).toBe(1500);
+            expect(weekly.reduce((acc: number, w: any) => acc + w.total, 0)).toBe(1500);
+            expect(annual.totalServices).toBe(750);
+            expect(punctuality.reduce((acc, p) => acc + p.count, 0)).toBe(1500);
+        });
+
+        it('no reutiliza datos ya terminados: una consulta posterior vuelve a la base', async () => {
+            const range = mockPagedTable(makeRows(10));
+
+            await analyticsService.fetchAttendanceStats(7, 'YTD');
+            await analyticsService.fetchAttendanceStats(7, 'YTD');
+
+            expect(range).toHaveBeenCalledTimes(2);
         });
     });
 

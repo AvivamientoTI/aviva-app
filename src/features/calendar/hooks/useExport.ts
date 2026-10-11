@@ -1,6 +1,4 @@
 import { useCallback, type MutableRefObject } from 'react';
-import { jsPDF } from 'jspdf';
-import { exportHelper } from '../../../utils/exportHelper';
 import { notify } from '../../../utils/notificationsHelper';
 import { exportCalendarImage, generateCalendarCanvas } from '../utils/calendarImageExport';
 import dayjs from 'dayjs';
@@ -29,6 +27,7 @@ export function useExport() {
 
             const imgData = canvas.toDataURL('image/jpeg', 0.98);
             
+            const { jsPDF } = await import('jspdf');
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const pdfW = pdf.internal.pageSize.getWidth();
             const pdfH = pdf.internal.pageSize.getHeight();
@@ -72,6 +71,7 @@ export function useExport() {
         }
         const dateLabel = dayjs().format('MMMM_YYYY');
         const cleanFileName = fileName.replace('.png', '') + `_${dateLabel}.png`;
+        const { exportHelper } = await import('../../../utils/exportHelper');
         await exportHelper.captureAndDownload(ref.current, {
             fileName: cleanFileName,
             title: options?.title || 'Programación de Servicios',

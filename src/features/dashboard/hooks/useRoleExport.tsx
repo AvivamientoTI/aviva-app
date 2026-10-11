@@ -1,7 +1,5 @@
 import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
-import { jsPDF } from 'jspdf';
-import { exportHelper } from '../../../utils/exportHelper';
 import { analyticsService } from '../../../services/analyticsService';
 import { notify } from '../../../utils/notificationsHelper';
 
@@ -37,6 +35,10 @@ export function useRoleExport(userProfile: any) {
             setTimeout(async () => {
                 if (reportRef.current) {
                     try {
+                        const [{ exportHelper }, { jsPDF }] = await Promise.all([
+                            import('../../../utils/exportHelper'),
+                            import('jspdf'),
+                        ]);
                         const dataUrl = await exportHelper.captureAndDownload(reportRef.current, {
                             fileName: `Mi_Rol_Servicio_${dayjs().format('MMMM_YYYY')}.png`,
                             title: 'Mi Rol de Servicio',
